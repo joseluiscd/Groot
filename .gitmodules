@@ -1,0 +1,3 @@
+[submodule "util/cfglib"]
+	path = util/cfglib
+	url = https://github.com/joseluiscd/cfglib.git
