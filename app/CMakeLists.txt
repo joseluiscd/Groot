@@ -1,2 +1,3 @@
 add_subdirectory(create_graph)
 add_subdirectory(cluster_graph)
+add_subdirectory(view_graph)

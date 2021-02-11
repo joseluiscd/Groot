@@ -201,7 +201,8 @@ PlantGraph PlantGraph::read_from_file(std::istream& input)
         .nodeMap("point", *points, GlmFromString<glm::vec3>())
         .nodeMap("radius", *radii)
         .edgeMap("length", *lengths)
-        .node("root", root_node);
+        .node("root", root_node)
+        .run();
 
     PlantGraph ret;
 

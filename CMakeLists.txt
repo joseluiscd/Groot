@@ -19,6 +19,8 @@ find_package(LEMON REQUIRED) # 1.3
 find_package(glm REQUIRED)
 find_package(spdlog 1.8 REQUIRED)
 
+add_subdirectory(gfx)
+
 file(GLOB SOURCES 
     include/groot/*.hpp
     include/groot/*.h

@@ -16,6 +16,7 @@ using EdgeT = GraphT::Edge;
 using ArcT = GraphT::Arc;
 using NodeIt = GraphT::NodeIt;
 using ArcIt = GraphT::ArcIt;
+using EdgeIt = GraphT::EdgeIt;
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 
@@ -39,6 +40,13 @@ namespace point_finder {
     NodeT min_coord(const PlantGraph& graph, size_t axis);
     NodeT max_coord(const PlantGraph& graph, size_t axis);
 
+    struct MinX : public PointFinder {
+        virtual NodeT operator()(const PlantGraph& graph) const
+        {
+            return min_coord(graph, 0);
+        }
+    };
+
     struct MinY : public PointFinder {
         virtual NodeT operator()(const PlantGraph& graph) const
         {
@@ -52,12 +60,33 @@ namespace point_finder {
             return min_coord(graph, 2);
         }
     };
+
+    struct MaxX : public PointFinder {
+        virtual NodeT operator()(const PlantGraph& graph) const
+        {
+            return max_coord(graph, 0);
+        }
+    };
+
+    struct MaxY : public PointFinder {
+        virtual NodeT operator()(const PlantGraph& graph) const
+        {
+            return max_coord(graph, 1);
+        }
+    };
+
+    struct MaxZ : public PointFinder {
+        virtual NodeT operator()(const PlantGraph& graph) const
+        {
+            return max_coord(graph, 2);
+        }
+    };
 };
 
 enum class SearchType {
     kKnnSearch = 0,
     kRadiusSearch = 1,
-    kCount = 2,
+    kCount,
 };
 
 extern std::string SearchType_Names[(size_t)SearchType::kCount + 1];
