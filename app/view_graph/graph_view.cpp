@@ -1,6 +1,7 @@
 #include "graph_view.hpp"
 #include <gfx/camera.hpp>
 #include <gfx/shader_program.hpp>
+#include <gfx/debug_draw.hpp>
 
 const char* vertex_shader_source = "\n"
                                    "layout (location=0) in vec3 in_Position;\n"
@@ -39,6 +40,8 @@ GraphViewer::GraphViewer(groot::PlantGraph& _graph)
     , lines()
     , color_point(glm::vec3(1, 0, 0))
     , color_line(glm::vec3(0, 1, 0))
+    , root()
+    , draw_root(false)
 {
     point_vao
         .add_buffer(point_layout, points)
@@ -62,6 +65,7 @@ gfx::RenderPipeline& GraphViewer::get_pipeline()
                                                                .with_vertex_shader(vertex_shader_source)
                                                                .with_fragment_shader(fragment_shader_source)
                                                                .build())
+                                              .clear_color(glm::vec4(0.4, 0.4, 0.4, 0.0))
                                               .build();
 
     return pipeline;
@@ -95,6 +99,9 @@ void GraphViewer::set_plant_graph(groot::PlantGraph& _graph)
 
     point_vao.set_element_count(edit_points.vector().size());
     line_vao.set_element_count(edit_lines.vector().size());
+
+    draw_root = true;
+    root = (*graph->point)[graph->root];
 }
 
 void GraphViewer::render(gfx::RenderSurface& surface, gfx::ICamera& camera)
@@ -107,4 +114,6 @@ void GraphViewer::render(gfx::RenderSurface& surface, gfx::ICamera& camera)
         .bind(color_line)
         .draw(line_vao)
         .end_render();
+
+    if (draw_root) dd::point(root, dd::colors::Yellow, 15.0, 0, false);
 }

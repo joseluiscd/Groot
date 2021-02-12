@@ -105,33 +105,43 @@ int main()
 
     GraphViewer viewer(graph);
 
+    auto update_graph = [&](groot::PlantGraph&& g) {
+        graph = std::move(g);
+        viewer.set_plant_graph(graph);
+        spdlog::info("Setting plant graph");
+    };
 
-    CreateGraph graph_creator(graph);
-    graph_creator.on_update([&](groot::PlantGraph& g){
-        viewer.set_plant_graph(g);
-        spdlog::info("Run set plant graph");
-    });
+
+    CreateGraph graph_creator(update_graph);
+
+    bool style_editor = false;
 
     app.main_loop([&]() {
-        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-        glEnable(GL_PROGRAM_POINT_SIZE);
-
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Open PLY")) {
-                    graph_creator.show = true;
+                    graph_creator.show();
                 }
 
                 if (ImGui::MenuItem("Open Graph", "CTRL+O")) {
                     file_dialog.Open();
                 }
+                ImGui::EndMenu();
+            }
 
-
+            if (ImGui::BeginMenu("Edit")) {
+                if (ImGui::MenuItem("Styles")) {
+                    style_editor = true;
+                }
                 ImGui::EndMenu();
             }
             ImGui::EndMainMenuBar();
         }
 
+        if(style_editor) {
+            ImGui::ShowStyleEditor();
+        }
+        
         file_dialog.Display();
         if (file_dialog.HasSelected()) {
             std::ifstream file(file_dialog.GetSelected());
@@ -145,7 +155,7 @@ int main()
             file_dialog.ClearSelected();
         }
 
-        graph_creator.draw_gui();
+        graph_creator.run_gui();
 
 
         //draw_graph(graph);

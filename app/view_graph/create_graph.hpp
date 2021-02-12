@@ -4,9 +4,10 @@
 #include <gfx/imgui/imgui.h>
 #include <groot/skeleton.hpp>
 #include <string>
+#include "operation.hpp"
 
-struct CreateGraph {
-    CreateGraph(groot::PlantGraph& output_graph);
+struct CreateGraph : public Operation<groot::PlantGraph> {
+    CreateGraph(std::function<void(groot::PlantGraph&&)> on_result);
 
     enum Method {
         kRadius = 0,
@@ -32,12 +33,10 @@ struct CreateGraph {
         kMakeTreeMethod_COUNT,
     };
 
-    bool show;
-
     ImGui::FileBrowser open;
     ImGui::FileBrowser save;
 
-    std::string input_file = "input.ply";
+    std::string input_file = "";
     std::string output_file = "";
 
     int selected_method = 0;
@@ -47,15 +46,9 @@ struct CreateGraph {
     int k = 0;
     double radius = 1.0;
 
-    groot::PlantGraph& output_graph;
-    std::function<void(groot::PlantGraph&)> update;
+    void window();
+    std::variant<groot::PlantGraph, std::string> operation() const;
 
-    void draw_gui();
-    void run();
-    void on_update(std::function<void(groot::PlantGraph&)> update) 
-    {
-        this->update = update;
-    }
 
     static constexpr const char* method_labels[3] = {
         "Radius search",

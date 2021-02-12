@@ -13,8 +13,8 @@ using Cloud = pcl::PointCloud<pcl::PointXYZ>;
 const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
 const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
 
-CreateGraph::CreateGraph(groot::PlantGraph& _out_graph)
-    : output_graph(_out_graph)
+CreateGraph::CreateGraph(std::function<void(groot::PlantGraph&&)> callback)
+    : Operation(callback)
     , open(open_flags)
     , save(save_flags)
 {
@@ -25,26 +25,26 @@ CreateGraph::CreateGraph(groot::PlantGraph& _out_graph)
     save.SetTypeFilters({ ".lgf" });
 }
 
-void CreateGraph::draw_gui()
+void CreateGraph::window()
 {
-    if (!show) {
-        return;
-    }
-
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Create graph");
 
-    ImGui::Text(input_file.c_str());
+    ImGui::Begin("Create graph", &_show);
+
     if (ImGui::Button("Set Input File")) {
         open.Open();
     }
+    ImGui::SameLine();
+    ImGui::Text(input_file.c_str());
 
-    ImGui::Text(output_file.c_str());
     if (ImGui::Button("Set Output File")) {
         save.Open();
     }
+    ImGui::SameLine();
+    ImGui::Text(output_file.c_str());
 
     ImGui::Separator();
+
     ImGui::Combo("Method", &selected_method, method_labels, kMethod_COUNT);
 
     ImGui::Separator();
@@ -99,7 +99,7 @@ void CreateGraph::draw_gui()
     }
 }
 
-void CreateGraph::run()
+std::variant<groot::PlantGraph, std::string> CreateGraph::operation() const
 {
     Cloud::Ptr cloud(new Cloud());
 
@@ -107,7 +107,7 @@ void CreateGraph::run()
 
     if (pcl::io::loadPLYFile(input_file, *cloud) < 0) {
         spdlog::error("Could not open input file \"{}\"", input_file);
-        return;
+        return "Unable to open input file";
     }
 
     spdlog::info("Loaded PLY file!");
@@ -127,7 +127,7 @@ void CreateGraph::run()
         break;
     default:
         spdlog::error("Unknown method");
-        return;
+        return "Unknown method";
     }
 
     groot::PlantGraph graph;
@@ -170,7 +170,7 @@ void CreateGraph::run()
         break;
     default:
         spdlog::error("Unrecognized root find method");
-        return;
+        return "Unknown find method";
     }
     spdlog::info("Found root point!");
 
@@ -200,11 +200,9 @@ void CreateGraph::run()
         spdlog::info("Writed output file...");
     }
 
-    this->output_graph = std::move(graph);
-    this->show = false;
     spdlog::info("Plant graph is created!");
 
-    this->update(this->output_graph);
+    return graph;
 }
 
 /*

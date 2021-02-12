@@ -9,6 +9,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <gfx/font_awesome.hpp>
 
 #ifndef IMGUI_VERSION
 #error "include imgui.h before this header"
@@ -637,7 +638,7 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path& pwd
 
         rcd.extension = p.path().filename().extension();
 
-        rcd.showName = (rcd.isDir ? "[D] " : "[F] ") + u8StrToStr(p.path().filename().u8string());
+        rcd.showName = (rcd.isDir ? ICON_FA_FOLDER " " : ICON_FA_FILE " ") + u8StrToStr(p.path().filename().u8string());
         fileRecords_.push_back(rcd);
     }
 

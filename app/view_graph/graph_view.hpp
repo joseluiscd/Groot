@@ -31,4 +31,7 @@ private:
     gfx::Uniform<Color> color_point;
     gfx::Uniform<Color> color_line;
 
+    bool draw_root;
+    glm::vec3 root;
+
 };
