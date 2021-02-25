@@ -12,14 +12,21 @@ set(CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
     )
 
+set(Boost_USE_STATIC_LIBS ON)
 
-find_package(CGAL 4.14 REQUIRED)
-find_package(PCL 1.11 REQUIRED COMPONENTS common io kdtree)
-find_package(LEMON REQUIRED) # 1.3
+find_package(TBB REQUIRED)
+find_package(CGAL 5.2 REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.8 REQUIRED)
+find_package(Boost 1.75 REQUIRED COMPONENTS graph serialization)
+
+include(CGAL_TBB_support)
 
 add_subdirectory(gfx)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live/cmake/jet_live_setup.cmake) # setup needed compiler and linker flags, include this file in your root CMakeLists.txt
+set(JET_LIVE_BUILD_EXAMPLE OFF)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live)
 
 file(GLOB SOURCES 
     include/groot/*.hpp
@@ -33,17 +40,20 @@ add_library(groot
 
 #target_link_directories(groot ${PCL_LIBRARY_DIRS})
 #target_include_directories(groot ${PCL_INCLUDE_DIRS})
-target_link_libraries(groot 
-    ${PCL_LIBRARIES} 
-    ${LEMON_LIBRARY}
+target_link_libraries(groot
     glm
-    CGAL::CGAL 
+    CGAL::CGAL
+    CGAL::TBB_support
     spdlog::spdlog
+    Boost::boost
+    Boost::serialization
+    jet-live
 )
 target_include_directories(groot
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/util
+    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/eventpp/include
 )
 
 add_subdirectory(app)

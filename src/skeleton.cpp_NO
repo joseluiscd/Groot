@@ -1,7 +1,8 @@
+#include <CGAL/Fuzzy_sphere.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <groot/cgal_helper.hpp>
-#include <groot/reconstruction.hpp>
+#include <groot/skeleton.hpp>
 #include <groot/util.hpp>
 #include <lemon/adaptors.h>
 #include <lemon/dijkstra.h>
@@ -9,9 +10,6 @@
 #include <lemon/lgf_reader.h>
 #include <lemon/lgf_writer.h>
 #include <optional>
-#include <pcl/cloud_iterator.h>
-#include <pcl/common/geometry.h>
-#include <pcl/kdtree/kdtree_flann.h>
 #include <spdlog/spdlog.h>
 
 namespace groot {
@@ -52,23 +50,76 @@ namespace point_finder {
 
         return point;
     }
-} // namespace point_finder
+}
 
-PlantGraph PlantGraph::from_delaunay(Cloud::ConstPtr cloud)
+PlantGraph PlantGraph::from_search(
+    glm::vec3* cloud,
+    size_t count,
+    const SearchParams& params)
 {
-    cgal::Delaunay delaunay;
-
     GraphT* neighbourhood(new GraphT);
     NodeMapT<glm::vec3>* points = new NodeMapT<glm::vec3>(*neighbourhood);
     EdgeMapT<float>* lengths = new EdgeMapT<float>(*neighbourhood);
 
-    for (pcl::ConstCloudIterator<pcl::PointXYZ> it(*cloud); it; it++) {
+    cgal::KdTree kdtree;
+
+    for (size_t i = 0; i < count; i++) {
         NodeT node = neighbourhood->addNode();
-        (*points)[node] = glm::vec3(it->x, it->y, it->z);
+        (*points)[node] = cloud[i];
+        kdtree.insert(std::make_tuple(cloud[i], node));
+    }
 
-        cgal::Point_3 point(it->x, it->y, it->z);
+    kdtree.build<CGAL::Parallel_tag>();
+
+    if (params.search == SearchType::kRadiusSearch) {
+        std::list<cgal::Point3Node> search_result;
+        for (NodeIt node(*neighbourhood); node != lemon::INVALID; ++node) {
+            glm::vec3 point = (*points)[node];
+            CGAL::Fuzzy_sphere<cgal::SearchTraits> query(point, params.radius);
+
+            kdtree.search(std::back_inserter(search_result), query);
+            for (auto it = search_result.begin(); it != search_result.end(); ++it) {
+                auto edge = neighbourhood->addEdge(node, std::get<NodeT>(*it));
+                lengths->set(edge, glm::distance(point, std::get<glm::vec3>(*it)));
+            }
+            search_result.clear();
+        }
+    } else if (params.search == SearchType::kKnnSearch) {
+        for (NodeIt node(*neighbourhood); node != lemon::INVALID; ++node) {
+
+            cgal::KNeighbour knn(kdtree, (*points)[node], params.k);
+            for (auto it = knn.begin(); it != knn.end(); ++it) {
+                auto edge = neighbourhood->addEdge(node, std::get<NodeT>(it->first));
+                lengths->set(edge, it->second);
+            }
+        }
+    }
+
+    PlantGraph ret = PlantGraph::empty();
+
+    ret.graph.reset(neighbourhood);
+    ret.point.reset(points);
+    ret.length.reset(lengths);
+
+    return ret;
+}
+
+PlantGraph PlantGraph::from_delaunay(glm::vec3* cloud, size_t count)
+{
+    GraphT* neighbourhood(new GraphT);
+    NodeMapT<glm::vec3>* points = new NodeMapT<glm::vec3>(*neighbourhood);
+    EdgeMapT<float>* lengths = new EdgeMapT<float>(*neighbourhood);
+
+    cgal::Delaunay delaunay;
+
+    for (size_t i = 0; i < count; i++) {
+        NodeT node = neighbourhood->addNode();
+        const glm::vec3& glm_point = cloud[i];
+        cgal::Point_3 point(glm_point.x, glm_point.y, glm_point.z);
+
+        (*points)[node] = glm_point;
+
         cgal::Delaunay::Vertex_handle handle = delaunay.insert(point);
-
         handle->info() = node;
     }
 
@@ -76,7 +127,7 @@ PlantGraph PlantGraph::from_delaunay(Cloud::ConstPtr cloud)
         cgal::Delaunay::Vertex_handle v1 = i->first->vertex(i->second);
         cgal::Delaunay::Vertex_handle v2 = i->first->vertex(i->third);
 
-        double distance = CGAL::squared_distance(v1->point(), v2->point());
+        double distance = std::sqrt(CGAL::squared_distance(v1->point(), v2->point()));
 
         NodeT n1 = v1->info();
         NodeT n2 = v2->info();
@@ -85,91 +136,11 @@ PlantGraph PlantGraph::from_delaunay(Cloud::ConstPtr cloud)
         (*lengths)[e] = distance;
     }
 
-    PlantGraph ret;
+    PlantGraph ret = PlantGraph::empty();
 
     ret.graph.reset(neighbourhood);
     ret.point.reset(points);
     ret.length.reset(lengths);
-    ret.radius.reset(new NodeMapT<float>(*neighbourhood, 0));
-
-    return ret;
-}
-
-PlantGraph PlantGraph::from_search(
-    Cloud::ConstPtr cloud,
-    const SearchParams& params,
-    pcl::KdTreeFLANN<pcl::PointXYZ>::ConstPtr _kdtree)
-{
-    size_t point_count = cloud->size();
-
-    GraphT* neighbourhood(new GraphT);
-    NodeMapT<glm::vec3>* points = new NodeMapT<glm::vec3>(*neighbourhood);
-    EdgeMapT<float>* lengths = new EdgeMapT<float>(*neighbourhood);
-
-    std::vector<NodeT> point_nodes;
-
-    std::transform(
-        cloud->begin(),
-        cloud->end(),
-        std::back_inserter(point_nodes),
-        [&neighbourhood, &points](const pcl::PointXYZ& item) {
-            NodeT node = neighbourhood->addNode();
-            (*points)[node] = glm::vec3(item.x, item.y, item.z);
-
-            return node;
-        });
-
-    pcl::KdTreeFLANN<pcl::PointXYZ>::ConstPtr kdtree;
-
-    if (_kdtree == nullptr) {
-        pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr tmp_kdtree
-            = std::make_shared<pcl::KdTreeFLANN<pcl::PointXYZ>>();
-
-        tmp_kdtree->setInputCloud(cloud);
-
-        kdtree = tmp_kdtree;
-    } else {
-        kdtree = _kdtree;
-    }
-
-    for (size_t point_i = 0; point_i < point_count; point_i++) {
-        std::vector<int> result;
-        std::vector<float> dist_pow_2;
-
-        switch (params.search) {
-        case SearchType::kRadiusSearch:
-            kdtree->radiusSearch((*cloud)[point_i], params.radius, result, dist_pow_2, params.k);
-            break;
-
-        case SearchType::kKnnSearch:
-            kdtree->nearestKSearch((*cloud)[point_i], params.k, result, dist_pow_2);
-            break;
-        default:
-            break;
-        }
-
-        for (size_t j = 0; j < result.size(); j++) {
-            // Do not link a node to itself
-            if (result[j] != point_i) {
-                EdgeT a = neighbourhood->addEdge(
-                    point_nodes[point_i],
-                    point_nodes[result[j]]);
-
-                float distance = pcl::geometry::distance(
-                    (*cloud)[point_i],
-                    (*cloud)[result[j]]);
-
-                (*lengths)[a] = distance;
-            }
-        }
-    }
-
-    PlantGraph ret;
-
-    ret.graph.reset(neighbourhood);
-    ret.point.reset(points);
-    ret.length.reset(lengths);
-    ret.radius.reset(new NodeMapT<float>(*neighbourhood, 0));
 
     return ret;
 }
@@ -184,8 +155,28 @@ PlantGraph PlantGraph::empty()
     ret.point.reset(new NodeMapT<glm::vec3>(*neighbourhood));
     ret.length.reset(new EdgeMapT<float>(*neighbourhood));
     ret.radius.reset(new NodeMapT<float>(*neighbourhood));
+    ret.root_distance.reset(new NodeMapT<float>(*neighbourhood));
+    ret.max_root_distance = 0.0;
+    ret.root = lemon::INVALID;
 
     return ret;
+}
+
+PlantGraph PlantGraph::clone() const
+{
+    PlantGraph dest = PlantGraph::empty();
+
+    lemon::graphCopy(*graph, *dest.graph)
+        .node(root, dest.root)
+        .nodeMap(*point, *dest.point)
+        .nodeMap(*radius, *dest.radius)
+        .nodeMap(*root_distance, *dest.root_distance)
+        .edgeMap(*length, *dest.length)
+        .run();
+
+    dest.max_root_distance = max_root_distance;
+
+    return dest;
 }
 
 PlantGraph PlantGraph::read_from_file(std::istream& input)
@@ -194,22 +185,26 @@ PlantGraph PlantGraph::read_from_file(std::istream& input)
     auto points = new NodeMapT<glm::vec3>(*graph);
     auto radii = new NodeMapT<float>(*graph);
     auto lengths = new EdgeMapT<float>(*graph);
+    auto root_distances = new NodeMapT<float>(*graph, 0);
 
     NodeT root_node;
+
+    PlantGraph ret;
 
     lemon::graphReader(*graph, input)
         .nodeMap("point", *points, GlmFromString<glm::vec3>())
         .nodeMap("radius", *radii)
+        .nodeMap("distances_to_root", *root_distances)
         .edgeMap("length", *lengths)
         .node("root", root_node)
+        .attribute("max_root_distance", ret.max_root_distance)
         .run();
-
-    PlantGraph ret;
 
     ret.graph.reset(graph);
     ret.point.reset(points);
     ret.length.reset(lengths);
-    ret.radius.reset(new NodeMapT<float>(*graph, 0));
+    ret.radius.reset(radii);
+    ret.root_distance.reset(root_distances);
     ret.root = root_node;
 
     return ret;
@@ -220,8 +215,10 @@ void PlantGraph::write_to_file(std::ostream& output)
     lemon::graphWriter(*this->graph, output)
         .nodeMap("point", *this->point, GlmToString<glm::vec3>())
         .nodeMap("radius", *this->radius)
+        .nodeMap("distances_to_root", *this->root_distance)
         .edgeMap("length", *this->length)
         .node("root", this->root)
+        .attribute("max_root_distance", this->max_root_distance)
         .run();
 }
 
@@ -245,6 +242,16 @@ PlantGraph& PlantGraph::geodesic()
         if (pred[n] != lemon::INVALID) {
             shortest_paths[pred[n]] = true;
         }
+
+        if (path_calculator.reached(n)) {
+            float d = path_calculator.dist(n);
+            (*root_distance)[n] = d;
+            if (d > max_root_distance) {
+                max_root_distance = d;
+            }
+        } else {
+            (*root_distance)[n] = INFINITY;
+        }
     }
 
     auto filtered = lemon::filterEdges(*graph, shortest_paths);
@@ -254,9 +261,11 @@ PlantGraph& PlantGraph::geodesic()
     lemon::graphCopy(filtered, *dest.graph)
         .nodeMap(*point, *dest.point)
         .nodeMap(*radius, *dest.radius)
+        .nodeMap(*root_distance, *dest.root_distance)
         .edgeMap(*length, *dest.length)
         .node(root, dest.root)
         .run();
+    dest.max_root_distance = max_root_distance;
 
     *this = std::move(dest);
     return *this;

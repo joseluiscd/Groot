@@ -1,0 +1,93 @@
+#pragma once
+
+#include <glm/glm.hpp>
+#include <iostream>
+#include <lemon/list_graph.h>
+#include <groot/cgal_helper.hpp>
+#include <optional>
+#include <unordered_map>
+#include <boost/graph/adjacency_list.hpp>
+
+namespace groot {
+
+using GraphT = lemon::ListGraph;
+using NodeT = GraphT::Node;
+using EdgeT = GraphT::Edge;
+using ArcT = GraphT::Arc;
+using NodeIt = GraphT::NodeIt;
+using ArcIt = GraphT::ArcIt;
+using EdgeIt = GraphT::EdgeIt;
+
+template <typename T>
+using NodeMapT = GraphT::NodeMap<T>;
+
+template <typename T>
+using EdgeMapT = GraphT::EdgeMap<T>;
+
+template <typename T>
+using ArcMapT = GraphT::ArcMap<T>;
+
+struct PlantGraph;
+
+enum class SearchType {
+    kKnnSearch = 0,
+    kRadiusSearch = 1,
+    kCount,
+};
+
+extern std::string SearchType_Names[(size_t)SearchType::kCount + 1];
+
+struct SearchParams {
+    int k;
+    float radius;
+
+    SearchType search;
+};
+
+struct PlantGraph {
+    std::unique_ptr<GraphT> graph;
+
+    std::unique_ptr<NodeMapT<glm::vec3>> point;
+    std::unique_ptr<EdgeMapT<float>> length;
+    std::unique_ptr<NodeMapT<float>> radius;
+    std::unique_ptr<NodeMapT<float>> root_distance;
+
+    float max_root_distance = 0.0;
+
+    NodeT root;
+
+    PlantGraph()
+        : graph(nullptr)
+        , point(nullptr)
+        , length(nullptr)
+        , radius(nullptr)
+        , root_distance(nullptr)
+        , max_root_distance(0.0)
+        , root(lemon::INVALID)
+    {
+    }
+
+    PlantGraph clone() const;
+    void write_to_file(std::ostream& output);
+    static PlantGraph read_from_file(std::istream& input);
+
+    static PlantGraph empty();
+    static PlantGraph from_delaunay(
+        glm::vec3* cloud,
+        size_t size);
+
+    static PlantGraph from_search(
+        glm::vec3* cloud,
+        size_t size,
+        const SearchParams& search = SearchParams { 3, 0.0, SearchType::kKnnSearch });
+    PlantGraph& find_root(const point_finder::PointFinder& pf = point_finder::MinY())
+    {
+        root = pf(*this);
+        return *this;
+    }
+
+    PlantGraph& geodesic();
+    PlantGraph& minimum_spanning_tree();
+};
+
+}

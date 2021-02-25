@@ -1,3 +1,9 @@
 [submodule "util/cfglib"]
 	path = util/cfglib
 	url = https://github.com/joseluiscd/cfglib.git
+[submodule "3rdparty/eventpp"]
+	path = 3rdparty/eventpp
+	url = https://github.com/wqking/eventpp.git
+[submodule "3rdparty/jet-live"]
+	path = 3rdparty/jet-live
+	url = https://github.com/ddovod/jet-live.git

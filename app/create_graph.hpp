@@ -1,13 +1,13 @@
 #pragma once
 
-#include "imfilebrowser.h"
+#include <gfx/imgui/imfilebrowser.h>
 #include <gfx/imgui/imgui.h>
-#include <groot/skeleton.hpp>
+#include <groot/plant_graph.hpp>
 #include <string>
-#include "operation.hpp"
+#include "application.hpp"
 
-struct CreateGraph : public Operation<groot::PlantGraph> {
-    CreateGraph(std::function<void(groot::PlantGraph&&)> on_result);
+struct CreateGraph : public CommandGui {
+    CreateGraph();
 
     enum Method {
         kRadius = 0,
@@ -43,11 +43,14 @@ struct CreateGraph : public Operation<groot::PlantGraph> {
     int selected_root_find_method = 0;
     int selected_make_tree_method = 0;
 
-    int k = 0;
+    int k = 10;
     double radius = 1.0;
 
-    void window();
-    std::variant<groot::PlantGraph, std::string> operation() const;
+    
+    GuiState draw_gui() override;
+    CommandState execute() override;
+
+    std::variant<groot::PlantGraph, std::string> operation(void*) const;
 
 
     static constexpr const char* method_labels[3] = {

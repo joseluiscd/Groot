@@ -1,13 +1,10 @@
 #pragma once
 
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
+#include <glm/glm.hpp>
+#include <vector>
 
 namespace groot {
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr
-load_PLY(
-    const std::string& filename,
-    bool streaming = false);
+std::vector<glm::vec3> load_PLY(const char* filename);
 
 }
