@@ -9,8 +9,9 @@
 const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
 const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
 
-CreateGraph::CreateGraph()
-    : open(open_flags)
+CreateGraph::CreateGraph(IDataOutput<groot::PlantGraph>& _output)
+    : output(_output)
+    , open(open_flags)
     , save(save_flags)
 {
     open.SetTitle("Open PLY Cloud");
@@ -23,20 +24,20 @@ CreateGraph::CreateGraph()
 GuiState CreateGraph::draw_gui()
 {
     bool show = true;
-
+    ImGui::PushID(this);
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Create graph", &show)) {
         if (ImGui::Button("Set Input File")) {
             open.Open();
         }
         ImGui::SameLine();
-        ImGui::Text(input_file.c_str());
+        ImGui::Text("%s", input_file.c_str());
 
         if (ImGui::Button("Set Output File")) {
             save.Open();
         }
         ImGui::SameLine();
-        ImGui::Text(output_file.c_str());
+        ImGui::Text("%s", output_file.c_str());
 
         ImGui::Separator();
         ImGui::Text("Topology build method");
@@ -77,10 +78,12 @@ GuiState CreateGraph::draw_gui()
 
             //All configured, run the command
             ImGui::End();
+            ImGui::PopID();
             return GuiState::RunAsync;
         }
 
         ImGui::End();
+        ImGui::PopID();
     }
 
     open.Display();
@@ -189,7 +192,7 @@ CommandState CreateGraph::execute()
 
     spdlog::info("Plant graph is created!");
 
-    app->push_plant_graph(std::move(graph));
+    output = std::move(graph);
     return CommandState::Ok;
 }
 

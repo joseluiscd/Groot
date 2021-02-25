@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data_source.hpp"
+#include "data_output.hpp"
 #include "graph_view.hpp"
 #include <eventpp/callbacklist.h>
 #include <future>
@@ -10,7 +11,6 @@
 #include <mutex>
 #include <queue>
 #include <stack>
-#include <jet/live/Live.hpp>
 
 class Application;
 
@@ -22,6 +22,7 @@ enum class CommandState : bool {
 /// Abstract command
 class Command {
 public:
+    virtual ~Command() { }
     virtual CommandState execute() = 0;
 
     Application* app;
@@ -120,13 +121,23 @@ private:
         const groot::PlantGraph& operator*() const { return *app->plants.top(); }
 
         Application* app;
-    };
+    } stack_top;
+
+    class PlantGraphOutput : public IDataOutput<groot::PlantGraph> {
+    public:
+        groot::PlantGraph& operator=(groot::PlantGraph&& result) {
+            std::unique_lock _lock(app->plant_lock);
+            app->plants.emplace(Entry<groot::PlantGraph>(std::move(result)));
+            return *app->plants.top();
+        }
+
+        Application* app;
+    } stack_push;
+
     gfx::Gfx gui_app;
-    jet::Live live_instance;
 
     std::stack<Entry<groot::PlantGraph>> plants;
     groot::PlantGraph* selected;
-    PlantGraphSource stack_top;
     bool dirty_stack = false;
 
     GraphViewer main_viewer;

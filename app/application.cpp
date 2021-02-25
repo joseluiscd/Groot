@@ -1,9 +1,40 @@
 #include "application.hpp"
 #include "create_graph.hpp"
-#include "open_graph.hpp"
 #include "graph_cluster.hpp"
+#include "open_graph.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
+#include <jet/live/Live.hpp>
+
+class JetListener : public jet::ILiveListener {
+public:
+    JetListener() {}
+    void onLog(jet::LogSeverity severity, const std::string& message) override
+    {
+        switch (severity) {
+            case jet::LogSeverity::kDebug:
+            spdlog::debug("[Jet] {}", message);
+            break;
+            case jet::LogSeverity::kInfo:
+            spdlog::info("[Jet] {}", message);
+            break;
+            case jet::LogSeverity::kWarning:
+            spdlog::warn("[Jet] {}", message);
+            break;
+            case jet::LogSeverity::kError:
+            spdlog::error("[Jet] {}", message);
+            break;
+        }
+    }
+    void onCodePreLoad() override {}
+    void onCodePostLoad() override {}
+};
+
+jet::Live& jet_instance()
+{
+    static jet::Live live = jet::Live(std::make_unique<JetListener>());
+    return live;
+}
 
 Application::Application()
     : gui_app(gfx::InitOptions {
@@ -18,10 +49,11 @@ Application::Application()
     , main_viewer(stack_top)
 {
     stack_top.app = this;
-    stack_event.append([&](){
+    stack_push.app = this;
+
+    stack_event.append([&]() {
         main_viewer.update_plant_graph();
     });
-
 }
 
 void Application::execute_command_async(Command* command)
@@ -85,7 +117,7 @@ void Application::draw_viewers()
 
     auto it = viewers.begin();
     while (it != viewers.end()) {
-        if (! it->render()) {
+        if (!it->render()) {
             viewers.erase(it++);
         } else {
             it++;
@@ -95,11 +127,11 @@ void Application::draw_viewers()
 
 void Application::draw_background_tasks()
 {
-    if(ImGui::Begin("Background tasks", &windows.background_tasks)) {
+    if (ImGui::Begin("Background tasks", &windows.background_tasks)) {
         std::shared_lock _lock(background_task_lock);
         auto it = background_tasks.begin();
         while (it != background_tasks.end()) {
-            ImGui::Text("Background task %d", &*it);
+            ImGui::Text("Background task %d", *it);
         }
     }
     ImGui::End();
@@ -162,7 +194,7 @@ void Application::draw_gui()
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tOpen PLY")) {
-                open_window(new CreateGraph());
+                open_window(new CreateGraph(stack_push));
             }
 
             if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Graph")) {
@@ -180,7 +212,7 @@ void Application::draw_gui()
         }
 
         if (ImGui::MenuItem("Reload App")) {
-            live_instance.tryReload();
+            jet_instance().tryReload();
             spdlog::info("Reloading");
         }
         ImGui::EndMenuBar();
@@ -198,7 +230,7 @@ void Application::draw_gui()
 void Application::main_loop()
 {
     gui_app.main_loop([&]() {
-        live_instance.update();
+        jet_instance().update();
         /*ImGui::Begin("MIau");
         ImGui::End();*/
         draw_gui();

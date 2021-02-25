@@ -5,9 +5,10 @@
 #include <groot/plant_graph.hpp>
 #include <string>
 #include "application.hpp"
+#include "data_output.hpp"
 
 struct CreateGraph : public CommandGui {
-    CreateGraph();
+    CreateGraph(IDataOutput<groot::PlantGraph>& _output);
 
     enum Method {
         kRadius = 0,
@@ -32,6 +33,7 @@ struct CreateGraph : public CommandGui {
         kMST,
         kMakeTreeMethod_COUNT,
     };
+    IDataOutput<groot::PlantGraph>& output;
 
     ImGui::FileBrowser open;
     ImGui::FileBrowser save;
@@ -40,13 +42,12 @@ struct CreateGraph : public CommandGui {
     std::string output_file = "";
 
     int selected_method = 0;
-    int selected_root_find_method = 0;
+    int selected_root_find_method = 1;
     int selected_make_tree_method = 0;
 
     int k = 10;
     double radius = 1.0;
 
-    
     GuiState draw_gui() override;
     CommandState execute() override;
 

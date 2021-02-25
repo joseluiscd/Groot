@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 #include <groot/cgal.hpp>
 #include <iostream>
-#include <lemon/list_graph.h>
 #include <optional>
 #include <unordered_map>
 

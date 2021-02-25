@@ -2,8 +2,6 @@
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>
-#include <lemon/bfs.h>
-#include <lemon/connectivity.h>
 #include <list>
 #include <spdlog/spdlog.h>
 #include <vector>

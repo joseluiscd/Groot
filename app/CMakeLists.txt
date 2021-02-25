@@ -13,4 +13,4 @@ add_executable(groot_exe
     open_graph.cpp
     main.cpp
 )
-target_link_libraries(groot_exe groot gfx)
+target_link_libraries(groot_exe groot gfx jet-live)

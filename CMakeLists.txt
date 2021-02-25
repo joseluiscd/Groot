@@ -14,11 +14,11 @@ set(CMAKE_MODULE_PATH
 
 set(Boost_USE_STATIC_LIBS ON)
 
+find_package(CGAL 5 REQUIRED)
 find_package(TBB REQUIRED)
-find_package(CGAL 5.2 REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.8 REQUIRED)
-find_package(Boost 1.75 REQUIRED COMPONENTS graph serialization)
+find_package(Boost 1.73 REQUIRED COMPONENTS graph serialization)
 
 include(CGAL_TBB_support)
 
@@ -47,7 +47,6 @@ target_link_libraries(groot
     spdlog::spdlog
     Boost::boost
     Boost::serialization
-    jet-live
 )
 target_include_directories(groot
     PUBLIC

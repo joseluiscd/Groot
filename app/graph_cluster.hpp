@@ -2,7 +2,6 @@
 
 #include "application.hpp"
 #include <groot/plant_graph.hpp>
-#include <lemon/adaptors.h>
 #include <list>
 #include <vector>
 
