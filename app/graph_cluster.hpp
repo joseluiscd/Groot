@@ -7,9 +7,9 @@
 
 class GraphCluster : public CommandGui {
 public:
-    GraphCluster(IDataSource<groot::PlantGraph>& _graph);
+    GraphCluster(IDataSource<groot::PlantGraph>& _graph, IDataOutput<groot::PlantGraph>& _output);
 
-    CommandState execute () override;
+    CommandState execute() override;
     GuiState draw_gui() override;
 
 private:
@@ -28,7 +28,9 @@ private:
     };
 
     IDataSource<groot::PlantGraph>& graph;
+    IDataOutput<groot::PlantGraph>& output;
     IntervalType selected_interval_type = FixedIntervalCount;
+
     float interval_distance = 1.0;
     int interval_count = 50;
 

@@ -25,7 +25,6 @@ public:
     virtual ~Command() { }
     virtual CommandState execute() = 0;
 
-    Application* app;
     std::string error_string = "";
 };
 
@@ -106,11 +105,20 @@ public:
 
     void main_loop();
 
-    /// Thread-safe
     void push_plant_graph(groot::PlantGraph&& g)
     {
         std::unique_lock _lock(plant_lock);
         plants.emplace(Entry<groot::PlantGraph>(std::move(g)));
+        dirty_stack = true;
+    }
+
+    void pop_plant_graph()
+    {
+        std::unique_lock _lock(plant_lock);
+        plants.pop();
+        if (plants.empty()) {
+            plants.push(Entry<groot::PlantGraph>());
+        }
         dirty_stack = true;
     }
 
@@ -128,6 +136,7 @@ private:
         groot::PlantGraph& operator=(groot::PlantGraph&& result) {
             std::unique_lock _lock(app->plant_lock);
             app->plants.emplace(Entry<groot::PlantGraph>(std::move(result)));
+            app->dirty_stack = true;
             return *app->plants.top();
         }
 
@@ -149,6 +158,7 @@ private:
     std::list<GraphViewer> viewers;
 
     std::shared_mutex background_task_lock;
+    std::shared_mutex remove_background_task_lock;
     std::shared_mutex command_gui_lock;
     std::shared_mutex command_lock;
     std::shared_mutex plant_lock;

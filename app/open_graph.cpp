@@ -1,8 +1,9 @@
 #include "open_graph.hpp"
 #include <fstream>
 
-OpenGraph::OpenGraph()
-    : file_dialog()
+OpenGraph::OpenGraph(IDataOutput<groot::PlantGraph>& _output)
+    : output(_output)
+    , file_dialog()
 {
     file_dialog.SetTitle("Graph Open");
     file_dialog.SetTypeFilters({ ".ggf" });
@@ -25,6 +26,6 @@ GuiState OpenGraph::draw_gui()
 CommandState OpenGraph::execute()
 {
     std::ifstream file(selected_file);
-    app->push_plant_graph(groot::read_from_file(file));
+    output = groot::read_from_file(file);
     return CommandState::Ok;
 }

@@ -7,3 +7,6 @@
 [submodule "3rdparty/jet-live"]
 	path = 3rdparty/jet-live
 	url = https://github.com/ddovod/jet-live.git
+[submodule "3rdparty/gfx"]
+	path = 3rdparty/gfx
+	url = git@github.com:joseluiscd/BoxGL.git

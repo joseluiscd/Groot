@@ -22,7 +22,8 @@ find_package(Boost 1.73 REQUIRED COMPONENTS graph serialization)
 
 include(CGAL_TBB_support)
 
-add_subdirectory(gfx)
+set(GFX_BUILD_EXAMPLES OFF)
+add_subdirectory(3rdparty/gfx)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live/cmake/jet_live_setup.cmake) # setup needed compiler and linker flags, include this file in your root CMakeLists.txt
 set(JET_LIVE_BUILD_EXAMPLE OFF)

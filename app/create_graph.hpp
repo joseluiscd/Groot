@@ -36,10 +36,7 @@ struct CreateGraph : public CommandGui {
     IDataOutput<groot::PlantGraph>& output;
 
     ImGui::FileBrowser open;
-    ImGui::FileBrowser save;
-
     std::string input_file = "";
-    std::string output_file = "";
 
     int selected_method = 0;
     int selected_root_find_method = 1;

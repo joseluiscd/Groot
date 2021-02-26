@@ -8,8 +8,9 @@
 #include <groot/cgal.hpp>
 #include <gfx/imgui/imgui.h>
 
-GraphCluster::GraphCluster(IDataSource<groot::PlantGraph>& _graph)
+GraphCluster::GraphCluster(IDataSource<groot::PlantGraph>& _graph, IDataOutput<groot::PlantGraph>& _output)
     : graph(_graph)
+    , output(_output)
 {
 }
 
@@ -114,17 +115,17 @@ CommandState GraphCluster::execute()
         }
 
         center /= point_list.size();
-        g[*s_it].position = groot::cgal::Point_3(center.x(), center.y(), center.z());
+        simplified[*s_it].position = groot::cgal::Point_3(center.x(), center.y(), center.z());
     }
 
-    app->push_plant_graph(std::move(simplified));
+    output = std::move(simplified);
     return CommandState::Ok;
 }
 
 GuiState GraphCluster::draw_gui()
 {
     bool show = true;
-    if (ImGui::Begin("Graph Clustering", &show)) {
+    if (ImGui::BeginPopupModal("Graph Clustering", &show)) {
         ImGui::RadioButton("Fixed interval distance", (int*)&selected_interval_type, FixedIntervalDistance);
         ImGui::RadioButton("Fixed interval count", (int*)&selected_interval_type, FixedIntervalCount);
 
@@ -150,12 +151,14 @@ GuiState GraphCluster::draw_gui()
         ImGui::Separator();
 
         if (ImGui::Button("Run")) {
-            ImGui::End();
+            ImGui::EndPopup();
             return GuiState::RunAsync;
         }
 
-        ImGui::End();
-
+        ImGui::EndPopup();
     }
+
+    ImGui::OpenPopup("Graph Clustering");
+    
     return show ? GuiState::Editing : GuiState::Close;
 }

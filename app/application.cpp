@@ -2,9 +2,11 @@
 #include "create_graph.hpp"
 #include "graph_cluster.hpp"
 #include "open_graph.hpp"
+#include "save_graph.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <jet/live/Live.hpp>
+
 
 class JetListener : public jet::ILiveListener {
 public:
@@ -58,13 +60,14 @@ Application::Application()
 
 void Application::execute_command_async(Command* command)
 {
-    std::unique_lock _lock(background_task_lock);
-
     BackgroundTask* task = new BackgroundTask;
-    auto it = background_tasks.insert(background_tasks.end(), task);
+    std::list<BackgroundTask*>::iterator it;
+    {
+        std::unique_lock _lock(background_task_lock);
+        it = background_tasks.insert(background_tasks.end(), task);
+    }
 
     task->command = command;
-    command->app = this;
 
     task->task = std::async([=]() {
         CommandState result = command->execute();
@@ -74,8 +77,6 @@ void Application::execute_command_async(Command* command)
 
 void Application::execute_command(Command* command)
 {
-    command->app = this;
-
     switch (command->execute()) {
     case CommandState::Error:
         this->show_error(command->error_string);
@@ -129,8 +130,9 @@ void Application::draw_background_tasks()
 {
     if (ImGui::Begin("Background tasks", &windows.background_tasks)) {
         std::shared_lock _lock(background_task_lock);
-        auto it = background_tasks.begin();
-        while (it != background_tasks.end()) {
+        for (auto it = background_tasks.begin(); it != background_tasks.end(); ++it) {
+            ImGui::Spinner("##spinner", 10.0f);
+            ImGui::SameLine();
             ImGui::Text("Background task %d", *it);
         }
     }
@@ -179,26 +181,30 @@ void Application::draw_history()
 
 void Application::draw_gui()
 {
-    while (!remove_background_tasks.empty()) {
-        delete remove_background_tasks.front();
-        remove_background_tasks.pop();
-    }
-
-    if (dirty_stack) {
-        dirty_stack = false;
-        main_viewer.update_plant_graph();
-    }
-
     ImGui::BeginMainWindow();
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tOpen PLY")) {
+            if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Graph")) {
+                open_window(new OpenGraph(stack_push));
+            }
+
+            if (ImGui::MenuItem(ICON_FA_SAVE "\tSave Graph")) {
+                open_window(new SaveGraph(stack_top));
+            }
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PLY")) {
                 open_window(new CreateGraph(stack_push));
             }
 
-            if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Graph")) {
-                open_window(new OpenGraph());
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Edit")) {
+            if (ImGui::MenuItem(ICON_FA_UNDO "\tUndo")) {
+                pop_plant_graph();
             }
 
             ImGui::EndMenu();
@@ -206,7 +212,7 @@ void Application::draw_gui()
 
         if (ImGui::BeginMenu("Process")) {
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
-                open_window(new GraphCluster(stack_top));
+                open_window(new GraphCluster(stack_top, stack_push));
             }
             ImGui::EndMenu();
         }
@@ -231,7 +237,18 @@ void Application::main_loop()
 {
     gui_app.main_loop([&]() {
         jet_instance().update();
-        /*ImGui::Begin("MIau");
+
+        while (!remove_background_tasks.empty()) {
+            delete remove_background_tasks.front();
+            remove_background_tasks.pop();
+        }
+
+        if (dirty_stack) {
+            dirty_stack = false;
+            main_viewer.update_plant_graph();
+        }
+
+        /*ImGui::Begin("New window");
         ImGui::End();*/
         draw_gui();
     });

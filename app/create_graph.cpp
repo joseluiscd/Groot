@@ -1,6 +1,4 @@
 #include "create_graph.hpp"
-#include <cfglib/cfg.hpp>
-#include <cxxopts/cxxopts.hpp>
 #include <fstream>
 #include <gfx/imgui/imfilebrowser.h>
 #include <groot/cloud_load.hpp>
@@ -12,32 +10,20 @@ const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFi
 CreateGraph::CreateGraph(IDataOutput<groot::PlantGraph>& _output)
     : output(_output)
     , open(open_flags)
-    , save(save_flags)
 {
     open.SetTitle("Open PLY Cloud");
     open.SetTypeFilters({ ".ply" });
-
-    save.SetTitle("Save Graph");
-    save.SetTypeFilters({ ".ggf" });
 }
 
 GuiState CreateGraph::draw_gui()
 {
     bool show = true;
-    ImGui::PushID(this);
-    ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Create graph", &show)) {
+    if (ImGui::BeginPopupModal("Import PLY", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
         if (ImGui::Button("Set Input File")) {
             open.Open();
         }
         ImGui::SameLine();
         ImGui::Text("%s", input_file.c_str());
-
-        if (ImGui::Button("Set Output File")) {
-            save.Open();
-        }
-        ImGui::SameLine();
-        ImGui::Text("%s", output_file.c_str());
 
         ImGui::Separator();
         ImGui::Text("Topology build method");
@@ -77,25 +63,19 @@ GuiState CreateGraph::draw_gui()
             }
 
             //All configured, run the command
-            ImGui::End();
-            ImGui::PopID();
+            ImGui::EndPopup();
             return GuiState::RunAsync;
         }
 
-        ImGui::End();
-        ImGui::PopID();
+        open.Display();
+
+        ImGui::EndPopup();
     }
 
-    open.Display();
-    save.Display();
+    ImGui::OpenPopup("Create graph");
 
     if (open.HasSelected()) {
         input_file = open.GetSelected().string();
-        open.ClearSelected();
-    }
-
-    if (save.HasSelected()) {
-        output_file = save.GetSelected().string();
         open.ClearSelected();
     }
 
@@ -105,6 +85,11 @@ GuiState CreateGraph::draw_gui()
 CommandState CreateGraph::execute()
 {
     spdlog::info("Loading PLY file...");
+
+    if (input_file.empty()) {
+        error_string = "Cannot open file";
+        return CommandState::Error;
+    }
 
     std::vector<glm::vec3> cloud = groot::load_PLY(input_file.c_str());
 
@@ -181,13 +166,6 @@ CommandState CreateGraph::execute()
         break;
     default:
         break;
-    }
-
-    if (output_file != "") {
-        spdlog::info("Writing output file...");
-        std::ofstream file(output_file);
-        groot::write_to_file(graph, file);
-        spdlog::info("Writed output file...");
     }
 
     spdlog::info("Plant graph is created!");

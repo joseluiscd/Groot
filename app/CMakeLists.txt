@@ -9,8 +9,12 @@ add_executable(groot_exe
     graph_cluster.cpp
     graph_view.hpp
     graph_view.cpp
+
     open_graph.hpp
     open_graph.cpp
+    save_graph.hpp
+    save_graph.cpp
+    
     main.cpp
 )
 target_link_libraries(groot_exe groot gfx jet-live)

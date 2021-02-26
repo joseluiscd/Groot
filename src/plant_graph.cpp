@@ -227,9 +227,8 @@ void write_to_file(const PlantGraph& g, std::ostream& output)
 PlantGraph read_from_file(std::istream& input)
 {
     PlantGraph g;
-    size_t root_id;
     boost::archive::binary_iarchive input_archive(input);
-    input_archive >> g >> root_id;
+    input_archive >> g;
 
     return g;
 }

@@ -121,8 +121,10 @@ void GraphViewer::update_plant_graph()
     point_vao.set_element_count(edit_points.vector().size());
     line_vao.set_element_count(edit_lines.vector().size());
 
-    groot::cgal::Point_3 root_p = _graph[_graph.m_property->root_index].position;
-    root = glm::vec3(root_p.x(), root_p.y(), root_p.z());
+    if (boost::num_vertices(_graph) > 0) {
+        groot::cgal::Point_3 root_p = _graph[_graph.m_property->root_index].position;
+        root = glm::vec3(root_p.x(), root_p.y(), root_p.z());
+    }
 }
 
 bool GraphViewer::render()
