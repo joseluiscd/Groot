@@ -7,29 +7,28 @@
 #include <gfx/imgui/imgui.h>
 #include <jet/live/Live.hpp>
 
-
 class JetListener : public jet::ILiveListener {
 public:
-    JetListener() {}
+    JetListener() { }
     void onLog(jet::LogSeverity severity, const std::string& message) override
     {
         switch (severity) {
-            case jet::LogSeverity::kDebug:
+        case jet::LogSeverity::kDebug:
             spdlog::debug("[Jet] {}", message);
             break;
-            case jet::LogSeverity::kInfo:
+        case jet::LogSeverity::kInfo:
             spdlog::info("[Jet] {}", message);
             break;
-            case jet::LogSeverity::kWarning:
+        case jet::LogSeverity::kWarning:
             spdlog::warn("[Jet] {}", message);
             break;
-            case jet::LogSeverity::kError:
+        case jet::LogSeverity::kError:
             spdlog::error("[Jet] {}", message);
             break;
         }
     }
-    void onCodePreLoad() override {}
-    void onCodePostLoad() override {}
+    void onCodePreLoad() override { }
+    void onCodePostLoad() override { }
 };
 
 jet::Live& jet_instance()
@@ -56,6 +55,44 @@ Application::Application()
     stack_event.append([&]() {
         main_viewer.update_plant_graph();
     });
+    init_lua();
+}
+
+void Application::init_lua()
+{
+    lua = luaL_newstate();
+    luaL_openlibs(lua);
+    lua_pushlightuserdata(lua, this);
+    lua_setfield(lua, LUA_REGISTRYINDEX, "Groot_Application");
+
+
+
+    static luaL_Reg funcs[] = {
+        { "push_graph", [](lua_State* L) -> int {
+            groot::PlantGraph* g = check_value<groot::PlantGraph>(L, 1); // 1
+            
+            lua_getfield(L, LUA_REGISTRYINDEX, "Groot_Application"); // 2
+            Application* app = (Application*) lua_touserdata(L, 2);
+            
+            app->push_plant_graph(std::move(*g));
+            lua_pushnil(L);
+            lua_replace(L, 1);
+
+            return 0;
+        }},
+        { nullptr, nullptr }
+    };
+
+    lua_newtable(lua);
+    luaL_setfuncs(lua, funcs, 0);
+    lua_setglobal(lua, "Groot");
+
+    lua_open_graph(lua);
+}
+
+lua_State* Application::create_lua_context()
+{
+    return lua_newthread(lua);
 }
 
 void Application::execute_command_async(Command* command)
@@ -112,6 +149,11 @@ void Application::show_error(const std::string& error)
     errors.push_back(error);
 }
 
+void Application::open_window(Editor&& editor)
+{
+    editors.emplace_back(std::move(editor));
+}
+
 void Application::draw_viewers()
 {
     main_viewer.render();
@@ -120,6 +162,19 @@ void Application::draw_viewers()
     while (it != viewers.end()) {
         if (!it->render()) {
             viewers.erase(it++);
+        } else {
+            it++;
+        }
+    }
+}
+
+void Application::draw_editors()
+{
+
+    auto it = editors.begin();
+    while (it != editors.end()) {
+        if (!it->render()) {
+            editors.erase(it++);
         } else {
             it++;
         }
@@ -217,6 +272,20 @@ void Application::draw_gui()
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Scripts")) {
+            if (ImGui::MenuItem(ICON_FA_FOLDER_PLUS "\tNew script")) {
+                open_window(std::move(Editor(this->create_lua_context())));
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Help")) {
+            if (ImGui::MenuItem(ICON_FA_BUG "\tDemo window")) {
+                windows.demo_window = true;
+            }
+            ImGui::EndMenu();
+        }
+
         if (ImGui::MenuItem("Reload App")) {
             jet_instance().tryReload();
             spdlog::info("Reloading");
@@ -225,9 +294,12 @@ void Application::draw_gui()
     }
 
     draw_viewers();
+    draw_editors();
     draw_command_gui();
     draw_history();
     draw_background_tasks();
+
+    ImGui::ShowDemoWindow(&windows.demo_window);
 
     ImGui::EndMainWindow();
     gui_app.draw_gui();
@@ -252,4 +324,8 @@ void Application::main_loop()
         ImGui::End();*/
         draw_gui();
     });
+}
+
+void lua_add_tree(lua_State* L)
+{
 }

@@ -18,6 +18,7 @@ CreateGraph::CreateGraph(IDataOutput<groot::PlantGraph>& _output)
 GuiState CreateGraph::draw_gui()
 {
     bool show = true;
+    ImGui::OpenPopup("Import PLY");
     if (ImGui::BeginPopupModal("Import PLY", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
         if (ImGui::Button("Set Input File")) {
             open.Open();
@@ -72,7 +73,6 @@ GuiState CreateGraph::draw_gui()
         ImGui::EndPopup();
     }
 
-    ImGui::OpenPopup("Create graph");
 
     if (open.HasSelected()) {
         input_file = open.GetSelected().string();

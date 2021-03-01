@@ -10,3 +10,6 @@
 [submodule "3rdparty/gfx"]
 	path = 3rdparty/gfx
 	url = git@github.com:joseluiscd/BoxGL.git
+[submodule "3rdparty/zep"]
+	path = 3rdparty/zep
+	url = https://github.com/Rezonality/zep.git

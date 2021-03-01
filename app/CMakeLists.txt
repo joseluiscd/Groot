@@ -15,6 +15,16 @@ add_executable(groot_exe
     save_graph.hpp
     save_graph.cpp
     
+    editor.hpp
+    editor_imgui.hpp
+    editor.cpp
+
+    lua.hpp
+    lua.cpp
+    lua_cmd.hpp
+    lua_cmd.cpp
+    
     main.cpp
 )
-target_link_libraries(groot_exe groot gfx jet-live)
+include_directories(${CMAKE_SOURCE_DIR}/3rdparty/zep/include ${LUA_INCLUDE_DIR})
+target_link_libraries(groot_exe groot gfx jet-live Zep::Zep ${LUA_LIBRARIES})

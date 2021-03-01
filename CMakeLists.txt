@@ -19,11 +19,16 @@ find_package(TBB REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.8 REQUIRED)
 find_package(Boost 1.73 REQUIRED COMPONENTS graph serialization)
+find_package(Lua 5.4 REQUIRED)
 
 include(CGAL_TBB_support)
 
 set(GFX_BUILD_EXAMPLES OFF)
+set(BUILD_DEMOS OFF)
+include(CMakePackageConfigHelpers)
+
 add_subdirectory(3rdparty/gfx)
+add_subdirectory(3rdparty/zep)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live/cmake/jet_live_setup.cmake) # setup needed compiler and linker flags, include this file in your root CMakeLists.txt
 set(JET_LIVE_BUILD_EXAMPLE OFF)

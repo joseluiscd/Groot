@@ -1,7 +1,8 @@
 #pragma once
 
-#include "data_source.hpp"
 #include "data_output.hpp"
+#include "data_source.hpp"
+#include "editor.hpp"
 #include "graph_view.hpp"
 #include <eventpp/callbacklist.h>
 #include <future>
@@ -11,29 +12,12 @@
 #include <mutex>
 #include <queue>
 #include <stack>
+#include "command.hpp"
+#include "command_gui.hpp"
+#include "lua.hpp"
 
 class Application;
 
-enum class CommandState : bool {
-    Ok = false,
-    Error = true,
-};
-
-/// Abstract command
-class Command {
-public:
-    virtual ~Command() { }
-    virtual CommandState execute() = 0;
-
-    std::string error_string = "";
-};
-
-enum class GuiState {
-    Close = 0,
-    Editing,
-    RunAsync,
-    RunSync,
-};
 
 template <typename T>
 class Entry : public IDataSource<T> {
@@ -62,11 +46,6 @@ private:
     T data;
 };
 
-class CommandGui : public Command {
-public:
-    virtual GuiState draw_gui() = 0;
-};
-
 struct BackgroundTask {
     std::future<void> task;
     Command* command;
@@ -77,6 +56,7 @@ struct Windows {
     bool history = true;
     bool main_viewer = true;
     bool console_log = true;
+    bool demo_window = true;
 };
 
 class Application {
@@ -84,7 +64,6 @@ class Application {
 
 public:
     Application();
-
     void execute_command(Command* command);
     void execute_command_async(Command* command);
     void execute_command(Command& command);
@@ -92,6 +71,10 @@ public:
     void open_window(CommandGui& gui);
     void open_window(CommandGui* gui);
     void open_window(GraphViewer* view);
+    void open_window(Editor&& editor);
+
+    void init_lua();
+    lua_State* create_lua_context();
 
     void notify_task_finished(std::list<BackgroundTask*>::iterator task, CommandState result);
 
@@ -100,8 +83,11 @@ public:
     void draw_gui();
     void draw_command_gui();
     void draw_viewers();
+    void draw_editors();
     void draw_background_tasks();
     void draw_history();
+
+    lua_State* create_context();
 
     void main_loop();
 
@@ -133,7 +119,8 @@ private:
 
     class PlantGraphOutput : public IDataOutput<groot::PlantGraph> {
     public:
-        groot::PlantGraph& operator=(groot::PlantGraph&& result) {
+        groot::PlantGraph& operator=(groot::PlantGraph&& result)
+        {
             std::unique_lock _lock(app->plant_lock);
             app->plants.emplace(Entry<groot::PlantGraph>(std::move(result)));
             app->dirty_stack = true;
@@ -156,6 +143,7 @@ private:
     std::queue<BackgroundTask*> remove_background_tasks;
     std::list<std::string> errors;
     std::list<GraphViewer> viewers;
+    std::list<Editor> editors;
 
     std::shared_mutex background_task_lock;
     std::shared_mutex remove_background_task_lock;
@@ -167,4 +155,5 @@ private:
     Windows windows;
 
     eventpp::CallbackList<IDataSourceChanged<groot::PlantGraph>> stack_event;
+    lua_State* lua;
 };
