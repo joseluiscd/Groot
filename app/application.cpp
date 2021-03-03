@@ -10,6 +10,7 @@
 class JetListener : public jet::ILiveListener {
 public:
     JetListener() { }
+
     void onLog(jet::LogSeverity severity, const std::string& message) override
     {
         switch (severity) {
@@ -299,7 +300,7 @@ void Application::draw_gui()
     draw_history();
     draw_background_tasks();
 
-    ImGui::ShowDemoWindow(&windows.demo_window);
+    if (windows.demo_window) ImGui::ShowDemoWindow(&windows.demo_window);
 
     ImGui::EndMainWindow();
     gui_app.draw_gui();

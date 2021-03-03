@@ -24,7 +24,7 @@ find_package(Lua 5.4 REQUIRED)
 include(CGAL_TBB_support)
 
 set(GFX_BUILD_EXAMPLES OFF)
-set(BUILD_DEMOS OFF)
+option(BUILD_DEMOS OFF)
 include(CMakePackageConfigHelpers)
 
 add_subdirectory(3rdparty/gfx)

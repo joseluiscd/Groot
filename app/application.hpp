@@ -56,7 +56,7 @@ struct Windows {
     bool history = true;
     bool main_viewer = true;
     bool console_log = true;
-    bool demo_window = true;
+    bool demo_window = false;
 };
 
 class Application {

@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-#include <zep/imgui/display_imgui.h>
+#include "editor_display_imgui.hpp"
 #include <GLFW/glfw3.h>
 #include <zep/editor.h>
 #include <zep/mode_standard.h>

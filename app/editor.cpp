@@ -1,15 +1,16 @@
 #include "editor.hpp"
 #include <gfx/font_awesome.hpp>
 #include <spdlog/spdlog.h>
+#include <fmt/format.h>
 
 Editor::Editor(lua_State* _L)
     : editor(std::make_unique<Zep::ZepEditor_ImGui>("", Zep::NVec2f(1.0)))
     , L(_L)
 {
     editor->SetGlobalMode(Zep::ZepMode_Vim::StaticName());
-    auto display = (Zep::ZepDisplay_ImGui&)editor->GetDisplay();
-    display.SetFont(Zep::ZepTextType::Text, std::make_shared<Zep::ZepFont_ImGui>(display, ImGui::GetIO().Fonts->Fonts[1], int(13 * 1.75)));
-    display.SetFont(Zep::ZepTextType::UI, std::make_shared<Zep::ZepFont_ImGui>(display, ImGui::GetIO().Fonts->Fonts[0], int(16 * 1.75)));
+    auto& display = (Zep::ZepDisplay_ImGui&)editor->GetDisplay();
+    display.SetFont(Zep::ZepTextType::Text, std::make_shared<Zep::ZepFont_ImGui>(display, ImGui::GetIO().Fonts->Fonts[1], int(13)));
+    display.SetFont(Zep::ZepTextType::UI, std::make_shared<Zep::ZepFont_ImGui>(display, ImGui::GetIO().Fonts->Fonts[1], int(13)));
 }
 
 void Editor::draw_menu_bar()
@@ -43,8 +44,8 @@ bool Editor::render()
 {
     bool open = true;
     ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(2048, 2048));
-    ImGui::PushID(this);
-    ImGui::Begin("Editor", &open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar);
+    std::string title = fmt::format("Editor##{}", (size_t) this);
+    ImGui::Begin(title.c_str(), &open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar);
     draw_menu_bar();
 
     auto min = ImGui::GetCursorScreenPos();
@@ -60,6 +61,5 @@ bool Editor::render()
     editor->HandleInput();
 
     ImGui::End();
-    ImGui::PopID();
     return open;
 }

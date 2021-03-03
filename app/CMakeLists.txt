@@ -14,6 +14,9 @@ add_executable(groot_exe
     open_graph.cpp
     save_graph.hpp
     save_graph.cpp
+
+    sago.hpp
+    sago.cpp
     
     editor.hpp
     editor_imgui.hpp
