@@ -120,6 +120,40 @@ PlantGraph from_delaunay(glm::vec3* cloud, size_t count)
     return graph;
 }
 
+
+PlantGraph from_alpha_shape(
+    glm::vec3* cloud,
+    size_t count,
+    float alpha)
+{
+    PlantGraph graph;
+    cgal::Delaunay delaunay;
+
+    for (size_t i = 0; i < count; i++) {
+        Vertex vertex = boost::add_vertex(graph);
+        cgal::Point_3 point = cgal::Point_3(cloud[i].x, cloud[i].y, cloud[i].z);
+        graph[vertex].position = point;
+
+        cgal::Delaunay::Vertex_handle handle = delaunay.insert(point);
+        handle->info() = vertex;
+    }
+
+    for (auto i = delaunay.finite_edges_begin(); i != delaunay.finite_edges_end(); i++) {
+        cgal::Delaunay::Vertex_handle v1 = i->first->vertex(i->second);
+        cgal::Delaunay::Vertex_handle v2 = i->first->vertex(i->third);
+
+        Vertex n1 = v1->info();
+        Vertex n2 = v2->info();
+
+        auto [edge, _] = boost::add_edge(n1, n2, graph);
+        graph[edge].length = std::sqrt(CGAL::squared_distance(v1->point(), v2->point()));
+    }
+
+    reindex(graph);
+    return graph;
+
+}
+
 template <typename MapType>
 struct EdgeFilter {
     EdgeFilter() {};

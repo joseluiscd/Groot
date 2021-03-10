@@ -20,7 +20,7 @@ public:
 
 private:
     State state;
-    std::vector<glm::vec4> particles;
 
     ImGui::FileBrowser file_browser;
+    
 };

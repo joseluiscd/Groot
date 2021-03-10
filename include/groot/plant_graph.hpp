@@ -113,6 +113,10 @@ PlantGraph empty();
 PlantGraph from_delaunay(
     glm::vec3* cloud,
     size_t size);
+PlantGraph from_alpha_shape(
+    glm::vec3* cloud,
+    size_t count,
+    float alpha = 0.0f);
 PlantGraph from_search(
     glm::vec3* cloud,
     size_t size,
