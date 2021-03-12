@@ -3,6 +3,7 @@
 #include <gfx/imgui/gfx.hpp>
 #include <glm/fwd.hpp>
 #include <gfx/imgui/imfilebrowser.h>
+#include <groot/particles.hpp>
 
 class ParticleSim {
 public:
@@ -20,7 +21,7 @@ public:
 
 private:
     State state;
-
+    groot::Particles particles;
     ImGui::FileBrowser file_browser;
-    
+
 };

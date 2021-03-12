@@ -45,6 +45,7 @@ private:
     std::vector<float> masses;
 
     PlantGraph graph;
+    std::vector<Vertex> last_vertices;
 
     //# Parameters
 

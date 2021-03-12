@@ -40,6 +40,15 @@ void TreeParticles::post_step(float dt)
 {
     size_t last = positions.size() - 1;
     for (size_t i = 0; i < positions.size(); i++) {
+        if (last_vertices.empty()) {
+            last_vertices.resize(positions.size());
+            Vertex v = boost::add_vertex(graph);
+            last_vertices[i] = v;
+        } else {
+            Vertex new_vertex = boost::add_vertex(graph);
+            boost::add_edge(new_vertex, last_vertices[i], graph);
+        }
+
         for (size_t j = 0; j < positions.size();) {
             if (i != j && glm::distance(positions[i], positions[j]) < this->merge_threshold) {
                 masses[i] += masses[j];
@@ -50,6 +59,12 @@ void TreeParticles::post_step(float dt)
 
                 positions[i] += positions[j] * 0.5f;
                 positions[j] = positions[last];
+
+                size_t new_size = positions.size();
+                positions.resize(new_size);
+                velocities.resize(new_size);
+                masses.resize(new_size);
+                last_vertices.resize(new_size);
             }
 
         }
