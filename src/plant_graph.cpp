@@ -46,7 +46,7 @@ void reindex(PlantGraph& graph)
 }
 
 PlantGraph from_search(
-    glm::vec3* cloud,
+    cgal::Point_3* cloud,
     size_t count,
     const SearchParams& params)
 {
@@ -55,9 +55,8 @@ PlantGraph from_search(
 
     for (size_t i = 0; i < count; i++) {
         Vertex vertex = boost::add_vertex(graph);
-        cgal::Point_3 point = cgal::Point_3(cloud[i].x, cloud[i].y, cloud[i].z);
-        graph[vertex].position = point;
-        kdtree.insert(std::make_tuple(point, vertex));
+        graph[vertex].position = cloud[i];
+        kdtree.insert(std::make_tuple(cloud[i], vertex));
     }
 
     kdtree.build<CGAL::Parallel_tag>();
@@ -91,17 +90,16 @@ PlantGraph from_search(
     return graph;
 }
 
-PlantGraph from_delaunay(glm::vec3* cloud, size_t count)
+PlantGraph from_delaunay(cgal::Point_3* cloud, size_t count)
 {
     PlantGraph graph;
     cgal::Delaunay delaunay;
 
     for (size_t i = 0; i < count; i++) {
         Vertex vertex = boost::add_vertex(graph);
-        cgal::Point_3 point = cgal::Point_3(cloud[i].x, cloud[i].y, cloud[i].z);
-        graph[vertex].position = point;
+        graph[vertex].position = cloud[i];
 
-        cgal::Delaunay::Vertex_handle handle = delaunay.insert(point);
+        cgal::Delaunay::Vertex_handle handle = delaunay.insert(cloud[i]);
         handle->info() = vertex;
     }
 
@@ -120,9 +118,8 @@ PlantGraph from_delaunay(glm::vec3* cloud, size_t count)
     return graph;
 }
 
-
 PlantGraph from_alpha_shape(
-    glm::vec3* cloud,
+    cgal::Point_3* cloud,
     size_t count,
     float alpha)
 {
@@ -131,10 +128,9 @@ PlantGraph from_alpha_shape(
 
     for (size_t i = 0; i < count; i++) {
         Vertex vertex = boost::add_vertex(graph);
-        cgal::Point_3 point = cgal::Point_3(cloud[i].x, cloud[i].y, cloud[i].z);
-        graph[vertex].position = point;
+        graph[vertex].position = cloud[i];
 
-        cgal::Delaunay::Vertex_handle handle = delaunay.insert(point);
+        cgal::Delaunay::Vertex_handle handle = delaunay.insert(cloud[i]);
         handle->info() = vertex;
     }
 
@@ -151,7 +147,6 @@ PlantGraph from_alpha_shape(
 
     reindex(graph);
     return graph;
-
 }
 
 template <typename MapType>

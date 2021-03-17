@@ -111,14 +111,14 @@ PlantGraph read_from_file(std::istream& input);
 
 PlantGraph empty();
 PlantGraph from_delaunay(
-    glm::vec3* cloud,
+    cgal::Point_3* cloud,
     size_t size);
 PlantGraph from_alpha_shape(
-    glm::vec3* cloud,
+    cgal::Point_3* cloud,
     size_t count,
     float alpha = 0.0f);
 PlantGraph from_search(
-    glm::vec3* cloud,
+    cgal::Point_3* cloud,
     size_t size,
     const SearchParams& search = SearchParams { 3, 0.0, SearchType::kKnnSearch });
 

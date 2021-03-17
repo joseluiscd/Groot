@@ -1,10 +1,11 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <vector>
+#include <groot/cgal.hpp>
+
 
 namespace groot {
 
-std::vector<glm::vec3> load_PLY(const char* filename);
+std::vector<cgal::Point_3> load_PLY(const char* filename);
 
 }

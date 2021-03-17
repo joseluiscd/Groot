@@ -91,7 +91,7 @@ CommandState CreateGraph::execute()
         return CommandState::Error;
     }
 
-    std::vector<glm::vec3> cloud = groot::load_PLY(input_file.c_str());
+    std::vector<groot::cgal::Point_3> cloud = groot::load_PLY(input_file.c_str());
 
     spdlog::info("Loaded PLY file with {} points!", cloud.size());
 

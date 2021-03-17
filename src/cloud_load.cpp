@@ -4,7 +4,7 @@
 
 namespace groot {
 
-std::vector<glm::vec3> load_PLY(const char* filename)
+std::vector<cgal::Point_3> load_PLY(const char* filename)
 {
     std::ifstream file(filename);
 
@@ -15,8 +15,8 @@ std::vector<glm::vec3> load_PLY(const char* filename)
     std::shared_ptr<tinyply::PlyData> vertices = ply.request_properties_from_element("vertex", { "x", "y", "z" });
     ply.read(file);
 
-    std::vector<glm::vec3> ret(vertices->count);
-    std::copy_n((glm::vec3*)vertices->buffer.get(), vertices->count, ret.data());
+    std::vector<cgal::Point_3> ret(vertices->count);
+    std::copy_n((cgal::Point_3*)vertices->buffer.get(), vertices->count, ret.data());
     return ret;
 }
 

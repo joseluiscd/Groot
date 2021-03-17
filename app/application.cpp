@@ -120,6 +120,7 @@ BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>
 
 BackgroundTaskHandle Application::execute_command_async(Command* command)
 {
+    return execute_command_async(std::unique_ptr<Command>(command));
 }
 
 void Application::execute_command(Command* command)
@@ -170,7 +171,7 @@ void Application::draw_viewers()
 
     auto it = viewers.begin();
     while (it != viewers.end()) {
-        if (!it->render()) {
+        if (!it->draw_gui()) {
             viewers.erase(it++);
         } else {
             it++;

@@ -6,6 +6,8 @@ add_executable(groot_exe
     application.hpp
     application.cpp
     
+    viewer.hpp
+
     create_graph.hpp
     create_graph.cpp
     graph_cluster.hpp

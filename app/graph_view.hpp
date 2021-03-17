@@ -1,19 +1,18 @@
 #pragma once
 
-#include <groot/plant_graph.hpp>
-#include <gfx/vertex_array.hpp>
-#include <gfx/uniform.hpp>
-#include <gfx/framebuffer.hpp>
-#include <gfx/camera.hpp>
 #include "data_source.hpp"
+#include "viewer.hpp"
+#include <gfx/uniform.hpp>
+#include <gfx/vertex_array.hpp>
+#include <groot/plant_graph.hpp>
 
-class GraphViewer {
+class GraphViewer : public Viewer<groot::PlantGraph> {
 public:
     GraphViewer(IDataSource<groot::PlantGraph>& graph);
     void update_plant_graph();
     void remove_plant_graph();
 
-    bool render();
+    void render();
 
     gfx::RenderPipeline& get_pipeline();
 
@@ -21,7 +20,7 @@ public:
 
 private:
     GraphViewer();
-    
+
     gfx::VertexArray point_vao;
     gfx::VertexArray line_vao;
 
@@ -31,15 +30,7 @@ private:
     gfx::Uniform<Color> color_point;
     gfx::Uniform<Color> color_line;
 
-    gfx::Framebuffer framebuffer;
-    gfx::CameraRig camera_rig;
-    gfx::PerspectiveCameraLens camera_lens;
-
     glm::vec3 root;
-    glm::ivec2 old_size;
 
-    IDataSource<groot::PlantGraph>& graph;
-
-    bool open = true;
-
+    std::unique_ptr<gfx::RenderPipeline> pipeline;
 };

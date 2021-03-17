@@ -7,6 +7,7 @@ enum class GuiState {
     Editing,
     RunAsync,
     RunSync,
+    RunAsyncUpdate
 };
 
 class CommandGui : public Command {

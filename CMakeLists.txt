@@ -20,8 +20,10 @@ find_package(glm REQUIRED)
 find_package(spdlog 1.8 REQUIRED)
 find_package(Boost 1.73 REQUIRED COMPONENTS graph serialization)
 find_package(Lua 5.4 REQUIRED)
+find_package(Eigen3 REQUIRED 3.3)
 
 include(CGAL_TBB_support)
+include(CGAL_Eigen_support)
 
 set(GFX_BUILD_EXAMPLES OFF)
 option(BUILD_DEMOS OFF)
@@ -50,6 +52,7 @@ target_link_libraries(groot
     glm
     CGAL::CGAL
     CGAL::TBB_support
+    CGAL::Eigen_support
     spdlog::spdlog
     Boost::boost
     Boost::serialization
