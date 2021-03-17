@@ -1,5 +1,5 @@
 # GROOT
 
-(GPU-accelerated ReconstructiOn Of Trees)
+(GPU ReconstructiOn Of Trees)
 
-Library for working with trees.
+Library + Application to reconstruct 3D structures of trees.
