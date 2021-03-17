@@ -1,21 +1,27 @@
 #pragma once
-#include <spdlog/spdlog.h>
 #include "data_source.hpp"
 #include <gfx/camera.hpp>
 #include <gfx/framebuffer.hpp>
 #include <gfx/imgui/gfx.hpp>
+#include <spdlog/spdlog.h>
 
-template <typename T>
-class Viewer {
+class IViewer {
 public:
-    Viewer(IDataSource<T>& _input);
-
+    virtual ~IViewer() { }
     virtual void update() { }
     virtual void remove() { }
 
     virtual void render() = 0;
+    virtual bool draw_gui() = 0;
+};
 
-    bool draw_gui();
+template <typename T>
+class Viewer : public IViewer {
+public:
+    Viewer(IDataSource<T>& _input);
+    ~Viewer() {}
+
+    bool draw_gui() override;
 
 protected:
     IDataSource<T>& input;
@@ -50,10 +56,9 @@ template <typename T>
 bool Viewer<T>::draw_gui()
 {
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
-    
-    spdlog::info("Open: {}", open);
-    
-    if (ImGui::BeginFramebuffer("3D render", framebuffer, &open)) {
+
+    std::string title = fmt::format("3D render##{}", (size_t) this);
+    if (ImGui::BeginFramebuffer(title.c_str(), framebuffer, &open)) {
         glm::ivec2 current_size = ImGui::GetWindowContentSize();
         if (current_size != size) {
             size = current_size;

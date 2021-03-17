@@ -26,7 +26,8 @@ include(CGAL_TBB_support)
 include(CGAL_Eigen_support)
 
 set(GFX_BUILD_EXAMPLES OFF)
-option(BUILD_DEMOS OFF)
+set(BUILD_DEMOS OFF CACHE BOOL "enable Zep demos")
+set(BUILD_EXTENSIONS OFF CACHE BOOL "enable Zep extensions")
 include(CMakePackageConfigHelpers)
 
 add_subdirectory(3rdparty/gfx)

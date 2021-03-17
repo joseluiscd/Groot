@@ -15,6 +15,7 @@
 #include <mutex>
 #include <queue>
 #include <stack>
+#include "viewer.hpp"
 
 class Application;
 
@@ -148,7 +149,7 @@ private:
     std::list<std::shared_ptr<BackgroundTask>> background_tasks;
     std::queue<std::shared_ptr<BackgroundTask>> remove_background_tasks;
     std::list<std::string> errors;
-    std::list<GraphViewer> viewers;
+    std::list<std::unique_ptr<IViewer>> viewers;
     std::list<std::unique_ptr<Editor>> editors;
 
     std::shared_mutex background_task_lock;

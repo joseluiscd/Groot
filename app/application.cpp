@@ -167,11 +167,11 @@ void Application::open_window(Editor* editor)
 
 void Application::draw_viewers()
 {
-    main_viewer.render();
+    main_viewer.draw_gui();
 
     auto it = viewers.begin();
     while (it != viewers.end()) {
-        if (!it->draw_gui()) {
+        if (!(*it)->draw_gui()) {
             viewers.erase(it++);
         } else {
             it++;
