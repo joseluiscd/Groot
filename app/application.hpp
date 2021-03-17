@@ -1,9 +1,12 @@
 #pragma once
 
+#include "command.hpp"
+#include "command_gui.hpp"
 #include "data_output.hpp"
 #include "data_source.hpp"
 #include "editor.hpp"
 #include "graph_view.hpp"
+#include "lua.hpp"
 #include <eventpp/callbacklist.h>
 #include <future>
 #include <gfx/gfx.hpp>
@@ -12,12 +15,8 @@
 #include <mutex>
 #include <queue>
 #include <stack>
-#include "command.hpp"
-#include "command_gui.hpp"
-#include "lua.hpp"
 
 class Application;
-
 
 template <typename T>
 class Entry : public IDataSource<T> {
@@ -47,9 +46,13 @@ private:
 };
 
 struct BackgroundTask {
+    std::shared_mutex lock;
+
     std::future<void> task;
-    Command* command;
+    std::unique_ptr<Command> command;
 };
+
+using BackgroundTaskHandle = std::list<std::shared_ptr<BackgroundTask>>::iterator;
 
 struct Windows {
     bool background_tasks = true;
@@ -64,19 +67,22 @@ class Application {
 
 public:
     Application();
+    ~Application();
+
     void execute_command(Command* command);
-    void execute_command_async(Command* command);
-    void execute_command(Command& command);
-    void execute_command_async(Command& command);
-    void open_window(CommandGui& gui);
+    void execute_command(std::unique_ptr<Command> command) { execute_command(command.get()); }
+
+    BackgroundTaskHandle execute_command_async(Command* command);
+    BackgroundTaskHandle execute_command_async(std::unique_ptr<Command>&& command);
+
     void open_window(CommandGui* gui);
     void open_window(GraphViewer* view);
-    void open_window(Editor&& editor);
+    void open_window(Editor* editor);
 
     void init_lua();
     lua_State* create_lua_context();
 
-    void notify_task_finished(std::list<BackgroundTask*>::iterator task, CommandState result);
+    void notify_task_finished(BackgroundTaskHandle task, CommandState result);
 
     void show_error(const std::string& error);
 
@@ -138,12 +144,12 @@ private:
 
     GraphViewer main_viewer;
 
-    std::list<CommandGui*> command_guis;
-    std::list<BackgroundTask*> background_tasks;
-    std::queue<BackgroundTask*> remove_background_tasks;
+    std::list<std::unique_ptr<CommandGui>> command_guis;
+    std::list<std::shared_ptr<BackgroundTask>> background_tasks;
+    std::queue<std::shared_ptr<BackgroundTask>> remove_background_tasks;
     std::list<std::string> errors;
     std::list<GraphViewer> viewers;
-    std::list<Editor> editors;
+    std::list<std::unique_ptr<Editor>> editors;
 
     std::shared_mutex background_task_lock;
     std::shared_mutex remove_background_task_lock;

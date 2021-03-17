@@ -59,6 +59,10 @@ Application::Application()
     init_lua();
 }
 
+Application::~Application(){
+    lua_close(lua);
+}
+
 void Application::init_lua()
 {
     lua = luaL_newstate();
@@ -66,15 +70,13 @@ void Application::init_lua()
     lua_pushlightuserdata(lua, this);
     lua_setfield(lua, LUA_REGISTRYINDEX, "Groot_Application");
 
-
-
     static luaL_Reg funcs[] = {
         { "push_graph", [](lua_State* L) -> int {
             groot::PlantGraph* g = check_value<groot::PlantGraph>(L, 1); // 1
-            
+
             lua_getfield(L, LUA_REGISTRYINDEX, "Groot_Application"); // 2
             Application* app = (Application*) lua_touserdata(L, 2);
-            
+
             app->push_plant_graph(std::move(*g));
             lua_pushnil(L);
             lua_replace(L, 1);
@@ -96,21 +98,28 @@ lua_State* Application::create_lua_context()
     return lua_newthread(lua);
 }
 
-void Application::execute_command_async(Command* command)
+BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>&& command)
 {
-    BackgroundTask* task = new BackgroundTask;
-    std::list<BackgroundTask*>::iterator it;
+    BackgroundTaskHandle it;
+
     {
         std::unique_lock _lock(background_task_lock);
-        it = background_tasks.insert(background_tasks.end(), task);
+        it = background_tasks.emplace(background_tasks.end(), std::make_shared<BackgroundTask>());
     }
 
-    task->command = command;
+    (*it)->command = std::move(command);
+    (*it)->task = std::async([=]() {
+        std::shared_lock _lock((*it)->lock);
 
-    task->task = std::async([=]() {
-        CommandState result = command->execute();
+        CommandState result = (*it)->command->execute();
         this->notify_task_finished(it, result);
     });
+
+    return it;
+}
+
+BackgroundTaskHandle Application::execute_command_async(Command* command)
+{
 }
 
 void Application::execute_command(Command* command)
@@ -127,7 +136,7 @@ void Application::execute_command(Command* command)
     delete command;
 }
 
-void Application::notify_task_finished(std::list<BackgroundTask*>::iterator task, CommandState result)
+void Application::notify_task_finished(BackgroundTaskHandle task, CommandState result)
 {
     std::unique_lock _lock(background_task_lock);
     if (result == CommandState::Error) {
@@ -141,7 +150,7 @@ void Application::open_window(CommandGui* gui)
 {
     std::unique_lock _lock(command_gui_lock);
 
-    command_guis.push_back(gui);
+    command_guis.emplace_back(gui);
 }
 
 void Application::show_error(const std::string& error)
@@ -150,9 +159,9 @@ void Application::show_error(const std::string& error)
     errors.push_back(error);
 }
 
-void Application::open_window(Editor&& editor)
+void Application::open_window(Editor* editor)
 {
-    editors.emplace_back(std::move(editor));
+    editors.emplace_back(editor);
 }
 
 void Application::draw_viewers()
@@ -174,7 +183,7 @@ void Application::draw_editors()
 
     auto it = editors.begin();
     while (it != editors.end()) {
-        if (!it->render()) {
+        if (!(*it)->render()) {
             editors.erase(it++);
         } else {
             it++;
@@ -189,7 +198,7 @@ void Application::draw_background_tasks()
         for (auto it = background_tasks.begin(); it != background_tasks.end(); ++it) {
             ImGui::Spinner("##spinner", 10.0f);
             ImGui::SameLine();
-            ImGui::Text("Background task %d", *it);
+            ImGui::Text("Background task %ld", (size_t)it->get());
         }
     }
     ImGui::End();
@@ -203,7 +212,6 @@ void Application::draw_command_gui()
     while (it != command_guis.end()) {
         switch ((*it)->draw_gui()) {
         case GuiState::Close:
-            delete *it;
             command_guis.erase(it++);
             break;
 
@@ -212,12 +220,16 @@ void Application::draw_command_gui()
             break;
 
         case GuiState::RunSync:
-            this->execute_command(*it);
+            this->execute_command(it->get());
             command_guis.erase(it++);
             break;
         case GuiState::RunAsync:
-            this->execute_command_async(*it);
+            this->execute_command_async(std::move(*it));
             command_guis.erase(it++);
+            break;
+        case GuiState::RunAsyncUpdate:
+            this->execute_command_async(std::move(*it));
+            ++it;
             break;
         }
     }
@@ -275,7 +287,7 @@ void Application::draw_gui()
 
         if (ImGui::BeginMenu("Scripts")) {
             if (ImGui::MenuItem(ICON_FA_FOLDER_PLUS "\tNew script")) {
-                open_window(std::move(Editor(this->create_lua_context())));
+                open_window(new Editor(this->create_lua_context()));
             }
             ImGui::EndMenu();
         }
@@ -312,7 +324,6 @@ void Application::main_loop()
         jet_instance().update();
 
         while (!remove_background_tasks.empty()) {
-            delete remove_background_tasks.front();
             remove_background_tasks.pop();
         }
 
