@@ -1,12 +1,13 @@
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+#set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 
 add_executable(groot_exe
     application.hpp
     application.cpp
     
     viewer.hpp
+    viewer.cpp
 
     create_graph.hpp
     create_graph.cpp
@@ -20,12 +21,12 @@ add_executable(groot_exe
     save_graph.hpp
     save_graph.cpp
 
-    sago.hpp
-    sago.cpp
-    
     editor.hpp
     editor_imgui.hpp
     editor.cpp
+
+    particle_sim.hpp
+    particle_sim.cpp
 
     lua.hpp
     lua.cpp
@@ -33,4 +34,9 @@ add_executable(groot_exe
     main.cpp
 )
 include_directories(${CMAKE_SOURCE_DIR}/3rdparty/zep/include ${LUA_INCLUDE_DIR})
-target_link_libraries(groot_exe groot gfx jet-live Zep::Zep ${LUA_LIBRARIES})
+target_link_libraries(groot_exe
+    groot
+    gfx
+    #jet-live
+    Zep::Zep
+    ${LUA_LIBRARIES})

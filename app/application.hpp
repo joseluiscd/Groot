@@ -77,7 +77,7 @@ public:
     BackgroundTaskHandle execute_command_async(std::unique_ptr<Command>&& command);
 
     void open_window(CommandGui* gui);
-    void open_window(GraphViewer* view);
+    void open_window(AbstractViewer* view);
     void open_window(Editor* editor);
 
     void init_lua();
@@ -149,7 +149,7 @@ private:
     std::list<std::shared_ptr<BackgroundTask>> background_tasks;
     std::queue<std::shared_ptr<BackgroundTask>> remove_background_tasks;
     std::list<std::string> errors;
-    std::list<std::unique_ptr<IViewer>> viewers;
+    std::list<std::unique_ptr<AbstractViewer>> viewers;
     std::list<std::unique_ptr<Editor>> editors;
 
     std::shared_mutex background_task_lock;
@@ -158,6 +158,7 @@ private:
     std::shared_mutex command_lock;
     std::shared_mutex plant_lock;
     std::shared_mutex error_lock;
+    std::shared_mutex viewers_lock;
 
     Windows windows;
 

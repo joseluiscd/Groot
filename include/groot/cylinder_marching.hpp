@@ -14,8 +14,8 @@ using Monge_via_jet_fitting = CGAL::Monge_via_jet_fitting<cgal::Kernel>;
 using Monge_form = Monge_via_jet_fitting::Monge_form;
 
 struct Curvature {
-    cgal::Vector_3 direction;
     cgal::Point_3 curvature_center;
+    cgal::Vector_3 direction;
     float radius;
 };
 
@@ -23,6 +23,6 @@ void find_cylinders(
     glm::vec3* cloud,
     size_t count);
 
-void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k);
+void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k, size_t d=3, size_t dprime=2);
 
 }

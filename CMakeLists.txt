@@ -33,9 +33,9 @@ include(CMakePackageConfigHelpers)
 add_subdirectory(3rdparty/gfx)
 add_subdirectory(3rdparty/zep)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live/cmake/jet_live_setup.cmake) # setup needed compiler and linker flags, include this file in your root CMakeLists.txt
-set(JET_LIVE_BUILD_EXAMPLE OFF)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live)
+#include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live/cmake/jet_live_setup.cmake) # setup needed compiler and linker flags, include this file in your root CMakeLists.txt
+#set(JET_LIVE_BUILD_EXAMPLE OFF)
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live)
 
 file(GLOB SOURCES 
     include/groot/*.hpp
@@ -47,8 +47,6 @@ add_library(groot
     ${SOURCES}
 )
 
-#target_link_directories(groot ${PCL_LIBRARY_DIRS})
-#target_include_directories(groot ${PCL_INCLUDE_DIRS})
 target_link_libraries(groot
     glm
     CGAL::CGAL

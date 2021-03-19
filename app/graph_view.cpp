@@ -50,7 +50,7 @@ GraphViewer::GraphViewer(IDataSource<groot::PlantGraph>& _graph)
         .set_indices_buffer(lines)
         .set_mode(gfx::Mode::Lines);
 
-    pipeline.reset(new gfx::RenderPipeline(gfx::RenderPipeline::Builder()
+    pipeline = gfx::RenderPipeline::Builder()
                                            .with_shader(gfx::ShaderProgram::Builder()
                                                             .register_uniform<Color>()
                                                             .register_class<gfx::CameraLens>()
@@ -59,7 +59,7 @@ GraphViewer::GraphViewer(IDataSource<groot::PlantGraph>& _graph)
                                                             .with_fragment_shader(fragment_shader_source)
                                                             .build())
                                            .clear_color(glm::vec4(0.4, 0.4, 0.4, 0.0))
-                                           .build()));
+                                           .build_unique();
 }
 
 gfx::RenderPipeline& GraphViewer::get_pipeline()

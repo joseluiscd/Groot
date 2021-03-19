@@ -39,6 +39,7 @@ CommandState OpenGraph::execute()
 
 int open_graph_lua_impl(lua_State* L)
 {
+    //TODO: Update this method
     try {
         return [&]() {
             const char* filename = luaL_checkstring(L, 1);

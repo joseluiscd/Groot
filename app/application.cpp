@@ -2,11 +2,13 @@
 #include "create_graph.hpp"
 #include "graph_cluster.hpp"
 #include "open_graph.hpp"
+#include "particle_sim.hpp"
 #include "save_graph.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
-#include <jet/live/Live.hpp>
 
+#ifdef HOT_CODE_RELOAD
+#include <jet/live/Live.hpp>
 class JetListener : public jet::ILiveListener {
 public:
     JetListener() { }
@@ -37,6 +39,7 @@ jet::Live& jet_instance()
     static jet::Live live = jet::Live(std::make_unique<JetListener>());
     return live;
 }
+#endif
 
 Application::Application()
     : gui_app(gfx::InitOptions {
@@ -59,7 +62,8 @@ Application::Application()
     init_lua();
 }
 
-Application::~Application(){
+Application::~Application()
+{
     lua_close(lua);
 }
 
@@ -72,17 +76,17 @@ void Application::init_lua()
 
     static luaL_Reg funcs[] = {
         { "push_graph", [](lua_State* L) -> int {
-            groot::PlantGraph* g = check_value<groot::PlantGraph>(L, 1); // 1
+             groot::PlantGraph* g = check_value<groot::PlantGraph>(L, 1); // 1
 
-            lua_getfield(L, LUA_REGISTRYINDEX, "Groot_Application"); // 2
-            Application* app = (Application*) lua_touserdata(L, 2);
+             lua_getfield(L, LUA_REGISTRYINDEX, "Groot_Application"); // 2
+             Application* app = (Application*)lua_touserdata(L, 2);
 
-            app->push_plant_graph(std::move(*g));
-            lua_pushnil(L);
-            lua_replace(L, 1);
+             app->push_plant_graph(std::move(*g));
+             lua_pushnil(L);
+             lua_replace(L, 1);
 
-            return 0;
-        }},
+             return 0;
+         } },
         { nullptr, nullptr }
     };
 
@@ -152,6 +156,13 @@ void Application::open_window(CommandGui* gui)
     std::unique_lock _lock(command_gui_lock);
 
     command_guis.emplace_back(gui);
+}
+
+void Application::open_window(AbstractViewer* gui)
+{
+    std::unique_lock _lock(viewers_lock);
+
+    viewers.emplace_back(gui);
 }
 
 void Application::show_error(const std::string& error)
@@ -283,6 +294,9 @@ void Application::draw_gui()
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
                 open_window(new GraphCluster(stack_top, stack_push));
             }
+            if (ImGui::MenuItem(ICON_FA_PARACHUTE_BOX "\tParticle simulator...")) {
+                open_window(new ParticleSim());
+            }
             ImGui::EndMenu();
         }
 
@@ -300,10 +314,12 @@ void Application::draw_gui()
             ImGui::EndMenu();
         }
 
+#ifdef HOT_CODE_RELOAD
         if (ImGui::MenuItem("Reload App")) {
             jet_instance().tryReload();
             spdlog::info("Reloading");
         }
+#endif
         ImGui::EndMenuBar();
     }
 
@@ -313,7 +329,8 @@ void Application::draw_gui()
     draw_history();
     draw_background_tasks();
 
-    if (windows.demo_window) ImGui::ShowDemoWindow(&windows.demo_window);
+    if (windows.demo_window)
+        ImGui::ShowDemoWindow(&windows.demo_window);
 
     ImGui::EndMainWindow();
     gui_app.draw_gui();
@@ -322,7 +339,9 @@ void Application::draw_gui()
 void Application::main_loop()
 {
     gui_app.main_loop([&]() {
+#ifdef HOT_CODE_RELOAD
         jet_instance().update();
+#endif
 
         while (!remove_background_tasks.empty()) {
             remove_background_tasks.pop();
@@ -333,8 +352,6 @@ void Application::main_loop()
             main_viewer.update_plant_graph();
         }
 
-        /*ImGui::Begin("New window");
-        ImGui::End();*/
         draw_gui();
     });
 }
