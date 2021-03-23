@@ -13,3 +13,6 @@
 [submodule "3rdparty/zep"]
 	path = 3rdparty/zep
 	url = https://github.com/Rezonality/zep.git
+[submodule "3rdparty/doctest"]
+	path = 3rdparty/doctest
+	url = https://github.com/onqtam/doctest

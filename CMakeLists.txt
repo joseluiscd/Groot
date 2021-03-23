@@ -32,6 +32,7 @@ include(CMakePackageConfigHelpers)
 
 add_subdirectory(3rdparty/gfx)
 add_subdirectory(3rdparty/zep)
+add_subdirectory(3rdparty/doctest)
 
 #include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live/cmake/jet_live_setup.cmake) # setup needed compiler and linker flags, include this file in your root CMakeLists.txt
 #set(JET_LIVE_BUILD_EXAMPLE OFF)
@@ -44,6 +45,7 @@ file(GLOB SOURCES
 )
 
 add_library(groot
+    OBJECT
     ${SOURCES}
 )
 
@@ -55,7 +57,9 @@ target_link_libraries(groot
     spdlog::spdlog
     Boost::boost
     Boost::serialization
+    doctest
 )
+
 target_include_directories(groot
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -64,3 +68,6 @@ target_include_directories(groot
 )
 
 add_subdirectory(app)
+
+add_executable(test_exe testing.cpp)
+target_link_libraries(test_exe groot doctest_with_main)

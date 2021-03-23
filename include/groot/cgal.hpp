@@ -19,5 +19,10 @@ typedef Kernel::Point_3 Point_3;
 typedef Kernel::Vector_3 Vector_3;
 typedef Kernel::Segment_3 Segment_3;
 typedef Kernel::Triangle_3 Triangle_3;
+typedef Kernel::Line_3 Line_3;
 
+}
+
+namespace groot {
+    using namespace cgal;
 }

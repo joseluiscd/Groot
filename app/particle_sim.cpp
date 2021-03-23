@@ -4,9 +4,10 @@
 #include <groot/cloud_load.hpp>
 
 gfx::VertexArray::Layout features_layout = {
-    { 0, 3, gfx::Type::Float }, // Position (curvature center)
-    { 1, 3, gfx::Type::Float }, // Direction
-    { 2, 1, gfx::Type::Float }, // Curvature radius
+    { 0, 3, gfx::Type::Float }, // Position of sampled point
+    { 1, 3, gfx::Type::Float }, // Position (curvature center)
+    { 2, 3, gfx::Type::Float }, // Direction
+    { 3, 1, gfx::Type::Float }, // Curvature radius
 };
 
 ParticleSim::ParticleSim()
@@ -112,9 +113,9 @@ void ParticleSim::render()
 }
 
 const char* ParticleSim::curvature_vsh = R"(
-layout (location = 0) in vec3 v_position;
-layout (location = 1) in vec3 v_direction;
-layout (location = 2) in float v_curvature_radius;
+layout (location = 1) in vec3 v_position;
+layout (location = 2) in vec3 v_direction;
+layout (location = 3) in float v_curvature_radius;
 
 out VertexData
 {

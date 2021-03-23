@@ -79,6 +79,7 @@
         "valarray": "cpp",
         "variant": "cpp",
         "*.ipp": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "hash_set": "cpp"
     }
 }
