@@ -56,5 +56,6 @@ void find_cylinders(
 
 void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k, size_t d = 3, size_t dprime = 2);
 PlantGraph cylinder_marching(Curvature* input, size_t count, float height, float h_extend = 2.0f, float r_extend = 1.5f);
+std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);
 
 }

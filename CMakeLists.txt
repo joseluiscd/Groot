@@ -58,6 +58,7 @@ target_link_libraries(groot
     Boost::boost
     Boost::serialization
     doctest
+    gfx
 )
 
 target_include_directories(groot

@@ -2,7 +2,8 @@
 #include <boost/property_map/transform_value_property_map.hpp>
 #include <groot/cylinder_marching.hpp>
 #include <tbb/parallel_for.h>
-#include <doctest/doctest.h>
+#include <gfx/debug_draw.hpp>
+#include <CGAL/property_map.h>
 
 namespace groot {
 
@@ -21,13 +22,18 @@ void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, siz
         size_t u = 0;
         for (auto it = knn.begin(); it != knn.end(); ++it) {
             nn[u++] = it->first;
+
+            if (i == 20) {
+                dd::point({ it->first.x(), it->first.y(), it->first.z() }, dd::colors::Black, 3.0);
+            }
+
         }
 
         Monge_form f = monge_fitting(nn.begin(), nn.end(), d, dprime);
 
         float r = 1.0f / f.principal_curvatures(0);
         cgal::Vector_3 n = f.normal_direction();
-        cgal::Vector_3 d1 = f.minimal_principal_direction();
+        cgal::Vector_3 d1 = f.maximal_principal_direction();
         cgal::Point_3 b = cloud[i] - r * n;
 
         q_out[i].curvature_center = b;
@@ -65,6 +71,16 @@ void find_points_in_cylinder(const KdTreeCurvature& kdtree, Curvature* curvature
     }
 }
 
+Cylinder cylinder_from_curvature(const Curvature& c, float height) {
+    Cylinder cylinder;
+    cylinder.center = c.curvature_center;
+    cylinder.direction = c.direction;
+    cylinder.middle_height = height; 
+    cylinder.radius = c.radius;
+
+    return cylinder;
+}
+
 bool cylinders_similar(const Cylinder& c1, const Cylinder& c2)
 {
     float cos_angle = c1.direction * c2.direction;
@@ -76,14 +92,55 @@ bool cylinders_similar(const Cylinder& c1, const Cylinder& c2)
         && radius_ratio < 1.1;
 }
 
-PlantGraph cylinder_marching(Curvature* input, size_t count, float height, float h_extend, float r_extend)
+std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height)
 {
     CurvatureCenterPropertyMap map(CurvatureCenterProperty(), boost::make_iterator_property_map(input, boost::identity_property_map()));
-    KdTreeCurvature kd((size_t)0, count, KdTreeCurvature::Splitter(), CurvatureCenterSearchTraits(map));
+    KdTreeCurvature kd { KdTreeCurvature::Splitter(), CurvatureCenterSearchTraits(map) };
+    for (size_t i = 0; i < count; i++) {
+        kd.insert(i);
+    }
     kd.build<CGAL::Parallel_tag>();
 
-    throw std::logic_error("Not implemented");
+
+    std::vector<bool> processed(count, false);
+    std::vector<size_t> out_points;
+    std::vector<Curvature> output;
+
+    for (size_t i = 0; i < count; i++) {
+        if (processed[i]) {
+            continue;
+        }
+
+        Cylinder cylinder = cylinder_from_curvature(input[i], 0.3f); // TODO: CHANGE RADIUS
+
+        find_points_in_cylinder(kd, input, cylinder, out_points);
+
+        size_t candidates = 0;
+        for (size_t j = 0; j < out_points.size(); j++) {
+            Cylinder other = cylinder_from_curvature(input[out_points[j]], 0.3f);
+            if (cylinders_similar(cylinder, other)) {
+                candidates ++;
+            }
+        }
+
+        if (candidates >= 5) { //TODO: CHANGE THRESHOLD
+            for (size_t j = 0; j < out_points.size(); j++) {
+                processed[out_points[j]] = true;
+                output.push_back(input[out_points[j]]);
+            }
+        }
+        out_points.clear();
+    }
+
+    return output;
 }
+
+}
+
+
+#include <doctest/doctest.h>
+
+namespace groot {
 
 TEST_CASE("cylinder inclusion test")
 {
@@ -97,15 +154,15 @@ TEST_CASE("cylinder inclusion test")
     groot::Point_3 p1(0.0, 0.0, 0.0);
     groot::Point_3 p2(0.499, 0.49, 0.0);
 
-    REQUIRE(point_in_cylinder(p1, c1));
-    REQUIRE(point_in_cylinder(p2, c1));
+    CHECK(point_in_cylinder(p1, c1));
+    CHECK(point_in_cylinder(p2, c1));
 
     //Points outside the cylinder
     groot::Point_3 p3(0.9, 0.0, 0.0);
     groot::Point_3 p4(0.499, 0.49, 0.49);
 
-    REQUIRE_FALSE(point_in_cylinder(p3, c1));
-    REQUIRE_FALSE(point_in_cylinder(p4, c1));
+    CHECK_FALSE(point_in_cylinder(p3, c1));
+    CHECK_FALSE(point_in_cylinder(p4, c1));
 }
 
 
@@ -124,16 +181,16 @@ TEST_CASE("similar cylinders")
         .middle_height = 0.5,
     };
     groot::Cylinder c_displaced = {
-        .center = groot::Point_3(0.3, 0.0, 0.0),
+        .center = groot::Point_3(0.2, 0.0, 0.0),
         .direction = groot::Vector_3(-1.0, 0.0, 0.0),
-        .radius = 0.45,
+        .radius = 0.49,
         .middle_height = 0.7,
     };
 
-    REQUIRE(cylinders_similar(c, c));
-    REQUIRE(cylinders_similar(c_inverted, c));
-    REQUIRE(cylinders_similar(c_displaced, c));
-    REQUIRE(cylinders_similar(c_displaced, c_inverted));
+    CHECK(cylinders_similar(c, c));
+    CHECK(cylinders_similar(c_inverted, c));
+    CHECK(cylinders_similar(c_displaced, c));
+    CHECK(cylinders_similar(c_displaced, c_inverted));
 }
 
 }

@@ -2,6 +2,7 @@
 #include <gfx/camera.hpp>
 #include <gfx/imgui/imgui.h>
 #include <groot/cloud_load.hpp>
+#include <gfx/gfx.hpp>
 
 gfx::VertexArray::Layout features_layout = {
     { 0, 3, gfx::Type::Float }, // Position of sampled point
@@ -28,6 +29,16 @@ ParticleSim::ParticleSim()
                                     .with_fragment_shader(curvature_fsh)
                                     .build())
                    .build_unique();
+    pipeline_lines = gfx::RenderPipeline::Builder("Curvatures_pipeline")
+                         .clear_color({ 0.9, 0.9, 0.9, 1.0 })
+                         .with_shader(gfx::ShaderProgram::Builder("curvature_lines")
+                                          .register_class<gfx::CameraRig>()
+                                          .register_class<gfx::CameraLens>()
+                                          .with_vertex_shader(curvature_vsh)
+                                          .with_geometry_shader(curvature_gsh_lines)
+                                          .with_fragment_shader(curvature_fsh)
+                                          .build())
+                         .build_unique();
 
     vao
         .add_buffer(features_layout, curvatures)
@@ -71,12 +82,29 @@ void ParticleSim::draw_gui_config()
         ImGui::InputFloat("Max radius", &max_radius);
         ImGui::Separator();
 
+        ImGui::Checkbox("Show lines only", &only_lines);
+        ImGui::Separator();
+
         if (ImGui::Button("Show")) {
             run_gui_config();
         }
     }
     file_browser.Display();
+
     ImGui::End();
+
+    if (visualize) {
+        ImGui::Begin("Filter");
+        if (ImGui::Button("Run filter")) {
+            auto edit = this->curvatures.edit();
+            auto& curv = edit.vector();
+
+            auto new_curv = groot::cylinder_filter(curv.data(), curv.size(), max_radius);
+            curv = std::move(new_curv);
+            vao.set_element_count(curv.size());
+        }
+        ImGui::End();
+    }
 }
 
 void ParticleSim::run_gui_config()
@@ -87,7 +115,7 @@ void ParticleSim::run_gui_config()
     std::vector<groot::Curvature> curv(cloud.size());
     try {
         groot::compute_differential_quantities(cloud.data(), curv.data(), cloud.size(), this->k, this->d, this->dprime);
-    } catch(CGAL::Precondition_exception& e) {
+    } catch (CGAL::Precondition_exception& e) {
         spdlog::error("{}: {}", e.what(), e.expression());
         return;
     }
@@ -95,21 +123,30 @@ void ParticleSim::run_gui_config()
     auto edit_curvatures = curvatures.edit();
     edit_curvatures.vector().resize(0);
 
-    std::copy_if(curv.begin(), curv.end(), std::back_inserter(edit_curvatures.vector()), [&](const groot::Curvature &c){
+    std::copy_if(curv.begin(), curv.end(), std::back_inserter(edit_curvatures.vector()), [&](const groot::Curvature& c) {
         return std::abs(c.radius) < max_radius;
     });
     vao.set_element_count(edit_curvatures.vector().size());
-
 }
 
 void ParticleSim::render()
 {
-    pipeline->begin_render(framebuffer)
-        .clear()
-        .viewport({ 0, 0 }, size)
-        .with_camera(camera_rig)
-        .draw(vao)
-        .end_render();
+    if (only_lines) {
+        pipeline_lines->begin_render(framebuffer)
+            .clear()
+            .viewport({ 0, 0 }, size)
+            .with_camera(camera_rig)
+            .draw(vao)
+            .end_render();
+    } else {
+        pipeline->begin_render(framebuffer)
+            .clear()
+            .viewport({ 0, 0 }, size)
+            .with_camera(camera_rig)
+            .draw(vao)
+            .end_render();
+    }
+
 }
 
 const char* ParticleSim::curvature_vsh = R"(
@@ -132,6 +169,34 @@ void main()
 }
 )";
 
+const char* ParticleSim::curvature_gsh_lines = R"(
+layout (points) in;
+layout (line_strip, max_vertices=2) out;
+
+layout (location = kProjectionMatrix) uniform mat4 mProj;
+layout (location = kViewMatrix) uniform mat4 mView;
+
+in VertexData
+{
+    vec3 position;
+    vec3 direction;
+    float radius;
+} v_data[];
+
+void main()
+{
+    vec3 p = v_data[0].position;
+    vec3 n = p + normalize(v_data[0].direction);
+
+    gl_Position = mProj * mView * vec4(p, 1.0);
+    EmitVertex();
+
+    gl_Position = mProj * mView * vec4(n, 1.0);
+    EmitVertex();
+
+    EndPrimitive();
+}
+)";
 const char* ParticleSim::curvature_gsh = R"(
 #define CIRCLE_SUBDIVISIONS 20
 
