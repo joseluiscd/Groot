@@ -3,12 +3,13 @@
 #include <gfx/imgui/imgui.h>
 #include <groot/cloud_load.hpp>
 #include <gfx/gfx.hpp>
+#include <gfx/render_pass.hpp>
 
 gfx::VertexArray::Layout features_layout = {
-    { 0, 3, gfx::Type::Float }, // Position of sampled point
-    { 1, 3, gfx::Type::Float }, // Position (curvature center)
-    { 2, 3, gfx::Type::Float }, // Direction
-    { 3, 1, gfx::Type::Float }, // Curvature radius
+    { 0, 3, gfx::Type::Float }, // Center 
+    { 1, 3, gfx::Type::Float }, // Direction
+    { 2, 1, gfx::Type::Float }, // Curvature radius
+    { 3, 1, gfx::Type::Float } //Height
 };
 
 ParticleSim::ParticleSim()
@@ -20,7 +21,6 @@ ParticleSim::ParticleSim()
     file_browser.SetTypeFilters({ ".ply" });
 
     pipeline = gfx::RenderPipeline::Builder("Curvatures_pipeline")
-                   .clear_color({ 0.9, 0.9, 0.9, 1.0 })
                    .with_shader(gfx::ShaderProgram::Builder("curvatures")
                                     .register_class<gfx::CameraRig>()
                                     .register_class<gfx::CameraLens>()
@@ -30,7 +30,6 @@ ParticleSim::ParticleSim()
                                     .build())
                    .build_unique();
     pipeline_lines = gfx::RenderPipeline::Builder("Curvatures_pipeline")
-                         .clear_color({ 0.9, 0.9, 0.9, 1.0 })
                          .with_shader(gfx::ShaderProgram::Builder("curvature_lines")
                                           .register_class<gfx::CameraRig>()
                                           .register_class<gfx::CameraLens>()
@@ -77,9 +76,14 @@ void ParticleSim::draw_gui_config()
         ImGui::Separator();
 
         ImGui::InputInt("K", &k, 1, 5);
-        ImGui::InputInt("d", &d, 1, 5);
-        ImGui::InputInt("d'", &dprime, 1, 5);
         ImGui::InputFloat("Max radius", &max_radius);
+        ImGui::Separator();
+
+        ImGui::InputFloat("Epsilon", &params.epsilon, 0.05, 0.1);
+        ImGui::InputFloat("Normal Threshold", &params.normal_threshold, 0.1, 0.5);
+        ImGui::InputFloat("Cluster epsilon", &params.cluster_epsilon);
+        ImGui::InputInt("Min points", (int*) &params.min_points);
+        ImGui::InputFloat("Missing probability", &params.probability);
         ImGui::Separator();
 
         ImGui::Checkbox("Show lines only", &only_lines);
@@ -92,19 +96,6 @@ void ParticleSim::draw_gui_config()
     file_browser.Display();
 
     ImGui::End();
-
-    if (visualize) {
-        ImGui::Begin("Filter");
-        if (ImGui::Button("Run filter")) {
-            auto edit = this->curvatures.edit();
-            auto& curv = edit.vector();
-
-            auto new_curv = groot::cylinder_filter(curv.data(), curv.size(), max_radius);
-            curv = std::move(new_curv);
-            vao.set_element_count(curv.size());
-        }
-        ImGui::End();
-    }
 }
 
 void ParticleSim::run_gui_config()
@@ -114,45 +105,41 @@ void ParticleSim::run_gui_config()
 
     std::vector<groot::Curvature> curv(cloud.size());
     try {
-        groot::compute_differential_quantities(cloud.data(), curv.data(), cloud.size(), this->k, this->d, this->dprime);
+        auto edit = curvatures.edit();
+        edit.vector().clear();
+        std::vector<groot::Vector_3> normals = groot::compute_normals(cloud.data(), cloud.size(), this->k, this->max_radius);
+        groot::compute_cylinders(cloud.data(), normals.data(), cloud.size(), edit.vector());
+        vao.set_element_count(edit.vector().size());
     } catch (CGAL::Precondition_exception& e) {
         spdlog::error("{}: {}", e.what(), e.expression());
-        return;
     }
-
-    auto edit_curvatures = curvatures.edit();
-    edit_curvatures.vector().resize(0);
-
-    std::copy_if(curv.begin(), curv.end(), std::back_inserter(edit_curvatures.vector()), [&](const groot::Curvature& c) {
-        return std::abs(c.radius) < max_radius;
-    });
-    vao.set_element_count(edit_curvatures.vector().size());
 }
 
 void ParticleSim::render()
 {
+    
     if (only_lines) {
-        pipeline_lines->begin_render(framebuffer)
-            .clear()
-            .viewport({ 0, 0 }, size)
+        gfx::RenderPass(framebuffer, gfx::ClearOperation::color_and_depth({0.7, 0.7, 0.7, 1.0}))
+            .viewport({0, 0}, size)
+            .set_pipeline(*pipeline_lines)
             .with_camera(camera_rig)
             .draw(vao)
-            .end_render();
+            .end_pipeline();
     } else {
-        pipeline->begin_render(framebuffer)
-            .clear()
+        gfx::RenderPass(framebuffer, gfx::ClearOperation::color_and_depth({0.7, 0.7, 0.7, 1.0}))
             .viewport({ 0, 0 }, size)
+            .set_pipeline(*pipeline)
             .with_camera(camera_rig)
             .draw(vao)
-            .end_render();
+            .end_pipeline();
     }
 
 }
 
 const char* ParticleSim::curvature_vsh = R"(
-layout (location = 1) in vec3 v_position;
-layout (location = 2) in vec3 v_direction;
-layout (location = 3) in float v_curvature_radius;
+layout (location = 0) in vec3 v_position;
+layout (location = 1) in vec3 v_direction;
+layout (location = 2) in float v_curvature_radius;
 
 out VertexData
 {

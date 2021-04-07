@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CGAL/Fuzzy_sphere.h>
+#include <CGAL/Shape_detection/Efficient_RANSAC.h>
 #include <CGAL/Monge_via_jet_fitting.h>
 #include <boost/utility/result_of.hpp>
 #include <glm/glm.hpp>
@@ -17,6 +18,13 @@ using KNeighbour = CGAL::K_neighbor_search<SearchTraits>;
 using Monge_via_jet_fitting = CGAL::Monge_via_jet_fitting<cgal::Kernel>;
 using Monge_form = Monge_via_jet_fitting::Monge_form;
 using FuzzySphere = CGAL::Fuzzy_sphere<SearchTraits>;
+
+using PointMap = boost::iterator_property_map<Point_3*, boost::identity_property_map>;
+using NormalMap = boost::iterator_property_map<Vector_3*, boost::identity_property_map>;
+
+using RansacTraits = CGAL::Shape_detection::Efficient_RANSAC_traits<Kernel, std::vector<size_t>, PointMap, NormalMap>;
+using Ransac = CGAL::Shape_detection::Efficient_RANSAC<RansacTraits>;
+using FitCylinder = CGAL::Shape_detection::Cylinder<RansacTraits>;
 
 struct Curvature {
     cgal::Point_3 sampled_point;
@@ -54,6 +62,8 @@ void find_cylinders(
     glm::vec3* cloud,
     size_t count);
 
+void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vector<Cylinder>& out, Ransac::Parameters params = Ransac::Parameters());
+std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius);
 void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k, size_t d = 3, size_t dprime = 2);
 PlantGraph cylinder_marching(Curvature* input, size_t count, float height, float h_extend = 2.0f, float r_extend = 1.5f);
 std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);

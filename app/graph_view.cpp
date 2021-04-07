@@ -1,6 +1,7 @@
 #include "graph_view.hpp"
 #include <gfx/camera.hpp>
 #include <gfx/shader_program.hpp>
+#include <gfx/render_pass.hpp>
 
 const char* vertex_shader_source = "\n"
                                    "layout (location=0) in vec3 in_Position;\n"
@@ -58,7 +59,6 @@ GraphViewer::GraphViewer(IDataSource<groot::PlantGraph>& _graph)
                                                             .with_vertex_shader(vertex_shader_source)
                                                             .with_fragment_shader(fragment_shader_source)
                                                             .build())
-                                           .clear_color(glm::vec4(0.4, 0.4, 0.4, 0.0))
                                            .build_unique();
 }
 
@@ -113,15 +113,14 @@ void GraphViewer::update_plant_graph()
 
 void GraphViewer::render()
 {
-    get_pipeline()
-        .begin_render(framebuffer)
-        .clear()
+    gfx::RenderPass(framebuffer)
         .viewport({ 0, 0 }, size)
+        .set_pipeline(get_pipeline())
         .with_camera(camera_rig)
         .bind(color_point)
         .draw(point_vao)
         .bind(color_line)
         .draw(line_vao)
-        .end_render();
+        .end_pipeline();
 
 }

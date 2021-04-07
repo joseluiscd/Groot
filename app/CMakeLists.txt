@@ -31,6 +31,8 @@ add_executable(groot_exe
     lua.hpp
     lua.cpp
     
+    viewer_system.cpp
+    
     main.cpp
 )
 include_directories(${CMAKE_SOURCE_DIR}/3rdparty/zep/include ${LUA_INCLUDE_DIR})
@@ -39,4 +41,5 @@ target_link_libraries(groot_exe
     gfx
     #jet-live
     Zep::Zep
+    EnTT::EnTT
     ${LUA_LIBRARIES})

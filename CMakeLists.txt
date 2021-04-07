@@ -33,6 +33,7 @@ include(CMakePackageConfigHelpers)
 add_subdirectory(3rdparty/gfx)
 add_subdirectory(3rdparty/zep)
 add_subdirectory(3rdparty/doctest)
+add_subdirectory(3rdparty/entt)
 
 #include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live/cmake/jet_live_setup.cmake) # setup needed compiler and linker flags, include this file in your root CMakeLists.txt
 #set(JET_LIVE_BUILD_EXAMPLE OFF)

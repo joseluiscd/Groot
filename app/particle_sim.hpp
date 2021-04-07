@@ -36,17 +36,17 @@ private:
     std::vector<groot::cgal::Point_3> cloud;
 
     int k = 10;
-    int d = 3;
-    int dprime = 2;
     float max_radius = 1.0;
 
+    groot::Ransac::Parameters params;
+    
     bool only_lines = false;
 
     std::unique_ptr<gfx::RenderPipeline> pipeline;
     std::unique_ptr<gfx::RenderPipeline> pipeline_lines;
 
     gfx::VertexArray vao;
-    gfx::Buffer<groot::Curvature> curvatures;
+    gfx::Buffer<groot::Cylinder> curvatures;
 
     static const char* curvature_vsh;
     static const char* curvature_gsh;

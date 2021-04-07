@@ -16,3 +16,6 @@
 [submodule "3rdparty/gfx"]
 	path = 3rdparty/gfx
 	url = git@github.com:joseluiscd/gfx.git
+[submodule "3rdparty/entt"]
+	path = 3rdparty/entt
+	url = https://github.com/skypjack/entt.git
