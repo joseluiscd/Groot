@@ -7,8 +7,8 @@
 const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
 const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
 
-CreateGraph::CreateGraph(IDataOutput<groot::PlantGraph>& _output)
-    : output(_output)
+CreateGraph::CreateGraph(entt::registry& _registry)
+    : registry(_registry)
     , open(open_flags)
 {
     open.SetTitle("Open PLY Cloud");
@@ -170,7 +170,10 @@ CommandState CreateGraph::execute()
 
     spdlog::info("Plant graph is created!");
 
-    output = std::move(graph);
+
+    auto entity = registry.create();
+    registry.emplace<groot::PlantGraph>(entity, std::move(graph));
+
     return CommandState::Ok;
 }
 

@@ -2,8 +2,8 @@
 #include <fstream>
 #include <spdlog/spdlog.h>
 
-OpenGraph::OpenGraph(IDataOutput<groot::PlantGraph>& _output)
-    : output(_output)
+OpenGraph::OpenGraph(entt::registry& _registry)
+    : registry(_registry)
     , file_dialog()
 {
     file_dialog.SetTitle("Graph Open");
@@ -28,7 +28,8 @@ CommandState OpenGraph::execute()
 {
     std::ifstream file(selected_file);
     try {
-        output = groot::read_from_file(file);
+        auto entity = registry.create();
+        registry.emplace<groot::PlantGraph>(entity, groot::read_from_file(file));
     } catch (boost::archive::archive_exception& e) {
         error_string = e.what();
         return CommandState::Error;
@@ -42,7 +43,7 @@ int open_graph_lua_impl(lua_State* L)
     //TODO: Update this method
     try {
         return [&]() {
-            const char* filename = luaL_checkstring(L, 1);
+            /*const char* filename = luaL_checkstring(L, 1);
             lua_pushnil(L);
             LuaStackDataOutput<groot::PlantGraph> out(L, -1);
 
@@ -54,7 +55,8 @@ int open_graph_lua_impl(lua_State* L)
                 return 1;
             } else {
                 throw std::runtime_error("Not ok");
-            }
+            }*/
+            return 0;
         }();
     } catch (std::exception& e) {
         return luaL_error(L, "open graph error: %s", e.what());

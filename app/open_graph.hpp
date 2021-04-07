@@ -5,10 +5,11 @@
 #include <gfx/imgui/imfilebrowser.h>
 #include "data_output.hpp"
 #include "lua.hpp"
+#include <entt/entt.hpp>
 
 class OpenGraph : public CommandGui {
 public:
-    OpenGraph(IDataOutput<groot::PlantGraph>& _output);
+    OpenGraph(entt::registry& registry);
     CommandState execute() override;
     GuiState draw_gui() override;
 
@@ -21,7 +22,7 @@ private:
     ImGui::FileBrowser file_dialog;
     std::filesystem::path selected_file;
 
-    IDataOutput<groot::PlantGraph>& output;
+    entt::registry& registry;
 };
 
 

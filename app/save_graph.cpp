@@ -1,4 +1,5 @@
 #include "save_graph.hpp"
+#include <spdlog/spdlog.h>
 #include <fstream>
 
 SaveGraph::SaveGraph(IDataSource<groot::PlantGraph>& _input)

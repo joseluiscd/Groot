@@ -2,10 +2,13 @@
 #include "create_graph.hpp"
 #include "graph_cluster.hpp"
 #include "open_graph.hpp"
-#include "particle_sim.hpp"
+//#include "particle_sim.hpp"
+#include "graph_viewer_system.hpp"
 #include "save_graph.hpp"
+#include "viewer_system.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
+#include <gfx/render_pass.hpp>
 
 #ifdef HOT_CODE_RELOAD
 #include <jet/live/Live.hpp>
@@ -50,15 +53,10 @@ Application::Application()
         .debug_draw = true,
         .debug_context = true,
     })
-    , plants(std::deque<Entry<groot::PlantGraph>>(1))
-    , main_viewer(stack_top)
 {
-    stack_top.app = this;
-    stack_push.app = this;
+    viewer_system::init(registry);
+    graph_viewer_system::init(registry);
 
-    stack_event.append([&]() {
-        main_viewer.update_plant_graph();
-    });
     init_lua();
 }
 
@@ -81,7 +79,7 @@ void Application::init_lua()
              lua_getfield(L, LUA_REGISTRYINDEX, "Groot_Application"); // 2
              Application* app = (Application*)lua_touserdata(L, 2);
 
-             app->push_plant_graph(std::move(*g));
+             //app->push_plant_graph(std::move(*g));
              lua_pushnil(L);
              lua_replace(L, 1);
 
@@ -158,13 +156,6 @@ void Application::open_window(CommandGui* gui)
     command_guis.emplace_back(gui);
 }
 
-void Application::open_window(AbstractViewer* gui)
-{
-    std::unique_lock _lock(viewers_lock);
-
-    viewers.emplace_back(gui);
-}
-
 void Application::show_error(const std::string& error)
 {
     std::unique_lock _lock(error_lock);
@@ -174,20 +165,6 @@ void Application::show_error(const std::string& error)
 void Application::open_window(Editor* editor)
 {
     editors.emplace_back(editor);
-}
-
-void Application::draw_viewers()
-{
-    main_viewer.draw_gui();
-
-    auto it = viewers.begin();
-    while (it != viewers.end()) {
-        if (!(*it)->draw_gui()) {
-            viewers.erase(it++);
-        } else {
-            it++;
-        }
-    }
 }
 
 void Application::draw_editors()
@@ -247,18 +224,6 @@ void Application::draw_command_gui()
     }
 }
 
-void Application::draw_history()
-{
-    if (ImGui::Begin("History", &windows.history)) {
-        std::shared_lock _lock(plant_lock);
-
-        for (size_t t = 0; t < plants.size(); t++) {
-            ImGui::Text("Plant");
-        }
-    }
-    ImGui::End();
-}
-
 void Application::draw_gui()
 {
     ImGui::BeginMainWindow();
@@ -266,25 +231,17 @@ void Application::draw_gui()
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Graph")) {
-                open_window(new OpenGraph(stack_push));
+                open_window(new OpenGraph(registry));
             }
 
             if (ImGui::MenuItem(ICON_FA_SAVE "\tSave Graph")) {
-                open_window(new SaveGraph(stack_top));
+                //open_window(new SaveGraph(stack_top));
             }
 
             ImGui::Separator();
 
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PLY")) {
-                open_window(new CreateGraph(stack_push));
-            }
-
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("Edit")) {
-            if (ImGui::MenuItem(ICON_FA_UNDO "\tUndo")) {
-                pop_plant_graph();
+                open_window(new CreateGraph(registry));
             }
 
             ImGui::EndMenu();
@@ -292,10 +249,10 @@ void Application::draw_gui()
 
         if (ImGui::BeginMenu("Process")) {
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
-                open_window(new GraphCluster(stack_top, stack_push));
+                //open_window(new GraphCluster(stack_top, stack_push));
             }
             if (ImGui::MenuItem(ICON_FA_PARACHUTE_BOX "\tParticle simulator...")) {
-                open_window(new ParticleSim());
+                //open_window(new ParticleSim());
             }
             ImGui::EndMenu();
         }
@@ -323,10 +280,16 @@ void Application::draw_gui()
         ImGui::EndMenuBar();
     }
 
-    draw_viewers();
+    {
+        auto& fbo = registry.ctx<viewer_system::SystemData>().framebuffer;
+        gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth());
+    }
+
+    graph_viewer_system::run(registry);
+    viewer_system::run(registry);
+
     draw_editors();
     draw_command_gui();
-    draw_history();
     draw_background_tasks();
 
     if (windows.demo_window)
@@ -345,11 +308,6 @@ void Application::main_loop()
 
         while (!remove_background_tasks.empty()) {
             remove_background_tasks.pop();
-        }
-
-        if (dirty_stack) {
-            dirty_stack = false;
-            main_viewer.update_plant_graph();
         }
 
         draw_gui();

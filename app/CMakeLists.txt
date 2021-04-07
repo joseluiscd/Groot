@@ -6,15 +6,12 @@ add_executable(groot_exe
     application.hpp
     application.cpp
     
-    viewer.hpp
-    viewer.cpp
-
     create_graph.hpp
     create_graph.cpp
     graph_cluster.hpp
     graph_cluster.cpp
-    graph_view.hpp
-    graph_view.cpp
+    #graph_view.hpp
+    #graph_view.cpp
 
     open_graph.hpp
     open_graph.cpp
@@ -25,13 +22,17 @@ add_executable(groot_exe
     editor_imgui.hpp
     editor.cpp
 
-    particle_sim.hpp
-    particle_sim.cpp
+    #particle_sim.hpp
+    #particle_sim.cpp
 
     lua.hpp
     lua.cpp
     
     viewer_system.cpp
+    viewer_system.hpp
+
+    graph_viewer_system.cpp
+    graph_viewer_system.hpp
     
     main.cpp
 )

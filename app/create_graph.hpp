@@ -6,9 +6,10 @@
 #include <string>
 #include "application.hpp"
 #include "data_output.hpp"
+#include <entt/entt.hpp>
 
 struct CreateGraph : public CommandGui {
-    CreateGraph(IDataOutput<groot::PlantGraph>& _output);
+    CreateGraph(entt::registry& registry);
 
     enum Method {
         kRadius = 0,
@@ -33,7 +34,8 @@ struct CreateGraph : public CommandGui {
         kMST,
         kMakeTreeMethod_COUNT,
     };
-    IDataOutput<groot::PlantGraph>& output;
+
+    entt::registry& registry;
 
     ImGui::FileBrowser open;
     std::string input_file = "";
