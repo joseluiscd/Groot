@@ -15,6 +15,7 @@
 #include <queue>
 #include <stack>
 #include <entt/entt.hpp>
+#include "resources.hpp"
 
 class Application;
 
@@ -100,6 +101,8 @@ private:
 
     gfx::Gfx gui_app;
     entt::registry registry;
+    entt::entity selected;
+    std::set<EntityEditor::ComponentTypeID> entity_filter;
 
     std::list<std::unique_ptr<CommandGui>> command_guis;
     std::list<std::shared_ptr<BackgroundTask>> background_tasks;

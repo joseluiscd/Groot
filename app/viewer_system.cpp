@@ -1,4 +1,7 @@
 #include "viewer_system.hpp"
+#include "entity_editor.hpp"
+#include "resources.hpp"
+#include "components.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 
@@ -44,7 +47,7 @@ void init(entt::registry& registry)
     SystemData data {
         gfx::Framebuffer(),
         std::move(camera),
-        std::move(lens),    
+        std::move(lens),
         glm::ivec2(0, 0)
     };
 
@@ -58,6 +61,8 @@ void init(entt::registry& registry)
         .with_up_vector({ 0.0, 1.0, 0.0 });
 
     registry.set<SystemData>(std::move(data));
+
+    registry.ctx<EntityEditor>().registerComponent<Visible>("Visible");
 }
 
 }

@@ -73,7 +73,6 @@ GuiState CreateGraph::draw_gui()
         ImGui::EndPopup();
     }
 
-
     if (open.HasSelected()) {
         input_file = open.GetSelected().string();
         open.ClearSelected();
@@ -108,7 +107,7 @@ CommandState CreateGraph::execute()
     case kDelaunay:
         is_delaunay = true;
         break;
-    default:        
+    default:
         error_string = "Unknown method";
         return CommandState::Error;
     }
@@ -170,11 +169,17 @@ CommandState CreateGraph::execute()
 
     spdlog::info("Plant graph is created!");
 
-
-    auto entity = registry.create();
-    registry.emplace<groot::PlantGraph>(entity, std::move(graph));
+    this->result = std::move(graph);
 
     return CommandState::Ok;
+}
+
+void CreateGraph::on_finish()
+{
+    if (this->result) {
+        auto entity = registry.create();
+        registry.emplace<groot::PlantGraph>(entity, std::move(*this->result));
+    }
 }
 
 /*

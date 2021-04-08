@@ -6,6 +6,12 @@ add_executable(groot_exe
     application.hpp
     application.cpp
     
+    resources.hpp
+    components.hpp
+    components.cpp
+
+    entity_editor.hpp
+
     create_graph.hpp
     create_graph.cpp
     graph_cluster.hpp

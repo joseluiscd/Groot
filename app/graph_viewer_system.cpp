@@ -1,20 +1,35 @@
 #include "graph_viewer_system.hpp"
 #include "components.hpp"
+#include "entity_editor.hpp"
+#include "resources.hpp"
 #include <gfx/buffer.hpp>
+#include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <groot/plant_graph.hpp>
 
 namespace graph_viewer_system {
 
 DEF_UNIFORM_SEMANTICS(Color, glm::vec3, "kColor");
+DEF_UNIFORM_SEMANTICS(PointSize, float, "kPointSize");
 
 extern const char* vertex_shader_source;
 extern const char* fragment_shader_source;
 
 entt::observer update_graph;
+entt::observer create_graph;
+
+gfx::VertexArray::Layout point_layout = {
+    { 0, 3, gfx::Type::Float } // Position
+};
 
 struct GraphViewerComponent {
+    GraphViewerComponent();
+
+    bool show_points = true;
+    bool show_lines = true;
+
     gfx::VertexArray point_vao;
     gfx::VertexArray line_vao;
 
@@ -25,28 +40,62 @@ struct GraphViewerComponent {
     gfx::Uniform<Color> color_line;
 
     glm::vec3 root;
+    gfx::Uniform<PointSize> point_size;
 };
+
+GraphViewerComponent::GraphViewerComponent()
+    : point_vao()
+    , line_vao()
+    , points()
+    , lines()
+    , color_point(glm::vec3(1, 0, 0))
+    , color_line(glm::vec3(0, 1, 0))
+    , point_size(5.0)
+{
+    point_vao
+        .add_buffer(point_layout, points)
+        .set_mode(gfx::Mode::Points);
+
+    line_vao
+        .add_buffer(point_layout, points)
+        .set_indices_buffer(lines)
+        .set_mode(gfx::Mode::Lines);
+}
 
 struct SystemData {
     gfx::RenderPipeline pipeline;
 };
 
-void init(entt::registry& registry) {
+void init(entt::registry& registry)
+{
 
-    update_graph.connect(registry, 
-        entt::collector.update<groot::PlantGraph>().group<groot::PlantGraph>()
-    );
+    //registry.on_construct<groot::PlantGraph>()
+    //    .connect<&entt::registry::emplace<GraphViewerComponent>>();
+    update_graph.connect(
+        registry,
+        entt::collector
+            .update<groot::PlantGraph>()
+            .where<GraphViewerComponent>());
+
+    create_graph.connect(
+        registry,
+        entt::collector.group<groot::PlantGraph>());
 
     registry.set<SystemData>(SystemData {
         gfx::RenderPipeline::Builder()
             .with_shader(gfx::ShaderProgram::Builder()
                              .register_uniform<Color>()
+                             .register_uniform<PointSize>()
                              .register_class<gfx::CameraLens>()
                              .register_class<gfx::CameraRig>()
                              .with_vertex_shader(vertex_shader_source)
                              .with_fragment_shader(fragment_shader_source)
                              .build())
-            .build()});
+            .build() });
+
+    auto& entity_editor = registry.ctx<EntityEditor>();
+    entity_editor.registerComponent<GraphViewerComponent>("PlantGraphViewer");
+    entity_editor.registerComponent<groot::PlantGraph>("PlantGraph");
 }
 
 void run(entt::registry& registry)
@@ -54,9 +103,8 @@ void run(entt::registry& registry)
     auto& data = registry.ctx<SystemData>();
     auto& view_data = registry.ctx<viewer_system::SystemData>();
 
-    for (const auto entity : update_graph) {
+    auto update_viewer_component = [&](entt::entity entity) {
         groot::PlantGraph& _graph = registry.get<groot::PlantGraph>(entity);
-        registry.emplace<GraphViewerComponent>(entity);
 
         registry.patch<GraphViewerComponent>(entity, [&_graph](auto& view_data) {
             auto edit_points = view_data.points.edit(false);
@@ -93,23 +141,41 @@ void run(entt::registry& registry)
                 view_data.root = glm::vec3(root_p.x(), root_p.y(), root_p.z());
             }
         });
+    };
+    for (const auto entity : create_graph) {
+        registry.emplace<GraphViewerComponent>(entity);
+        registry.emplace<Visible>(entity);
+
+        update_viewer_component(entity);
     }
 
+    for (const auto entity : update_graph) {
+        update_viewer_component(entity);
+    }
+
+    create_graph.clear();
     update_graph.clear();
 
     const auto view = registry.view<GraphViewerComponent, Visible>();
     for (const auto entity : view) {
         auto& graph_view = registry.get<GraphViewerComponent>(entity);
 
-        gfx::RenderPass(view_data.framebuffer, gfx::ClearOperation::nothing())
-            .viewport({ 0, 0 }, view_data.size)
-            .set_pipeline(data.pipeline)
-            .with_camera(*view_data.camera)
-            .bind(graph_view.color_point)
-            .draw(graph_view.point_vao)
-            .bind(graph_view.color_line)
-            .draw(graph_view.line_vao)
-            .end_pipeline();
+        gfx::RenderPass pass(view_data.framebuffer, gfx::ClearOperation::nothing());
+        auto pipe = pass.viewport({ 0, 0 }, view_data.size)
+                        .set_pipeline(data.pipeline)
+                        .with_camera(*view_data.camera);
+        if (graph_view.show_points) {
+            pipe.bind(graph_view.point_size)
+                .bind(graph_view.color_point)
+                .draw(graph_view.point_vao);
+        }
+
+        if (graph_view.show_lines) {
+            pipe
+                .bind(graph_view.color_line)
+                .draw(graph_view.line_vao);
+        }
+        pipe.end_pipeline();
     }
 }
 
@@ -120,13 +186,14 @@ const char* vertex_shader_source = "\n"
                                    "layout (location=kViewMatrix) uniform mat4 u_mvMatrix;\n"
                                    "layout (location=kProjectionMatrix) uniform mat4 u_pMatrix;\n"
                                    "layout (location=kColor) uniform vec3 u_color;\n"
+                                   "layout (location=kPointSize) uniform float point_size;\n"
                                    "\n"
                                    "void main()\n"
                                    "{\n"
                                    "    mat4 u_MvpMatrix = u_pMatrix * u_mvMatrix;\n"
                                    "    gl_Position  = u_MvpMatrix * vec4(in_Position, 1.0);\n"
                                    "    v_Color      = vec4(u_color, 1.0);\n"
-                                   "    gl_PointSize = 5.0;\n"
+                                   "    gl_PointSize = point_size;\n"
                                    "}\n";
 const char* fragment_shader_source = "\n"
                                      "in  vec4 v_Color;\n"
@@ -136,4 +203,34 @@ const char* fragment_shader_source = "\n"
                                      "{\n"
                                      "    out_FragColor = v_Color;\n"
                                      "}\n";
+}
+
+namespace MM {
+template <>
+void ComponentEditorWidget<groot::PlantGraph>(entt::registry& reg, entt::registry::entity_type e)
+{
+    auto& t = reg.get<groot::PlantGraph>(e);
+    size_t vertices = boost::num_vertices(t);
+    size_t edges = boost::num_edges(t);
+
+    ImGui::Text("Plant Graph: %d vertices, %d edges", vertices, edges);
+}
+
+template <>
+void ComponentEditorWidget<graph_viewer_system::GraphViewerComponent>(entt::registry& reg, entt::registry::entity_type e)
+{
+    auto& t = reg.get<graph_viewer_system::GraphViewerComponent>(e);
+
+    ImGui::Checkbox("Show points", &t.show_points);
+    if (t.show_points) {
+        ImGui::ColorEdit3("Point color", glm::value_ptr(*t.color_point));
+        ImGui::InputFloat("Point size", &*t.point_size);
+    }
+
+    ImGui::Checkbox("Show edges", &t.show_lines);
+    if (t.show_lines) {
+        ImGui::ColorEdit3("Line color", glm::value_ptr(*t.color_line));
+    }
+
+}
 }

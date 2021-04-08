@@ -12,6 +12,7 @@ class Command {
 public:
     virtual ~Command() { }
     virtual CommandState execute() = 0;
+    virtual void on_finish() {}
 
     std::string error_string = "";
 };

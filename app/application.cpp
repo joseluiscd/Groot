@@ -9,6 +9,7 @@
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
+#include "editor_display_imgui.hpp"
 
 #ifdef HOT_CODE_RELOAD
 #include <jet/live/Live.hpp>
@@ -54,10 +55,14 @@ Application::Application()
         .debug_context = true,
     })
 {
+    registry.set<EntityEditor>();
+
+    init_components(registry);
     viewer_system::init(registry);
     graph_viewer_system::init(registry);
 
     init_lua();
+
 }
 
 Application::~Application()
@@ -142,7 +147,9 @@ void Application::execute_command(Command* command)
 void Application::notify_task_finished(BackgroundTaskHandle task, CommandState result)
 {
     std::unique_lock _lock(background_task_lock);
-    if (result == CommandState::Error) {
+    if (result == CommandState::Ok) {
+        (*task)->command->on_finish();
+    } else {
         this->show_error((*task)->command->error_string);
     }
     remove_background_tasks.push(*task);
@@ -287,6 +294,18 @@ void Application::draw_gui()
 
     graph_viewer_system::run(registry);
     viewer_system::run(registry);
+
+
+    auto& entity_editor = registry.ctx<EntityEditor>();
+    if (ImGui::Begin("Entity List")) {
+        entity_editor.renderEntityList(registry, entity_filter);
+    }
+    ImGui::End();
+    if (ImGui::Begin("Entity properties")) {
+        entity_editor.renderEditor(registry, selected);
+    }
+    ImGui::End();
+    
 
     draw_editors();
     draw_command_gui();

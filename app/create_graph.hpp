@@ -7,6 +7,7 @@
 #include "application.hpp"
 #include "data_output.hpp"
 #include <entt/entt.hpp>
+#include <optional>
 
 struct CreateGraph : public CommandGui {
     CreateGraph(entt::registry& registry);
@@ -47,8 +48,12 @@ struct CreateGraph : public CommandGui {
     int k = 10;
     double radius = 1.0;
 
+
+    std::optional<groot::PlantGraph> result = {};
+
     GuiState draw_gui() override;
     CommandState execute() override;
+    void on_finish() override;
 
     std::variant<groot::PlantGraph, std::string> operation(void*) const;
 
