@@ -11,6 +11,7 @@ class OpenGraph : public CommandGui {
 public:
     OpenGraph(entt::registry& registry);
     CommandState execute() override;
+    void on_finish() override;
     GuiState draw_gui() override;
 
     OpenGraph& set_file(const std::filesystem::path& path)
@@ -22,6 +23,7 @@ private:
     ImGui::FileBrowser file_dialog;
     std::filesystem::path selected_file;
 
+    groot::PlantGraph result;
     entt::registry& registry;
 };
 

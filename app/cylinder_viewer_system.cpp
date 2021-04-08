@@ -5,7 +5,7 @@
 #include <gfx/gfx.hpp>
 #include <gfx/render_pass.hpp>
 
-gfx::VertexArray::Layout features_layout = {
+gfx::VertexArray::Layout cylinders_layout = {
     { 0, 3, gfx::Type::Float }, // Center 
     { 1, 3, gfx::Type::Float }, // Direction
     { 2, 1, gfx::Type::Float }, // Curvature radius

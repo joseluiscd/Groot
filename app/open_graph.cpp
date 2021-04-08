@@ -5,6 +5,7 @@
 OpenGraph::OpenGraph(entt::registry& _registry)
     : registry(_registry)
     , file_dialog()
+    , result()
 {
     file_dialog.SetTitle("Graph Open");
     file_dialog.SetTypeFilters({ ".ggf" });
@@ -28,14 +29,19 @@ CommandState OpenGraph::execute()
 {
     std::ifstream file(selected_file);
     try {
-        auto entity = registry.create();
-        registry.emplace<groot::PlantGraph>(entity, groot::read_from_file(file));
+        result = std::move(groot::read_from_file(file));
     } catch (boost::archive::archive_exception& e) {
         error_string = e.what();
         return CommandState::Error;
     }
 
     return CommandState::Ok;
+}
+
+void OpenGraph::on_finish()
+{
+    auto entity = registry.create();
+    registry.emplace<groot::PlantGraph>(entity, std::move(result));
 }
 
 int open_graph_lua_impl(lua_State* L)

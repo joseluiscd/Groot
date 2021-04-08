@@ -8,6 +8,10 @@ void init_components(entt::registry& reg)
     auto& entity_editor = reg.ctx<EntityEditor>();
 
     entity_editor.registerComponent<Name>("Name"); 
+    entity_editor.registerComponent<Selected>("Selected");
+
+    // Make only one selected item
+    reg.on_construct<Selected>().before<&entt::registry::clear<Selected>>();
 }
 
 namespace MM {

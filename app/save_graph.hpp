@@ -4,10 +4,11 @@
 #include "data_source.hpp"
 #include <filesystem>
 #include <gfx/imgui/imfilebrowser.h>
+#include <entt/entt.hpp>
 
 class SaveGraph : public CommandGui {
 public:
-    SaveGraph(IDataSource<groot::PlantGraph>& _input);
+    SaveGraph(entt::registry& reg);
     CommandState execute() override;
     GuiState draw_gui() override;
 
@@ -15,5 +16,6 @@ private:
     ImGui::FileBrowser file_dialog;
     std::filesystem::path selected_file;
 
-    IDataSource<groot::PlantGraph>& input;
+    std::vector<entt::entity> options;
+
 };

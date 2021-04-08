@@ -33,6 +33,9 @@ add_executable(groot_exe
 
     lua.hpp
     lua.cpp
+
+    cylinder_marching.hpp
+    cylinder_marching.cpp
     
     viewer_system.cpp
     viewer_system.hpp

@@ -29,7 +29,7 @@ inline void EntityWidget(EntityType& e, entt::basic_registry<EntityType>& reg, b
 
 	if (reg.valid(e)) {
 		if (reg.template all_of<Name>(e)) {
-			ImGui::Text(reg.template get<Name>(e).name.c_str()); 
+			ImGui::Text("%s", reg.template get<Name>(e).name.c_str()); 
 		} else {
 			ImGui::Text("ID: %d", entt::to_integral(e));
 		}

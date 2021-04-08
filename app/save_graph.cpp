@@ -2,13 +2,15 @@
 #include <spdlog/spdlog.h>
 #include <fstream>
 
-SaveGraph::SaveGraph(IDataSource<groot::PlantGraph>& _input)
-    : input(_input)
-    , file_dialog(ImGuiFileBrowserFlags_CloseOnEsc | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename)
+SaveGraph::SaveGraph(entt::registry& reg)
+    : file_dialog(ImGuiFileBrowserFlags_CloseOnEsc | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename)
+    , options()
 {
     file_dialog.SetTitle("Graph Save");
     file_dialog.SetTypeFilters({ ".ggf" });
     file_dialog.Open();
+
+    
 }
 
 GuiState SaveGraph::draw_gui()
