@@ -6,7 +6,6 @@
 #include "data_source.hpp"
 #include "editor.hpp"
 #include "lua.hpp"
-#include <eventpp/callbacklist.h>
 #include <future>
 #include <gfx/gfx.hpp>
 #include <groot/plant_graph.hpp>
@@ -18,33 +17,6 @@
 #include "resources.hpp"
 
 class Application;
-
-template <typename T>
-class Entry : public IDataSource<T> {
-public:
-    Entry()
-        : data()
-    {
-    }
-
-    Entry(T&& _data)
-        : data(std::move(_data))
-    {
-    }
-
-    ~Entry()
-    {
-        observers();
-    }
-
-    T& operator*() override { return data; }
-    const T& operator*() const override { return data; }
-
-    eventpp::CallbackList<IDataSourceDestroyed> observers;
-
-private:
-    T data;
-};
 
 struct BackgroundTask {
     std::shared_mutex lock;
@@ -128,7 +100,5 @@ private:
     std::shared_mutex viewers_lock;
 
     Windows windows;
-
-    eventpp::CallbackList<IDataSourceChanged<groot::PlantGraph>> stack_event;
     lua_State* lua;
 };
