@@ -1,0 +1,60 @@
+#include "cylinder_marching.hpp"
+#include <future>
+#include <queue>
+#include "components.hpp"
+#include <gfx/imgui/imgui.h>
+
+CylinderMarching::CylinderMarching(entt::registry& _reg)
+    : reg(_reg)
+{
+    auto view = reg.view<Selected, PointCloud, PointNormals>();
+    entt::entity e = view.front();
+
+    if (reg.valid(e)) {
+        this->target = e;
+        this->cloud = &view.get<PointCloud>(e);
+        this->normals = &view.get<PointNormals>(e);
+    } else {
+        throw std::runtime_error("Selected entity must have PointCloud and PointNormals");
+    }
+}
+
+GuiState CylinderMarching::draw_gui()
+{
+    bool show = true;
+    ImGui::OpenPopup("Cylinder marching");
+    if (ImGui::BeginPopupModal("Cylinder marching", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
+
+        ImGui::Separator();
+
+        ImGui::InputFloat("Epsilon", &params.epsilon, 0.05, 0.1);
+        ImGui::InputFloat("Normal Threshold", &params.normal_threshold, 0.1, 0.5);
+        ImGui::InputFloat("Cluster epsilon", &params.cluster_epsilon);
+        ImGui::InputInt("Min points", (int*) &params.min_points);
+        ImGui::InputFloat("Missing probability", &params.probability);
+
+        ImGui::Separator();
+
+        ImGui::Separator();
+
+        if (ImGui::Button("Run")) {
+            ImGui::EndPopup();
+            return GuiState::RunAsync;
+        }
+
+        ImGui::EndPopup();
+    }
+
+    return show ? GuiState::Editing : GuiState::Close;
+}
+
+CommandState CylinderMarching::execute()
+{
+    groot::compute_cylinders(cloud->cloud.data(), normals->normals.data(), cloud->cloud.size(), result, params);
+    return CommandState::Ok;
+}
+
+void CylinderMarching::on_finish()
+{
+    reg.emplace_or_replace<Cylinders>(target, std::move(result));
+}

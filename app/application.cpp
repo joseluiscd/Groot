@@ -2,7 +2,6 @@
 #include "create_graph.hpp"
 #include "graph_cluster.hpp"
 #include "open_graph.hpp"
-//#include "particle_sim.hpp"
 #include "graph_viewer_system.hpp"
 #include "save_graph.hpp"
 #include "viewer_system.hpp"
@@ -10,6 +9,12 @@
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include "editor_display_imgui.hpp"
+#include "cloud_system.hpp"
+#include <spdlog/spdlog.h>
+#include "render.hpp"
+
+#define HOT_CODE_RELOAD
+
 
 #ifdef HOT_CODE_RELOAD
 #include <jet/live/Live.hpp>
@@ -58,8 +63,10 @@ Application::Application()
     registry.set<EntityEditor>();
 
     init_components(registry);
+    ShaderCollection::init(registry);
     viewer_system::init(registry);
     graph_viewer_system::init(registry);
+    cloud_view_system::init(registry);
 
     init_lua();
 
@@ -147,9 +154,7 @@ void Application::execute_command(Command* command)
 void Application::notify_task_finished(BackgroundTaskHandle task, CommandState result)
 {
     std::unique_lock _lock(background_task_lock);
-    if (result == CommandState::Ok) {
-        (*task)->command->on_finish();
-    } else {
+    if (result == CommandState::Error) {
         this->show_error((*task)->command->error_string);
     }
     remove_background_tasks.push(*task);
@@ -166,7 +171,8 @@ void Application::open_window(CommandGui* gui)
 void Application::show_error(const std::string& error)
 {
     std::unique_lock _lock(error_lock);
-    errors.push_back(error);
+    //errors.push_back(error);
+    spdlog::error("{}", error);
 }
 
 void Application::open_window(Editor* editor)
@@ -255,6 +261,9 @@ void Application::draw_gui()
         }
 
         if (ImGui::BeginMenu("Process")) {
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
+                open_new_window<ComputeNormals>(registry);
+            }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
                 //open_window(new GraphCluster(stack_top, stack_push));
             }
@@ -293,6 +302,7 @@ void Application::draw_gui()
     }
 
     graph_viewer_system::run(registry);
+    cloud_view_system::run(registry);
     viewer_system::run(registry);
 
 
@@ -326,10 +336,12 @@ void Application::main_loop()
 #endif
 
         while (!remove_background_tasks.empty()) {
+            remove_background_tasks.front()->command->on_finish();
             remove_background_tasks.pop();
         }
 
-        draw_gui();
+        draw_gui(); 
+    
     });
 }
 

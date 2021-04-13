@@ -1,6 +1,7 @@
 #include "graph_viewer_system.hpp"
 #include "components.hpp"
 #include "entity_editor.hpp"
+#include "render.hpp"
 #include "resources.hpp"
 #include <gfx/buffer.hpp>
 #include <gfx/imgui/imgui.h>
@@ -11,18 +12,11 @@
 
 namespace graph_viewer_system {
 
-DEF_UNIFORM_SEMANTICS(Color, glm::vec3, "kColor");
-DEF_UNIFORM_SEMANTICS(PointSize, float, "kPointSize");
-
 extern const char* vertex_shader_source;
 extern const char* fragment_shader_source;
 
 entt::observer update_graph;
 entt::observer create_graph;
-
-gfx::VertexArray::Layout point_layout = {
-    { 0, 3, gfx::Type::Float } // Position
-};
 
 struct GraphViewerComponent {
     GraphViewerComponent();
@@ -144,7 +138,7 @@ void run(entt::registry& registry)
     };
     for (const auto entity : create_graph) {
         registry.emplace<GraphViewerComponent>(entity);
-        registry.emplace<Visible>(entity);
+        registry.emplace_or_replace<Visible>(entity);
 
         update_viewer_component(entity);
     }
@@ -231,6 +225,5 @@ void ComponentEditorWidget<graph_viewer_system::GraphViewerComponent>(entt::regi
     if (t.show_lines) {
         ImGui::ColorEdit3("Line color", glm::value_ptr(*t.color_line));
     }
-
 }
 }

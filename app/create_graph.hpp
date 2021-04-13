@@ -50,6 +50,7 @@ struct CreateGraph : public CommandGui {
 
 
     std::optional<groot::PlantGraph> result = {};
+    std::vector<groot::Point_3> cloud;
 
     GuiState draw_gui() override;
     CommandState execute() override;

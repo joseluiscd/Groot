@@ -79,6 +79,15 @@ public:
     void open_window(CommandGui* gui);
     void open_window(Editor* editor);
 
+    template <typename T, typename... Args>
+    void open_new_window(Args&&... args) {
+        try {
+            open_window(new T(args...));
+        } catch (std::runtime_error err) {
+            show_error(std::string(err.what()));
+        }
+    }
+
     void init_lua();
     lua_State* create_lua_context();
 

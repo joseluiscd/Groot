@@ -28,11 +28,14 @@ add_executable(groot_exe
     editor_imgui.hpp
     editor.cpp
 
-    #particle_sim.hpp
-    #particle_sim.cpp
+    render.hpp
+    render.cpp
 
     lua.hpp
     lua.cpp
+
+    cloud_system.hpp
+    cloud_system.cpp
 
     cylinder_marching.hpp
     cylinder_marching.cpp
@@ -49,7 +52,7 @@ include_directories(${CMAKE_SOURCE_DIR}/3rdparty/zep/include ${LUA_INCLUDE_DIR})
 target_link_libraries(groot_exe
     groot
     gfx
-    #jet-live
+    jet-live
     Zep::Zep
     EnTT::EnTT
     ${LUA_LIBRARIES})

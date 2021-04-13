@@ -29,7 +29,7 @@ GuiState SaveGraph::draw_gui()
 CommandState SaveGraph::execute()
 {
     std::ofstream file(selected_file, std::ios::binary);
-    groot::write_to_file(*input, file);
+    //groot::write_to_file(*input, file);
     spdlog::info("Writed output file...");
     return CommandState::Ok;
 }

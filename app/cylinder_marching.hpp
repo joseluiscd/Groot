@@ -1,45 +1,27 @@
 #pragma once
 
-#include <future>
-#include <memory>
+#include <entt/entt.hpp>
+#include <groot/cylinder_marching.hpp>
+#include "command_gui.hpp"
+#include "components.hpp"
+#include <groot/cylinder_marching.hpp>
 
-struct CylinderMarchingParams {
-};
-
-template <typename Function, typename Parameters, typename Result, typename UpdateFunc>
-class BackgroundTaskProcess : public entt::process<BackgroundTaskProcess, float> {
+class CylinderMarching : public CommandGui {
 public:
-    BackgroundTaskProcess(Function f, Parameters&& _params, UpdateFunc update_f)
-        : params(std::move(_params))
-        , function(f)
-        , update_function(update_f)
-    {
-    }
+    CylinderMarching(entt::registry& reg);
 
-    void init()
-    {
-        result = std::async([&]() {
-            std::unique_ptr<void> deferred(nullptr, std::bind([&]{
-                finished = true;
-            }));
-            return function(params);
-        });
-    }
-
-    void update(float delta, void*)
-    {
-        if (!finished) {
-            
-        }
-        update_function(delta);
-    }
+    GuiState draw_gui() override;
+    CommandState execute() override;
+    void on_finish() override;
 
 private:
-    std::atomic<bool> finished = false;
-    std::future<Result> result;
-    entt::scheduler asdf;
+    entt::registry& reg;
+    entt::entity target;
+    PointCloud* cloud;
+    PointNormals* normals;
+    std::vector<groot::Cylinder> result;
 
-    Function function;
-    UpdateFunc update_function;
-    Parameters params;
+    //Params
+    groot::Ransac::Parameters params;
+
 };

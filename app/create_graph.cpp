@@ -3,6 +3,7 @@
 #include <gfx/imgui/imfilebrowser.h>
 #include <groot/cloud_load.hpp>
 #include <spdlog/spdlog.h>
+#include "components.hpp"
 
 const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
 const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
@@ -90,7 +91,7 @@ CommandState CreateGraph::execute()
         return CommandState::Error;
     }
 
-    std::vector<groot::cgal::Point_3> cloud = groot::load_PLY(input_file.c_str());
+    cloud = std::move(groot::load_PLY(input_file.c_str()));
 
     spdlog::info("Loaded PLY file with {} points!", cloud.size());
 
@@ -179,43 +180,7 @@ void CreateGraph::on_finish()
     if (this->result) {
         auto entity = registry.create();
         registry.emplace<groot::PlantGraph>(entity, std::move(*this->result));
+        registry.emplace<PointCloud>(entity, std::move(cloud));
     }
 }
 
-/*
-void do_cfg(cfg::Cfg&& cfglib, CreateGraph& conf)
-{
-    cfglib.begin_global_section()
-        .add_value("input", conf.input_file)
-        .add_value("output", conf.output_file)
-        .end_section()
-
-        .begin_section("params")
-        .add_value("search_type", conf.selected_method)
-        .add_value("k", conf.k)
-        .add_value("radius", conf.radius)
-        .end_section()
-
-        .run();
-}*/
-
-/*
-int main_asdf(int argc, char** argv)
-{
-
-    do_cfg(cfg::parse(cfgfile.data()), conf);
-
-
-
-    if (conf.geodesic) {
-        graph.find_root().geodesic();
-    }
-
-    std::ofstream out_stream(conf.output_file);
-    if (out_stream.is_open()) {
-        graph.write_to_file(out_stream);
-    } else {
-        spdlog::error("Could not open output file \"{}\"", conf.output_file);
-        exit(1);
-    }
-}*/
