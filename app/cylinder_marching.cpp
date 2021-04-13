@@ -1,19 +1,18 @@
 #include "cylinder_marching.hpp"
-#include <future>
-#include <queue>
 #include "components.hpp"
+#include "resources.hpp"
+#include <future>
 #include <gfx/imgui/imgui.h>
+#include <queue>
 
 CylinderMarching::CylinderMarching(entt::registry& _reg)
     : reg(_reg)
 {
-    auto view = reg.view<Selected, PointCloud, PointNormals>();
-    entt::entity e = view.front();
+    target = reg.ctx<SelectedEntity>().selected;
 
-    if (reg.valid(e)) {
-        this->target = e;
-        this->cloud = &view.get<PointCloud>(e);
-        this->normals = &view.get<PointNormals>(e);
+    if (reg.valid(target) && reg.all_of<PointCloud, PointNormals>(target)) {
+        std::tie(*cloud, *normals) = reg.get<PointCloud, PointNormals>(target);
+
     } else {
         throw std::runtime_error("Selected entity must have PointCloud and PointNormals");
     }
@@ -30,7 +29,7 @@ GuiState CylinderMarching::draw_gui()
         ImGui::InputFloat("Epsilon", &params.epsilon, 0.05, 0.1);
         ImGui::InputFloat("Normal Threshold", &params.normal_threshold, 0.1, 0.5);
         ImGui::InputFloat("Cluster epsilon", &params.cluster_epsilon);
-        ImGui::InputInt("Min points", (int*) &params.min_points);
+        ImGui::InputInt("Min points", (int*)&params.min_points);
         ImGui::InputFloat("Missing probability", &params.probability);
 
         ImGui::Separator();

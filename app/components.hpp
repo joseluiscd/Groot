@@ -12,9 +12,6 @@ struct Name{
 /// The item is visible (renderable)
 struct Visible{};
 
-/// The item is selected
-struct Selected{};
-
 struct PointCloud {
     std::vector<groot::Point_3> cloud;
 };
@@ -28,3 +25,9 @@ struct Cylinders {
 };
 
 void init_components(entt::registry& reg);
+
+// Resources
+
+struct SelectedEntity {
+    entt::entity selected;
+};

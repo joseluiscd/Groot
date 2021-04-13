@@ -2,8 +2,6 @@
 
 #include "command.hpp"
 #include "command_gui.hpp"
-#include "data_output.hpp"
-#include "data_source.hpp"
 #include "editor.hpp"
 #include "lua.hpp"
 #include <future>
@@ -82,22 +80,16 @@ private:
 
     gfx::Gfx gui_app;
     entt::registry registry;
-    entt::entity selected;
+
     std::set<EntityEditor::ComponentTypeID> entity_filter;
 
     std::list<std::unique_ptr<CommandGui>> command_guis;
     std::list<std::shared_ptr<BackgroundTask>> background_tasks;
     std::queue<std::shared_ptr<BackgroundTask>> remove_background_tasks;
-    std::list<std::string> errors;
     std::list<std::unique_ptr<Editor>> editors;
 
     std::shared_mutex background_task_lock;
-    std::shared_mutex remove_background_task_lock;
     std::shared_mutex command_gui_lock;
-    std::shared_mutex command_lock;
-    std::shared_mutex plant_lock;
-    std::shared_mutex error_lock;
-    std::shared_mutex viewers_lock;
 
     Windows windows;
     lua_State* lua;

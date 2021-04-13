@@ -8,9 +8,9 @@
 #include <groot/cgal.hpp>
 #include <gfx/imgui/imgui.h>
 
-GraphCluster::GraphCluster(IDataSource<groot::PlantGraph>& _graph, IDataOutput<groot::PlantGraph>& _output)
-    : graph(_graph)
-    , output(_output)
+GraphCluster::GraphCluster(/*IDataSource<groot::PlantGraph>& _graph, IDataOutput<groot::PlantGraph>& _output*/)
+    /*: graph(_graph)
+    , output(_output)*/
 {
 }
 
@@ -35,8 +35,8 @@ struct IntervalFilterOperator {
 
 CommandState GraphCluster::execute()
 {
-    groot::PlantGraph g(*graph);
-
+    // sgroot::PlantGraph g(*graph);
+/*
     float max_root_distance = g.m_property->max_root_distance;
     std::vector<std::pair<size_t, size_t>> clusters(boost::num_vertices(g));
     ClusterMap clusters_map = ClusterMap(clusters.begin(), boost::get(boost::vertex_index, g));
@@ -117,8 +117,8 @@ CommandState GraphCluster::execute()
         center /= point_list.size();
         simplified[*s_it].position = groot::cgal::Point_3(center.x(), center.y(), center.z());
     }
-
-    output = std::move(simplified);
+*/
+    //output = std::move(simplified);
     return CommandState::Ok;
 }
 

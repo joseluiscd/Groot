@@ -1,20 +1,21 @@
 #include "application.hpp"
+#include "cloud_system.hpp"
+#include "components.hpp"
 #include "create_graph.hpp"
+#include "editor_display_imgui.hpp"
 #include "graph_cluster.hpp"
-#include "open_graph.hpp"
 #include "graph_viewer_system.hpp"
+#include "import_ply.hpp"
+#include "open_graph.hpp"
+#include "render.hpp"
 #include "save_graph.hpp"
 #include "viewer_system.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
-#include "editor_display_imgui.hpp"
-#include "cloud_system.hpp"
 #include <spdlog/spdlog.h>
-#include "render.hpp"
 
 #define HOT_CODE_RELOAD
-
 
 #ifdef HOT_CODE_RELOAD
 #include <jet/live/Live.hpp>
@@ -61,6 +62,7 @@ Application::Application()
     })
 {
     registry.set<EntityEditor>();
+    registry.set<SelectedEntity>();
 
     init_components(registry);
     ShaderCollection::init(registry);
@@ -69,7 +71,6 @@ Application::Application()
     cloud_view_system::init(registry);
 
     init_lua();
-
 }
 
 Application::~Application()
@@ -170,8 +171,6 @@ void Application::open_window(CommandGui* gui)
 
 void Application::show_error(const std::string& error)
 {
-    std::unique_lock _lock(error_lock);
-    //errors.push_back(error);
     spdlog::error("{}", error);
 }
 
@@ -182,7 +181,6 @@ void Application::open_window(Editor* editor)
 
 void Application::draw_editors()
 {
-
     auto it = editors.begin();
     while (it != editors.end()) {
         if (!(*it)->render()) {
@@ -200,7 +198,7 @@ void Application::draw_background_tasks()
         for (auto it = background_tasks.begin(); it != background_tasks.end(); ++it) {
             ImGui::Spinner("##spinner", 10.0f);
             ImGui::SameLine();
-            ImGui::Text("Background task %ld", (size_t)it->get());
+            ImGui::Text("Background task 0x%zx", (size_t)it->get());
         }
     }
     ImGui::End();
@@ -244,7 +242,7 @@ void Application::draw_gui()
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Graph")) {
-                open_window(new OpenGraph(registry));
+                open_new_window<OpenGraph>(registry);
             }
 
             if (ImGui::MenuItem(ICON_FA_SAVE "\tSave Graph")) {
@@ -254,21 +252,26 @@ void Application::draw_gui()
             ImGui::Separator();
 
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PLY")) {
-                open_window(new CreateGraph(registry));
+                open_new_window<ImportPLY>(registry);
             }
 
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Process")) {
+        if (ImGui::BeginMenu("Point Cloud")) {
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
                 open_new_window<ComputeNormals>(registry);
             }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Plant Graph")) {
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCreate Graph from cloud...")) {
+                open_new_window<CreateGraph>(registry);
+            }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
                 //open_window(new GraphCluster(stack_top, stack_push));
-            }
-            if (ImGui::MenuItem(ICON_FA_PARACHUTE_BOX "\tParticle simulator...")) {
-                //open_window(new ParticleSim());
             }
             ImGui::EndMenu();
         }
@@ -298,24 +301,25 @@ void Application::draw_gui()
 
     {
         auto& fbo = registry.ctx<viewer_system::SystemData>().framebuffer;
-        gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth());
+        gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
     }
 
     graph_viewer_system::run(registry);
     cloud_view_system::run(registry);
     viewer_system::run(registry);
 
-
     auto& entity_editor = registry.ctx<EntityEditor>();
     if (ImGui::Begin("Entity List")) {
         entity_editor.renderEntityList(registry, entity_filter);
     }
     ImGui::End();
+
+    auto selected = registry.ctx<SelectedEntity>().selected;
+
     if (ImGui::Begin("Entity properties")) {
         entity_editor.renderEditor(registry, selected);
     }
     ImGui::End();
-    
 
     draw_editors();
     draw_command_gui();
@@ -340,8 +344,7 @@ void Application::main_loop()
             remove_background_tasks.pop();
         }
 
-        draw_gui(); 
-    
+        draw_gui();
     });
 }
 

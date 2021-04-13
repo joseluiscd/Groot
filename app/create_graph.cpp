@@ -1,19 +1,17 @@
 #include "create_graph.hpp"
-#include <fstream>
-#include <gfx/imgui/imfilebrowser.h>
-#include <groot/cloud_load.hpp>
 #include <spdlog/spdlog.h>
 #include "components.hpp"
 
-const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
-const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
-
 CreateGraph::CreateGraph(entt::registry& _registry)
     : registry(_registry)
-    , open(open_flags)
 {
-    open.SetTitle("Open PLY Cloud");
-    open.SetTypeFilters({ ".ply" });
+    target = registry.ctx<SelectedEntity>().selected;
+
+    if (registry.valid(target) && registry.all_of<PointCloud>(target)) {
+        cloud = &registry.get<PointCloud>(target);
+    } else {
+        throw std::runtime_error("Selected entity must have PointCloud and PointNormals");
+    }
 }
 
 GuiState CreateGraph::draw_gui()
@@ -21,13 +19,7 @@ GuiState CreateGraph::draw_gui()
     bool show = true;
     ImGui::OpenPopup("Import PLY");
     if (ImGui::BeginPopupModal("Import PLY", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        if (ImGui::Button("Set Input File")) {
-            open.Open();
-        }
-        ImGui::SameLine();
-        ImGui::Text("%s", input_file.c_str());
 
-        ImGui::Separator();
         ImGui::Text("Topology build method");
         ImGui::RadioButton("Radius search", (int*)&selected_method, Method::kRadius);
         ImGui::RadioButton("kNN", (int*)&selected_method, Method::kKnn);
@@ -59,24 +51,12 @@ GuiState CreateGraph::draw_gui()
         ImGui::Separator();
 
         if (ImGui::Button("Run")) {
-            if (ImGui::BeginPopupModal("running")) {
-                ImGui::Text("Running...");
-                ImGui::EndPopup();
-            }
-
             //All configured, run the command
             ImGui::EndPopup();
             return GuiState::RunAsync;
         }
 
-        open.Display();
-
         ImGui::EndPopup();
-    }
-
-    if (open.HasSelected()) {
-        input_file = open.GetSelected().string();
-        open.ClearSelected();
     }
 
     return show ? GuiState::Editing : GuiState::Close;
@@ -84,17 +64,6 @@ GuiState CreateGraph::draw_gui()
 
 CommandState CreateGraph::execute()
 {
-    spdlog::info("Loading PLY file...");
-
-    if (input_file.empty()) {
-        error_string = "Cannot open file";
-        return CommandState::Error;
-    }
-
-    cloud = std::move(groot::load_PLY(input_file.c_str()));
-
-    spdlog::info("Loaded PLY file with {} points!", cloud.size());
-
     bool is_delaunay = false;
     groot::SearchType search_val;
 
@@ -116,7 +85,7 @@ CommandState CreateGraph::execute()
     groot::PlantGraph graph;
     if (is_delaunay) {
         spdlog::info("Building 3D Delaunay...");
-        graph = groot::from_delaunay(cloud.data(), cloud.size());
+        graph = groot::from_delaunay(cloud->cloud.data(), cloud->cloud.size());
         spdlog::info("Built 3D delaunay!");
     } else {
         groot::SearchParams params {
@@ -126,7 +95,7 @@ CommandState CreateGraph::execute()
         };
 
         spdlog::info("Running neighbour search...");
-        graph = groot::from_search(cloud.data(), cloud.size(), params);
+        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), params);
         spdlog::info("Neighbour search done!");
     }
 
@@ -178,9 +147,7 @@ CommandState CreateGraph::execute()
 void CreateGraph::on_finish()
 {
     if (this->result) {
-        auto entity = registry.create();
-        registry.emplace<groot::PlantGraph>(entity, std::move(*this->result));
-        registry.emplace<PointCloud>(entity, std::move(cloud));
+        registry.emplace_or_replace<groot::PlantGraph>(target, std::move(*this->result));
     }
 }
 

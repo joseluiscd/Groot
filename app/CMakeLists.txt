@@ -12,6 +12,9 @@ add_executable(groot_exe
 
     entity_editor.hpp
 
+    import_ply.hpp
+    import_ply.cpp
+
     create_graph.hpp
     create_graph.cpp
     graph_cluster.hpp

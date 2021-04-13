@@ -1,13 +1,12 @@
 #pragma once
 
-#include <gfx/imgui/imfilebrowser.h>
+#include "command_gui.hpp"
+#include "components.hpp"
+#include <entt/entt.hpp>
 #include <gfx/imgui/imgui.h>
 #include <groot/plant_graph.hpp>
-#include <string>
-#include "application.hpp"
-#include "data_output.hpp"
-#include <entt/entt.hpp>
 #include <optional>
+#include <string>
 
 struct CreateGraph : public CommandGui {
     CreateGraph(entt::registry& registry);
@@ -37,9 +36,8 @@ struct CreateGraph : public CommandGui {
     };
 
     entt::registry& registry;
-
-    ImGui::FileBrowser open;
-    std::string input_file = "";
+    entt::entity target;
+    PointCloud* cloud;
 
     int selected_method = 0;
     int selected_root_find_method = 1;
@@ -48,16 +46,11 @@ struct CreateGraph : public CommandGui {
     int k = 10;
     double radius = 1.0;
 
-
     std::optional<groot::PlantGraph> result = {};
-    std::vector<groot::Point_3> cloud;
 
     GuiState draw_gui() override;
     CommandState execute() override;
     void on_finish() override;
-
-    std::variant<groot::PlantGraph, std::string> operation(void*) const;
-
 
     static constexpr const char* method_labels[3] = {
         "Radius search",

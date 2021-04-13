@@ -6,8 +6,6 @@ extern "C" {
 #include <lauxlib.h>
 #include <lualib.h>
 }
-#include "data_output.hpp"
-#include "data_source.hpp"
 #include <groot/plant_graph.hpp>
 
 template <typename Class>
@@ -100,45 +98,6 @@ inline static void dumpstack(lua_State* L)
     }
 }
 
-template <typename T>
-class LuaStackDataSource : public IDataSource<T> {
-public:
-    LuaStackDataSource(lua_State* L, int stack_index)
-        : value(check_value<T>(L, stack_index))
-    {
-    }
-
-    T& operator*() override { return *value; }
-    T& operator*() const override { return *value; }
-
-private:
-    T* value;
-};
-
-/// Replaces specified element in the stack for the output T
-template <typename T>
-class LuaStackDataOutput : public IDataOutput<T> {
-public:
-    LuaStackDataOutput(lua_State* _L, int _stack_index)
-        : L(_L)
-        , stack_index(_stack_index)
-    {
-        // Correction for the assign operator stack position
-        if (stack_index < 0) {
-            stack_index = lua_gettop(L) + stack_index + 1;
-        } 
-    }
-
-    T& operator=(T&& result) override {
-        new_move_value<T>(L, std::move(result));
-        lua_replace(L, stack_index);
-        return *check_value<T>(L, stack_index);
-    }
-
-private:
-    lua_State* L;
-    int stack_index;
-};
 
 template <>
 struct LuaClass<groot::PlantGraph> {

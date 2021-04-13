@@ -13,15 +13,15 @@
 ComputeNormals::ComputeNormals(entt::registry& reg)
     : registry(reg)
 {
-    auto view = reg.view<Selected, PointCloud>();
-    entt::entity e = view.front();
+    target = reg.ctx<SelectedEntity>().selected;
 
-    if (reg.valid(e)) {
-        this->target = e;
-        this->cloud = &view.get<PointCloud>(e);
+    if (reg.valid(target) && reg.all_of<PointCloud>(target)) {
+        this->cloud = &reg.get<PointCloud>(target);
+
     } else {
-        throw std::runtime_error("No selected entity");
+        throw std::runtime_error("Selected entity must have PointCloud");
     }
+
 }
 
 GuiState ComputeNormals::draw_gui()
