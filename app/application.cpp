@@ -7,14 +7,15 @@
 #include "graph_cluster.hpp"
 #include "graph_viewer_system.hpp"
 #include "import_ply.hpp"
-#include "open_graph.hpp"
+#include "open_workspace.hpp"
 #include "render.hpp"
-#include "save_graph.hpp"
+#include "save_workspace.hpp"
 #include "viewer_system.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <spdlog/spdlog.h>
+#include <gfx/glad.h>
 
 #define HOT_CODE_RELOAD
 
@@ -150,8 +151,6 @@ void Application::execute_command(Command* command)
     default:
         break;
     }
-
-    delete command;
 }
 
 void Application::notify_task_finished(BackgroundTaskHandle task, CommandState result)
@@ -243,12 +242,12 @@ void Application::draw_gui()
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Graph")) {
-                open_new_window<OpenGraph>(registry);
+            if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Workspace")) {
+                open_new_window<OpenWorkspace>(registry);
             }
 
-            if (ImGui::MenuItem(ICON_FA_SAVE "\tSave Graph")) {
-                //open_window(new SaveGraph(stack_top));
+            if (ImGui::MenuItem(ICON_FA_SAVE "\tSave Workspace")) {
+                open_new_window<SaveWorkspace>(registry);
             }
 
             ImGui::Separator();
@@ -306,6 +305,7 @@ void Application::draw_gui()
     {
         auto& fbo = registry.ctx<RenderData>().framebuffer;
         gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
+        glEnable(GL_DEPTH_TEST);
     }
 
     graph_viewer_system::run(registry);

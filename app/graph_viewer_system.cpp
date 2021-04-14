@@ -207,7 +207,7 @@ void ComponentEditorWidget<groot::PlantGraph>(entt::registry& reg, entt::registr
     size_t vertices = boost::num_vertices(t);
     size_t edges = boost::num_edges(t);
 
-    ImGui::Text("Plant Graph: %d vertices, %d edges", vertices, edges);
+    ImGui::Text("Plant Graph: %zu vertices, %zu edges", vertices, edges);
 }
 
 template <>

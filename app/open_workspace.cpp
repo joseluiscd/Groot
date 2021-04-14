@@ -1,47 +1,46 @@
-#include "open_graph.hpp"
+#include "open_workspace.hpp"
 #include <fstream>
+#include "serde.hpp"
 #include <spdlog/spdlog.h>
 
-OpenGraph::OpenGraph(entt::registry& _registry)
-    : registry(_registry)
+OpenWorkspace::OpenWorkspace(entt::registry& _reg)
+    : reg(_reg)
     , file_dialog()
-    , result()
 {
     file_dialog.SetTitle("Graph Open");
     file_dialog.SetTypeFilters({ ".ggf" });
     file_dialog.Open();
 }
 
-GuiState OpenGraph::draw_gui()
+GuiState OpenWorkspace::draw_gui()
 {
     file_dialog.Display();
 
     if (file_dialog.HasSelected()) {
         selected_file = file_dialog.GetSelected();
         file_dialog.ClearSelected();
-        return GuiState::RunAsync;
+        return GuiState::RunSync;
     }
 
     return GuiState::Editing;
 }
 
-CommandState OpenGraph::execute()
+CommandState OpenWorkspace::execute()
 {
-    std::ifstream file(selected_file);
-    try {
-        result = std::move(groot::read_from_file(file));
-    } catch (boost::archive::archive_exception& e) {
-        error_string = e.what();
-        return CommandState::Error;
-    }
+    std::ifstream file(selected_file, std::ios::binary);
+    Deserializer in_archive(file);
+    reg.clear();
 
+    entt::snapshot_loader { reg }
+        .entities(in_archive)
+        .component<
+            Name,
+            Visible,
+            PointCloud,
+            PointNormals,
+            Cylinders>(in_archive);
+            
     return CommandState::Ok;
-}
-
-void OpenGraph::on_finish()
-{
-    auto entity = registry.create();
-    registry.emplace<groot::PlantGraph>(entity, std::move(result));
 }
 
 int open_graph_lua_impl(lua_State* L)
@@ -53,7 +52,7 @@ int open_graph_lua_impl(lua_State* L)
             lua_pushnil(L);
             LuaStackDataOutput<groot::PlantGraph> out(L, -1);
 
-            OpenGraph cmd = OpenGraph(out)
+            OpenWorkspace cmd = OpenWorkspace(out)
                                 .set_file(filename);
             CommandState status = cmd.execute();
 

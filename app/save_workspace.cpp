@@ -1,19 +1,19 @@
-#include "save_graph.hpp"
-#include <spdlog/spdlog.h>
+#include "save_workspace.hpp"
+#include "components.hpp"
+#include "serde.hpp"
 #include <fstream>
+#include <spdlog/spdlog.h>
 
-SaveGraph::SaveGraph(entt::registry& reg)
+SaveWorkspace::SaveWorkspace(entt::registry& _reg)
     : file_dialog(ImGuiFileBrowserFlags_CloseOnEsc | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename)
-    , options()
+    , reg(_reg)
 {
     file_dialog.SetTitle("Graph Save");
     file_dialog.SetTypeFilters({ ".ggf" });
     file_dialog.Open();
-
-    
 }
 
-GuiState SaveGraph::draw_gui()
+GuiState SaveWorkspace::draw_gui()
 {
     file_dialog.Display();
 
@@ -26,10 +26,21 @@ GuiState SaveGraph::draw_gui()
     return GuiState::Editing;
 }
 
-CommandState SaveGraph::execute()
+CommandState SaveWorkspace::execute()
 {
     std::ofstream file(selected_file, std::ios::binary);
-    //groot::write_to_file(*input, file);
-    spdlog::info("Writed output file...");
+    Serializer out_archive(file);
+
+    entt::snapshot { reg }
+        .entities(out_archive)
+        .component<
+            Name,
+            Visible,
+            PointCloud,
+            PointNormals,
+            Cylinders>(out_archive);
+
+    spdlog::info("Exported to file: {}", selected_file.string());
+
     return CommandState::Ok;
 }

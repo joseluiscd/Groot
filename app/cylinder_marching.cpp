@@ -109,8 +109,8 @@ void init(entt::registry& reg)
             .build()
         });
 
-    reg.on_destroy<Cylinders>().connect<&entt::registry::remove<CylinderViewComponent>>();
-    reg.on_construct<Cylinders>().connect<&entt::registry::emplace<CylinderViewComponent>>();
+    reg.on_destroy<Cylinders>().connect<&entt::registry::remove_if_exists<CylinderViewComponent>>();
+    reg.on_construct<Cylinders>().connect<&entt::registry::emplace_or_replace<CylinderViewComponent>>();
     reg.on_construct<CylinderViewComponent>().connect<&entt::registry::emplace_or_replace<Visible>>();
 
     reg.on_construct<Cylinders>().connect<&update_cylinder_view>();
@@ -127,6 +127,9 @@ void run(entt::registry& reg)
     auto& system_data = reg.ctx<SystemData>();
 
     auto views = reg.view<CylinderViewComponent, Visible>().each();
+    if (views.begin() == views.end()) {
+        return;
+    }
 
     gfx::RenderPass(view_data.framebuffer, gfx::ClearOperation::nothing())
         .viewport({ 0, 0 }, view_data.size)

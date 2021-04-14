@@ -127,7 +127,7 @@ const char* cylinder_gs = R"(
 #define CIRCLE_SUBDIVISIONS 20
 
 layout (points) in;
-layout (line_strip, max_vertices=40) out;
+layout (triangle_strip, max_vertices=40) out;
 
 layout (location = kProjectionMatrix) uniform mat4 mProj;
 layout (location = kViewMatrix) uniform mat4 mView;
@@ -166,20 +166,20 @@ vec3 rotate(vec3 v, vec3 axis, float angle) {
 void main()
 {
     vec3 p = v_data[0].position;
-    vec3 n = normalize(v_data[0].direction);
-    vec3 r = v_data[0].radius * normalize(random_perpendicular(n));
+    vec3 axis = normalize(v_data[0].direction);
+    vec3 r = v_data[0].radius * normalize(random_perpendicular(axis));
+
+    vec4 cap_offset = vec4(axis * v_data[0].height, 0.0);
 
     for (int i = 0; i <= CIRCLE_SUBDIVISIONS; i++) {
         float ang = 3.14159265 * 2.0 / (CIRCLE_SUBDIVISIONS-1) * i;
-        vec4 rot = vec4(rotate(r, n, ang) + p, 1.0);
-        vec3 normal = rot.xyz;
-        vec4 dir = vec4(n, 1.0);
+        vec4 rot = vec4(rotate(r, axis, ang) + p, 1.0);
 
-        gl_Position = mProj * mView * (rot + dir * v_data[0].height);
-        v_normal = normal;
+        gl_Position = mProj * mView * (rot + cap_offset);
+        v_normal = rot.xyz;
         EmitVertex();
-        gl_Position = mProj * mView * (rot - dir * v_data[0].height);
-        v_normal = normal;
+        gl_Position = mProj * mView * (rot - cap_offset);
+        v_normal = rot.xyz;
         EmitVertex();
     }
 
@@ -193,6 +193,8 @@ out vec4 f_color;
 in vec3 v_normal;
 
 layout (location=kColor) uniform vec3 u_color;
+
+layout (location = kViewMatrix) uniform mat4 mView;
 
 void main()
 {

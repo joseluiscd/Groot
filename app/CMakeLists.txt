@@ -15,6 +15,8 @@ add_executable(groot_exe
     import_ply.hpp
     import_ply.cpp
 
+    serde.hpp
+
     create_graph.hpp
     create_graph.cpp
     graph_cluster.hpp
@@ -22,10 +24,10 @@ add_executable(groot_exe
     #graph_view.hpp
     #graph_view.cpp
 
-    open_graph.hpp
-    open_graph.cpp
-    save_graph.hpp
-    save_graph.cpp
+    open_workspace.hpp
+    open_workspace.cpp
+    save_workspace.hpp
+    save_workspace.cpp
 
     editor.hpp
     editor_imgui.hpp

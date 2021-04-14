@@ -149,6 +149,18 @@ namespace serialization {
     }
 
     template <class Archive>
+    void serialize(Archive& ar, groot::Vector_3& vector, unsigned version)
+    {
+        float x = vector.x();
+        float y = vector.y();
+        float z = vector.z();
+
+        ar& x& y& z;
+
+        vector = groot::cgal::Vector_3(x, y, z);
+    }
+
+    template <class Archive>
     void serialize(Archive& ar, groot::VertexProperties& props, unsigned /*version*/)
     {
         ar& props.position& props.root_distance& props.radius;

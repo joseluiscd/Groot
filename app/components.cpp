@@ -68,7 +68,7 @@ void ComponentEditorWidget<Cylinders>(entt::registry& reg, entt::registry::entit
     if (ImGui::TreeNode("Cylinders")) {
 
         for (size_t i = 0; i < t.cylinders.size(); i++) {
-            if (ImGui::TreeNode((void*)i, "Cylinder %d", i)) {
+            if (ImGui::TreeNode((void*)i, "Cylinder %zu", i)) {
                 auto& c = t.cylinders[i];
                 ImGui::Text("Center: (%f, %f, %f)", c.center.x(), c.center.y(), c.center.z());
                 ImGui::Text("Direction: (%f, %f, %f)", c.direction.x(), c.direction.y(), c.direction.z());

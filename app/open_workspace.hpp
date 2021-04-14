@@ -6,14 +6,13 @@
 #include "lua.hpp"
 #include <entt/entt.hpp>
 
-class OpenGraph : public CommandGui {
+class OpenWorkspace : public CommandGui {
 public:
-    OpenGraph(entt::registry& registry);
+    OpenWorkspace(entt::registry& registry);
     CommandState execute() override;
-    void on_finish() override;
     GuiState draw_gui() override;
 
-    OpenGraph& set_file(const std::filesystem::path& path)
+    OpenWorkspace& set_file(const std::filesystem::path& path)
     {
         selected_file = path;
         return *this;
@@ -22,8 +21,7 @@ private:
     ImGui::FileBrowser file_dialog;
     std::filesystem::path selected_file;
 
-    groot::PlantGraph result;
-    entt::registry& registry;
+    entt::registry& reg;
 };
 
 

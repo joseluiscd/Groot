@@ -1,13 +1,13 @@
 #pragma once
 
 #include <CGAL/Fuzzy_sphere.h>
-#include <CGAL/Shape_detection/Efficient_RANSAC.h>
 #include <CGAL/Monge_via_jet_fitting.h>
+#include <CGAL/Shape_detection/Efficient_RANSAC.h>
+#include <boost/property_map/transform_value_property_map.hpp>
 #include <boost/utility/result_of.hpp>
 #include <glm/glm.hpp>
 #include <groot/cgal.hpp>
 #include <groot/plant_graph.hpp>
-#include <boost/property_map/transform_value_property_map.hpp>
 
 namespace groot {
 
@@ -36,7 +36,7 @@ struct Curvature {
 template <typename T, typename FieldType, FieldType T::*offset>
 struct get_field {
     using type = FieldType&;
-    get_field() {}
+    get_field() { }
     const FieldType& operator()(const T& data) const
     {
         return data.*offset;
@@ -68,4 +68,15 @@ void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, siz
 PlantGraph cylinder_marching(Curvature* input, size_t count, float height, float h_extend = 2.0f, float r_extend = 1.5f);
 std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);
 
+}
+
+namespace boost {
+namespace serialization {
+    template <typename Archive>
+    void serialize(Archive& ar, groot::Cylinder& cylinder, unsigned int)
+    {
+        ar& cylinder.center & cylinder.direction & cylinder.radius & cylinder.middle_height;
+    }
+
+}
 }

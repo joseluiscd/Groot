@@ -40,17 +40,12 @@ void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vec
     for (auto it = ransac.shapes().begin(); it != ransac.shapes().end(); ++it) {
         auto cylinder = static_cast<FitCylinder*>(&**it);
 
-        Vector_3 center(0, 0, 0);
-        auto points = cylinder->indices_of_assigned_points();
-        for (size_t i = 0; i < points.size(); i++) {
-            center += Vector_3(Point_3(0, 0, 0), cloud[points[i]]);
-        }
-        center /= points.size();
+        Point_3 center = cylinder->axis().point();
 
         std::cout << cylinder->axis() << " / " << cylinder->axis().direction() << " - " << cylinder->axis().direction().vector();
         out.push_back(Cylinder {
-            Point_3(0, 0, 0) + center,
-            cylinder->axis().direction().vector(),
+            center,
+            cylinder->axis().to_vector(),
             cylinder->radius(),
             0.2
         });

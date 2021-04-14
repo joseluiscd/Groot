@@ -2,6 +2,7 @@
 #include <string>
 
 #include "editor_display_imgui.hpp"
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <zep/editor.h>
 #include <zep/mode_standard.h>
