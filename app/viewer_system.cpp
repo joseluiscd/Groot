@@ -4,6 +4,7 @@
 #include "components.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
+#include "render.hpp"
 
 namespace viewer_system {
 
@@ -11,7 +12,7 @@ void run(entt::registry& registry)
 {
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
 
-    SystemData& data = registry.ctx<SystemData>();
+    RenderData& data = registry.ctx<RenderData>();
 
     ImGui::BeginFramebuffer("3D Viewer", data.framebuffer);
     glm::ivec2 current_size = ImGui::GetWindowContentSize();
@@ -44,7 +45,7 @@ void init(entt::registry& registry)
     auto lens = std::make_unique<gfx::PerspectiveCameraLens>(70.0, 1.0, 0.2, 100.2);
     auto camera = std::make_unique<gfx::CameraRig>(*lens);
 
-    SystemData data {
+    RenderData data {
         gfx::Framebuffer(),
         std::move(camera),
         std::move(lens),
@@ -60,7 +61,7 @@ void init(entt::registry& registry)
         .look_at({ 0.0, 0.0, 0.0 })
         .with_up_vector({ 0.0, 1.0, 0.0 });
 
-    registry.set<SystemData>(std::move(data));
+    registry.set<RenderData>(std::move(data));
 
     registry.ctx<EntityEditor>().registerComponent<Visible>("Visible");
 }

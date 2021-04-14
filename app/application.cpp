@@ -2,6 +2,7 @@
 #include "cloud_system.hpp"
 #include "components.hpp"
 #include "create_graph.hpp"
+#include "cylinder_marching.hpp"
 #include "editor_display_imgui.hpp"
 #include "graph_cluster.hpp"
 #include "graph_viewer_system.hpp"
@@ -69,6 +70,7 @@ Application::Application()
     viewer_system::init(registry);
     graph_viewer_system::init(registry);
     cloud_view_system::init(registry);
+    cylinder_view_system::init(registry);
 
     init_lua();
 }
@@ -262,7 +264,9 @@ void Application::draw_gui()
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
                 open_new_window<ComputeNormals>(registry);
             }
-
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCylinders...")) {
+                open_new_window<CylinderMarching>(registry);
+            }
             ImGui::EndMenu();
         }
 
@@ -300,12 +304,13 @@ void Application::draw_gui()
     }
 
     {
-        auto& fbo = registry.ctx<viewer_system::SystemData>().framebuffer;
+        auto& fbo = registry.ctx<RenderData>().framebuffer;
         gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
     }
 
     graph_viewer_system::run(registry);
     cloud_view_system::run(registry);
+    cylinder_view_system::run(registry);
     viewer_system::run(registry);
 
     auto& entity_editor = registry.ctx<EntityEditor>();

@@ -25,3 +25,10 @@ private:
     groot::Ransac::Parameters params;
 
 };
+
+namespace cylinder_view_system {
+
+void init(entt::registry& reg);
+void run(entt::registry& reg);
+
+}

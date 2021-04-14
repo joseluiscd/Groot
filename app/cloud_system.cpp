@@ -182,7 +182,7 @@ void init(entt::registry& reg)
 
 void run(entt::registry& reg)
 {
-    auto& view_data = reg.ctx<viewer_system::SystemData>();
+    auto& view_data = reg.ctx<RenderData>();
     auto& system_data = reg.ctx<SystemData>();
 
     auto point_views = reg.view<PointViewComponent, Visible>().each();

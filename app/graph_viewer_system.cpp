@@ -95,7 +95,7 @@ void init(entt::registry& registry)
 void run(entt::registry& registry)
 {
     auto& data = registry.ctx<SystemData>();
-    auto& view_data = registry.ctx<viewer_system::SystemData>();
+    auto& view_data = registry.ctx<RenderData>();
 
     auto update_viewer_component = [&](entt::entity entity) {
         groot::PlantGraph& _graph = registry.get<groot::PlantGraph>(entity);
