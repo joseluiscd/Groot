@@ -3,7 +3,7 @@
 #include "components.hpp"
 #include "create_graph.hpp"
 #include "cylinder_marching.hpp"
-#include "editor_display_imgui.hpp"
+//#include "editor_display_imgui.hpp"
 #include "graph_cluster.hpp"
 #include "graph_viewer_system.hpp"
 #include "import_ply.hpp"
@@ -17,7 +17,6 @@
 #include <spdlog/spdlog.h>
 #include <gfx/glad.h>
 
-#define HOT_CODE_RELOAD
 
 #ifdef HOT_CODE_RELOAD
 #include <jet/live/Live.hpp>
@@ -62,6 +61,7 @@ Application::Application()
         .debug_draw = true,
         .debug_context = true,
     })
+    , lua()
 {
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();
@@ -72,48 +72,11 @@ Application::Application()
     graph_viewer_system::init(registry);
     cloud_view_system::init(registry);
     cylinder_view_system::init(registry);
-
-    init_lua();
 }
 
 Application::~Application()
 {
     lua_close(lua);
-}
-
-void Application::init_lua()
-{
-    lua = luaL_newstate();
-    luaL_openlibs(lua);
-    lua_pushlightuserdata(lua, this);
-    lua_setfield(lua, LUA_REGISTRYINDEX, "Groot_Application");
-
-    static luaL_Reg funcs[] = {
-        { "push_graph", [](lua_State* L) -> int {
-             groot::PlantGraph* g = check_value<groot::PlantGraph>(L, 1); // 1
-
-             lua_getfield(L, LUA_REGISTRYINDEX, "Groot_Application"); // 2
-             Application* app = (Application*)lua_touserdata(L, 2);
-
-             //app->push_plant_graph(std::move(*g));
-             lua_pushnil(L);
-             lua_replace(L, 1);
-
-             return 0;
-         } },
-        { nullptr, nullptr }
-    };
-
-    lua_newtable(lua);
-    luaL_setfuncs(lua, funcs, 0);
-    lua_setglobal(lua, "Groot");
-
-    lua_open_graph(lua);
-}
-
-lua_State* Application::create_lua_context()
-{
-    return lua_newthread(lua);
 }
 
 BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>&& command)
@@ -175,21 +138,21 @@ void Application::show_error(const std::string& error)
     spdlog::error("{}", error);
 }
 
-void Application::open_window(Editor* editor)
+/*void Application::open_window(Editor* editor)
 {
     editors.emplace_back(editor);
-}
+}*/
 
 void Application::draw_editors()
 {
-    auto it = editors.begin();
+    /*auto it = editors.begin();
     while (it != editors.end()) {
         if (!(*it)->render()) {
             editors.erase(it++);
         } else {
             it++;
         }
-    }
+    }*/
 }
 
 void Application::draw_background_tasks()
@@ -284,12 +247,12 @@ void Application::draw_gui()
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Scripts")) {
+        /*if (ImGui::BeginMenu("Scripts")) {
             if (ImGui::MenuItem(ICON_FA_FOLDER_PLUS "\tNew script")) {
                 open_window(new Editor(this->create_lua_context()));
             }
             ImGui::EndMenu();
-        }
+        }*/
 
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem(ICON_FA_BUG "\tDemo window")) {
@@ -356,8 +319,4 @@ void Application::main_loop()
 
         draw_gui();
     });
-}
-
-void lua_add_tree(lua_State* L)
-{
 }

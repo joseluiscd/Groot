@@ -48,7 +48,7 @@ void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vec
             center,
             axis,
             cylinder->radius(),
-            std::sqrt(axis.squared_length()) * 0.5
+            std::sqrt(axis.squared_length()) * 0.5f
         });
     }
 }

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "application.hpp"
-#include <filesystem>
-#include <gfx/imgui/imfilebrowser.h>
+#include "command_gui.hpp"
 #include "lua.hpp"
 #include <entt/entt.hpp>
+#include <filesystem>
+#include <gfx/imgui/imfilebrowser.h>
 
 class OpenWorkspace : public CommandGui {
 public:
@@ -17,12 +17,10 @@ public:
         selected_file = path;
         return *this;
     }
+
 private:
     ImGui::FileBrowser file_dialog;
     std::filesystem::path selected_file;
 
     entt::registry& reg;
 };
-
-
-void lua_open_graph(lua_State* L);

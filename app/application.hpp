@@ -1,9 +1,9 @@
 #pragma once
 
+#include <sol/sol.hpp>
 #include "command.hpp"
 #include "command_gui.hpp"
-#include "editor.hpp"
-#include "lua.hpp"
+//#include "editor.hpp"
 #include <future>
 #include <gfx/gfx.hpp>
 #include <groot/plant_graph.hpp>
@@ -47,7 +47,7 @@ public:
     BackgroundTaskHandle execute_command_async(std::unique_ptr<Command>&& command);
 
     void open_window(CommandGui* gui);
-    void open_window(Editor* editor);
+    //void open_window(Editor* editor);
 
     template <typename T, typename... Args>
     void open_new_window(Args&&... args) {
@@ -58,7 +58,6 @@ public:
         }
     }
 
-    void init_lua();
     lua_State* create_lua_context();
 
     void notify_task_finished(BackgroundTaskHandle task, CommandState result);
@@ -86,11 +85,11 @@ private:
     std::list<std::unique_ptr<CommandGui>> command_guis;
     std::list<std::shared_ptr<BackgroundTask>> background_tasks;
     std::queue<std::shared_ptr<BackgroundTask>> remove_background_tasks;
-    std::list<std::unique_ptr<Editor>> editors;
+    //std::list<std::unique_ptr<Editor>> editors;
 
     std::shared_mutex background_task_lock;
     std::shared_mutex command_gui_lock;
 
     Windows windows;
-    lua_State* lua;
+    sol::state lua;
 };

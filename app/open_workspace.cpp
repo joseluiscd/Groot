@@ -42,35 +42,3 @@ CommandState OpenWorkspace::execute()
             
     return CommandState::Ok;
 }
-
-int open_graph_lua_impl(lua_State* L)
-{
-    //TODO: Update this method
-    try {
-        return [&]() {
-            /*const char* filename = luaL_checkstring(L, 1);
-            lua_pushnil(L);
-            LuaStackDataOutput<groot::PlantGraph> out(L, -1);
-
-            OpenWorkspace cmd = OpenWorkspace(out)
-                                .set_file(filename);
-            CommandState status = cmd.execute();
-
-            if (status == CommandState::Ok) {
-                return 1;
-            } else {
-                throw std::runtime_error("Not ok");
-            }*/
-            return 0;
-        }();
-    } catch (std::exception& e) {
-        return luaL_error(L, "open graph error: %s", e.what());
-    }
-}
-
-void lua_open_graph(lua_State* L)
-{
-    lua_getglobal(L, "Groot");
-    lua_pushcfunction(L, open_graph_lua_impl);
-    lua_setfield(L, -2, "open_graph");
-}

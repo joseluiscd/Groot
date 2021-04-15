@@ -1,6 +1,6 @@
 #pragma once
 
-#include "application.hpp"
+#include "command_gui.hpp"
 #include <groot/plant_graph.hpp>
 #include <list>
 #include <vector>
