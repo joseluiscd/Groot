@@ -29,9 +29,9 @@ add_executable(groot_exe
     save_workspace.hpp
     save_workspace.cpp
 
-    editor.hpp
-    editor_imgui.hpp
-    editor.cpp
+    #editor.hpp
+    #editor_imgui.hpp
+    #editor.cpp
 
     render.hpp
     render.cpp
@@ -53,11 +53,18 @@ add_executable(groot_exe
     
     main.cpp
 )
+
 include_directories(${CMAKE_SOURCE_DIR}/3rdparty/zep/include ${LUA_INCLUDE_DIR})
 target_link_libraries(groot_exe
     groot
     gfx
-    jet-live
     Zep::Zep
     EnTT::EnTT
+    lua
+    sol2::sol2
     ${LUA_LIBRARIES})
+
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+target_link_libraries(groot_exe jet-live)
+target_compile_definitions(groot_exe PUBLIC HOT_CODE_RELOAD)
+endif()
