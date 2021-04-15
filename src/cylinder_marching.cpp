@@ -41,13 +41,14 @@ void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vec
         auto cylinder = static_cast<FitCylinder*>(&**it);
 
         Point_3 center = cylinder->axis().point();
+        Vector_3 axis = cylinder->axis().to_vector(); 
 
         std::cout << cylinder->axis() << " / " << cylinder->axis().direction() << " - " << cylinder->axis().direction().vector();
         out.push_back(Cylinder {
             center,
-            cylinder->axis().to_vector(),
+            axis,
             cylinder->radius(),
-            0.2
+            std::sqrt(axis.squared_length()) * 0.5
         });
     }
 }

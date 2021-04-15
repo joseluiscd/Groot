@@ -250,21 +250,16 @@ void Application::draw_gui()
                 open_new_window<SaveWorkspace>(registry);
             }
 
-            ImGui::Separator();
-
-            if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PLY")) {
-                open_new_window<ImportPLY>(registry);
-            }
-
             ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Point Cloud")) {
+            if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PLY")) {
+                open_new_window<ImportPLY>(registry);
+            }
+
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
                 open_new_window<ComputeNormals>(registry);
-            }
-            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCylinders...")) {
-                open_new_window<CylinderMarching>(registry);
             }
             ImGui::EndMenu();
         }
@@ -275,6 +270,16 @@ void Application::draw_gui()
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
                 //open_window(new GraphCluster(stack_top, stack_push));
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Cylinders")) {
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCylinders...")) {
+                open_new_window<CylinderMarching>(registry);
+            }
+            if (ImGui::MenuItem(ICON_FA_FILTER "\tFilter Cylinders...")) {
+                open_new_window<CylinderFilter>(registry);
             }
             ImGui::EndMenu();
         }

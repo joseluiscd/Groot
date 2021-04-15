@@ -1,13 +1,13 @@
 #include "cylinder_marching.hpp"
 #include "components.hpp"
-#include "resources.hpp"
 #include "render.hpp"
+#include "resources.hpp"
 #include <future>
 #include <gfx/imgui/imgui.h>
-#include <gfx/vertex_array.hpp>
 #include <gfx/render_pass.hpp>
-#include <queue>
+#include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <queue>
 
 CylinderMarching::CylinderMarching(entt::registry& _reg)
     : reg(_reg)
@@ -30,14 +30,13 @@ GuiState CylinderMarching::draw_gui()
     if (ImGui::BeginPopupModal("Cylinder marching", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
 
         ImGui::Separator();
-
-        ImGui::InputFloat("Epsilon", &params.epsilon, 0.05, 0.1);
-        ImGui::InputFloat("Normal Threshold", &params.normal_threshold, 0.1, 0.5);
-        ImGui::InputFloat("Cluster epsilon", &params.cluster_epsilon);
-        ImGui::InputInt("Min points", (int*)&params.min_points);
-        ImGui::InputFloat("Missing probability", &params.probability);
-
+        ImGui::InputInt("Min points", &min_points);
         ImGui::Separator();
+
+        ImGui::InputFloat("Epsilon", &epsilon, 0.05, 0.1);
+        ImGui::InputFloat("Sampling resolution", &sampling, 0.05, 0.1);
+        ImGui::InputFloat("Normal Threshold", &normal_deviation, 1.0, 5.0);
+        ImGui::InputFloat("Missing probability", &overlook_probability, 0.01, 0.1);
 
         ImGui::Separator();
 
@@ -54,6 +53,13 @@ GuiState CylinderMarching::draw_gui()
 
 CommandState CylinderMarching::execute()
 {
+    groot::Ransac::Parameters params;
+    params.cluster_epsilon = sampling;
+    params.epsilon = epsilon;
+    params.min_points = min_points;
+    params.normal_threshold = std::cos(normal_deviation * M_PI / 180.0);
+    params.probability = overlook_probability;
+
     groot::compute_cylinders(cloud->cloud.data(), normals->normals.data(), cloud->cloud.size(), result, params);
     return CommandState::Ok;
 }
@@ -61,6 +67,74 @@ CommandState CylinderMarching::execute()
 void CylinderMarching::on_finish()
 {
     reg.emplace_or_replace<Cylinders>(target, std::move(result));
+}
+
+CylinderFilter::CylinderFilter(entt::registry& _reg)
+    : reg(_reg)
+{
+    target = reg.ctx<SelectedEntity>().selected;
+
+    if (reg.valid(target) && reg.all_of<Cylinders>(target)) {
+    } else {
+        throw std::runtime_error("Selected entity must have Cylinders component");
+    }
+}
+
+GuiState CylinderFilter::draw_gui()
+{
+    bool show = true;
+    ImGui::OpenPopup("Cylinder filter");
+    if (ImGui::BeginPopupModal("Cylinder filter", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
+        ImGui::Checkbox("Filter by radius", &filter_radius);
+
+        if (filter_radius) {
+            ImGui::InputFloat2("Radius range", radius_range);
+            if (radius_range[1] < radius_range[0]) {
+                radius_range[1] = radius_range[0];
+            }
+        }
+
+        ImGui::Checkbox("Filter by length", &filter_length);
+        if (filter_length) {
+            ImGui::InputFloat2("Length range", length_range);
+            if (length_range[1] < length_range[0]) {
+                length_range[1] = length_range[0];
+            }
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::Button("Run")) {
+            ImGui::EndPopup();
+            return GuiState::RunSync;
+        }
+
+        ImGui::EndPopup();
+    }
+
+    return show ? GuiState::Editing : GuiState::Close;
+}
+
+CommandState CylinderFilter::execute()
+{
+    reg.patch<Cylinders>(target, [&](Cylinders& cylinders) {
+        std::vector<groot::Cylinder> new_cylinders;
+        for (auto it = cylinders.cylinders.begin(); it != cylinders.cylinders.end(); ++it) {
+            const float radius = it->radius;
+            const float length = it->middle_height * 2;
+
+            if ((!filter_radius
+                    || (radius_range[0] < radius && radius < radius_range[1]))
+                && (!filter_length
+                    || (length_range[0] < length && length < length_range[1]))) {
+            
+                new_cylinders.push_back(*it);
+            }
+        }
+
+        cylinders.cylinders.swap(new_cylinders);
+    });
+    return CommandState::Ok;
 }
 
 namespace cylinder_view_system {
@@ -76,7 +150,7 @@ struct CylinderViewComponent {
 CylinderViewComponent::CylinderViewComponent()
     : vao()
     , cylinders()
-    , color({1.0, 0.0, 0.0})
+    , color({ 1.0, 0.0, 0.0 })
 {
     vao
         .add_buffer(cylinder_layout, cylinders)
@@ -89,7 +163,8 @@ struct SystemData {
 
 void update_cylinder_view(entt::registry& reg, entt::entity entity)
 {
-    auto [cylinders, view_data] = reg.get<Cylinders, CylinderViewComponent>(entity);
+    auto& view_data = reg.get_or_emplace<CylinderViewComponent>(entity);
+    auto& cylinders = reg.get<Cylinders>(entity);
 
     auto edit = view_data.cylinders.edit(false);
 
@@ -106,8 +181,7 @@ void init(entt::registry& reg)
     reg.set<SystemData>(SystemData {
         gfx::RenderPipeline::Builder()
             .with_shader(shaders.get_shader(ShaderCollection::Cylinders))
-            .build()
-        });
+            .build() });
 
     reg.on_destroy<Cylinders>().connect<&entt::registry::remove_if_exists<CylinderViewComponent>>();
     reg.on_construct<Cylinders>().connect<&entt::registry::emplace_or_replace<CylinderViewComponent>>();
@@ -115,7 +189,6 @@ void init(entt::registry& reg)
 
     reg.on_construct<Cylinders>().connect<&update_cylinder_view>();
     reg.on_update<Cylinders>().connect<&update_cylinder_view>();
-
 
     auto& entity_editor = reg.ctx<EntityEditor>();
     entity_editor.registerComponent<CylinderViewComponent>("Cylinder View");
