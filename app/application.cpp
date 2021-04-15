@@ -61,7 +61,6 @@ Application::Application()
         .debug_draw = true,
         .debug_context = true,
     })
-    , lua()
 {
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();
@@ -76,7 +75,6 @@ Application::Application()
 
 Application::~Application()
 {
-    lua_close(lua);
 }
 
 BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>&& command)

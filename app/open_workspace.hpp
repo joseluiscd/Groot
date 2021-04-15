@@ -5,6 +5,7 @@
 #include <entt/entt.hpp>
 #include <filesystem>
 #include <gfx/imgui/imfilebrowser.h>
+#include <sol/table.hpp>
 
 class OpenWorkspace : public CommandGui {
 public:
@@ -17,6 +18,7 @@ public:
         selected_file = path;
         return *this;
     }
+
 
 private:
     ImGui::FileBrowser file_dialog;

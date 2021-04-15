@@ -91,5 +91,4 @@ private:
     std::shared_mutex command_gui_lock;
 
     Windows windows;
-    sol::state lua;
 };
