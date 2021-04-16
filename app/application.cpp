@@ -61,6 +61,8 @@ Application::Application()
         .debug_draw = true,
         .debug_context = true,
     })
+    , registry()
+    , lua(registry)
 {
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();

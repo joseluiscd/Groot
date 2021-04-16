@@ -12,12 +12,15 @@ public:
         lua_init();
     }
 
+    void run_file(std::string& filename)
+    {
+        lua.script_file(filename);
+    }
+
 private:
     sol::state lua;
     entt::registry& reg;
 
     void lua_init();
-};
 
-template <typename T>
-T from_lua(sol::table args);
+};

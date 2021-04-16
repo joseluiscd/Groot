@@ -13,6 +13,7 @@
 #include <stack>
 #include <entt/entt.hpp>
 #include "resources.hpp"
+#include "lua.hpp"
 
 class Application;
 
@@ -91,4 +92,5 @@ private:
     std::shared_mutex command_gui_lock;
 
     Windows windows;
+    LuaEnv lua;
 };

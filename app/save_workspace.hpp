@@ -12,6 +12,12 @@ public:
     CommandState execute() override;
     GuiState draw_gui() override;
 
+    SaveWorkspace set_file(const std::filesystem::path& path)
+    {
+        selected_file = path;
+        return *this;
+    }
+
 private:
     entt::registry& reg;
 
