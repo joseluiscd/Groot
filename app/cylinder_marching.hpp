@@ -19,7 +19,7 @@ private:
     entt::entity target;
     PointCloud* cloud;
     PointNormals* normals;
-    std::vector<groot::Cylinder> result;
+    std::vector<groot::CylinderWithPoints> result;
 
     //Params
     groot::Ransac::Parameters params;

@@ -8,6 +8,7 @@
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <groot/cylinder_marching.hpp>
+#include <groot/cloud.hpp>
 #include <spdlog/spdlog.h>
 
 ComputeNormals::ComputeNormals(entt::registry& reg)
@@ -65,6 +66,48 @@ void ComputeNormals::on_finish()
 {
     registry.emplace_or_replace<PointNormals>(target, std::move(normals));
 }
+
+RecenterCloud::RecenterCloud(entt::registry& _reg)
+    : reg(_reg)
+{
+    target = reg.ctx<SelectedEntity>().selected;
+
+    if (reg.valid(target) && reg.all_of<PointCloud>(target)) {
+        this->cloud = &reg.get<PointCloud>(target);
+    } else {
+        throw std::runtime_error("Selected entity must have PointCloud");
+    }
+}
+
+GuiState RecenterCloud::draw_gui()
+{
+    bool show = true;
+    ImGui::OpenPopup("Compute normals");
+    if (ImGui::BeginPopupModal("Compute normals", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
+        ImGui::RadioButton("Using centroid##recenter", &selected, 0);
+        ImGui::RadioButton("Using bounding box center##recenter", &selected, 1);
+
+        ImGui::Separator();
+
+        if (ImGui::Button("Run")) {
+            ImGui::EndPopup();
+            return GuiState::RunSync;
+        }
+
+        ImGui::EndPopup();
+    }
+
+    return show ? GuiState::Editing : GuiState::Close;
+}
+
+CommandState RecenterCloud::execute()
+{
+    reg.patch<PointCloud>(target, [&](auto& cloud){
+        groot::recenter_cloud_centroid(cloud.cloud.data(), cloud.cloud.size());
+    });
+    return CommandState::Ok;
+}
+
 
 namespace cloud_view_system {
 

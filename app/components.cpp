@@ -70,10 +70,18 @@ void ComponentEditorWidget<Cylinders>(entt::registry& reg, entt::registry::entit
         for (size_t i = 0; i < t.cylinders.size(); i++) {
             if (ImGui::TreeNode((void*)i, "Cylinder %zu", i)) {
                 auto& c = t.cylinders[i];
-                ImGui::Text("Center: (%f, %f, %f)", c.center.x(), c.center.y(), c.center.z());
-                ImGui::Text("Direction: (%f, %f, %f)", c.direction.x(), c.direction.y(), c.direction.z());
-                ImGui::Text("Radius: %f", c.radius);
-                ImGui::Text("Length: %f", c.middle_height * 2.0);
+                ImGui::Text("Center: (%f, %f, %f)", c.cylinder.center.x(), c.cylinder.center.y(), c.cylinder.center.z());
+                ImGui::Text("Direction: (%f, %f, %f)", c.cylinder.direction.x(), c.cylinder.direction.y(), c.cylinder.direction.z());
+                ImGui::Text("Radius: %f", c.cylinder.radius);
+                ImGui::Text("Length: %f", c.cylinder.middle_height * 2.0);
+                ImGui::Text("Points: %zu", c.points.size());
+
+                if (ImGui::TreeNode("Points")) {
+                    for (size_t j = 0; j < c.points.size(); j++) {
+                        ImGui::Text("Point: (%f, %f, %f)", c.points[j].x(), c.points[j].y(), c.points[j].z());
+                    }
+                    ImGui::TreePop();
+                }
                 ImGui::TreePop();
             }
         }

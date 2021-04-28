@@ -26,6 +26,21 @@ private:
     int selected_k = 1;
 };
 
+class RecenterCloud : public CommandGui {
+public:
+    RecenterCloud(entt::registry& reg);
+
+    GuiState draw_gui() override;
+    CommandState execute() override;
+
+private:
+    entt::registry& reg;
+    PointCloud* cloud;
+    entt::entity target;
+
+    int selected;
+};
+
 namespace cloud_view_system {
 
 void init(entt::registry& reg);

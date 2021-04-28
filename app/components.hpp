@@ -21,7 +21,7 @@ struct PointNormals {
 };
 
 struct Cylinders {
-    std::vector<groot::Cylinder> cylinders;
+    std::vector<groot::CylinderWithPoints> cylinders;
 };
 
 void init_components(entt::registry& reg);

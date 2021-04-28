@@ -118,10 +118,10 @@ GuiState CylinderFilter::draw_gui()
 CommandState CylinderFilter::execute()
 {
     reg.patch<Cylinders>(target, [&](Cylinders& cylinders) {
-        std::vector<groot::Cylinder> new_cylinders;
+        std::vector<groot::CylinderWithPoints> new_cylinders;
         for (auto it = cylinders.cylinders.begin(); it != cylinders.cylinders.end(); ++it) {
-            const float radius = it->radius;
-            const float length = it->middle_height * 2;
+            const float radius = it->cylinder.radius;
+            const float length = it->cylinder.middle_height * 2;
 
             if ((!filter_radius
                     || (radius_range[0] < radius && radius < radius_range[1]))
@@ -170,7 +170,9 @@ void update_cylinder_view(entt::registry& reg, entt::entity entity)
 
     edit.vector().clear();
 
-    std::copy(cylinders.cylinders.begin(), cylinders.cylinders.end(), std::back_inserter(edit.vector()));
+    for (groot::CylinderWithPoints& c: cylinders.cylinders) {
+        edit.vector().push_back(c.cylinder);
+    }
 
     view_data.vao.set_element_count(edit.vector().size());
 }

@@ -4,6 +4,7 @@
 #include <CGAL/Monge_via_jet_fitting.h>
 #include <CGAL/Shape_detection/Efficient_RANSAC.h>
 #include <boost/property_map/transform_value_property_map.hpp>
+#include <boost/serialization/vector.hpp>
 #include <boost/utility/result_of.hpp>
 #include <glm/glm.hpp>
 #include <groot/cgal.hpp>
@@ -24,7 +25,6 @@ using NormalMap = boost::iterator_property_map<Vector_3*, boost::identity_proper
 
 using RansacTraits = CGAL::Shape_detection::Efficient_RANSAC_traits<Kernel, std::vector<size_t>, PointMap, NormalMap>;
 using Ransac = CGAL::Shape_detection::Efficient_RANSAC<RansacTraits>;
-using FitCylinder = CGAL::Shape_detection::Cylinder<RansacTraits>;
 
 struct Curvature {
     cgal::Point_3 sampled_point;
@@ -56,13 +56,65 @@ struct Cylinder {
     float middle_height; // Height / 2.0
 };
 
+float distance(const Cylinder& cylinder, const Point_3& point);
+
+struct CylinderWithPoints {
+    Cylinder cylinder;
+    std::vector<Point_3> points;
+};
+
+class FitCylinder : public CGAL::Shape_detection::Shape_base<RansacTraits> {
+public:
+    FitCylinder()
+        : Shape_base<RansacTraits>()
+    {
+    }
+
+    Cylinder get_cylinder() { return cylinder; }
+
+    float squared_distance(const Point_3 &p) const override
+    {
+        return 0.0;
+    }
+
+protected:
+    size_t minimum_sample_size() const override { return 2; }
+    void create_shape(const std::vector<std::size_t>& indices) override
+    {
+        Point_3 p1 = this->point(indices[0]);
+        Point_3 p2 = this->point(indices[1]);
+
+        Vector_3 n1 = this->normal(indices[0]);
+        Vector_3 n2 = this->normal(indices[1]);
+
+        Vector_3 axis = CGAL::cross_product(n1, n2);
+        FT axisL = CGAL::sqrt(axis.squared_length());
+    }
+
+    void squared_distance(
+        const std::vector<std::size_t>& indices,
+        std::vector<FT>& dists) const override
+    {
+    }
+
+    void cos_to_normal(
+        const std::vector<std::size_t>& indices,
+        std::vector<FT>& angles) const override
+    {
+    }
+
+private:
+    Cylinder cylinder;
+    float length;
+};
+
 bool point_in_cylinder(const cgal::Point_3& p, const Cylinder& c);
 
 void find_cylinders(
     glm::vec3* cloud,
     size_t count);
 
-void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vector<Cylinder>& out, Ransac::Parameters params = Ransac::Parameters());
+void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vector<CylinderWithPoints>& out, Ransac::Parameters params = Ransac::Parameters(), float cylinder_length = 0.2f);
 std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius);
 void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k, size_t d = 3, size_t dprime = 2);
 PlantGraph cylinder_marching(Curvature* input, size_t count, float height, float h_extend = 2.0f, float r_extend = 1.5f);
@@ -75,8 +127,13 @@ namespace serialization {
     template <typename Archive>
     void serialize(Archive& ar, groot::Cylinder& cylinder, unsigned int)
     {
-        ar& cylinder.center & cylinder.direction & cylinder.radius & cylinder.middle_height;
+        ar& cylinder.center& cylinder.direction& cylinder.radius& cylinder.middle_height;
     }
 
+    template <typename Archive>
+    void serialize(Archive& ar, groot::CylinderWithPoints& cylinder, unsigned int)
+    {
+        ar& cylinder.cylinder& cylinder.points;
+    }
 }
 }

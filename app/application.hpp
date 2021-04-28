@@ -1,6 +1,5 @@
 #pragma once
 
-#include <sol/sol.hpp>
 #include "command.hpp"
 #include "command_gui.hpp"
 //#include "editor.hpp"
@@ -9,6 +8,7 @@
 #include <groot/plant_graph.hpp>
 #include <list>
 #include <mutex>
+#include <shared_mutex>
 #include <queue>
 #include <stack>
 #include <entt/entt.hpp>

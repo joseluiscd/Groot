@@ -6,9 +6,26 @@
 #include <tbb/parallel_for.h>
 #include <CGAL/pca_estimate_normals.h>
 #include <spdlog/spdlog.h>
+#include <Eigen/SVD>
+#include <Eigen/Dense>
 
 namespace groot {
 
+float distance(const Cylinder& cylinder, const Point_3& point)
+{
+    Line_3 axis(cylinder.center, cylinder.direction);
+    Point_3 projection = axis.projection(point);
+    float axis_dist = std::sqrt(CGAL::squared_distance(projection, point));
+    if (CGAL::squared_distance(projection, cylinder.center) < cylinder.middle_height * cylinder.middle_height) {
+        return std::sqrt(axis_dist) - cylinder.radius;
+    } else {
+        float proj_center_dist = std::sqrt(CGAL::squared_distance(projection, cylinder.center));
+        float x_diff = (axis_dist - cylinder.radius);
+        float y_diff = (proj_center_dist - cylinder.middle_height);
+    
+        return std::sqrt(x_diff * x_diff + y_diff * y_diff);
+    }
+}
 
 std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius)
 {
@@ -25,7 +42,7 @@ std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int
     return normals;
 }
 
-void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vector<Cylinder>& out, Ransac::Parameters params)
+void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vector<CylinderWithPoints>& out, Ransac::Parameters params, float cylinder_length)
 {
     std::vector<size_t> indices;
     std::copy(boost::make_counting_iterator<size_t>(0), boost::make_counting_iterator(count), std::back_inserter(indices));
@@ -38,17 +55,16 @@ void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vec
     spdlog::info("Shape count: {}", ransac.shapes().size());
     
     for (auto it = ransac.shapes().begin(); it != ransac.shapes().end(); ++it) {
-        auto cylinder = static_cast<FitCylinder*>(&**it);
+        FitCylinder* cylinder = static_cast<FitCylinder*>(&**it);
 
-        Point_3 center = cylinder->axis().point();
-        Vector_3 axis = cylinder->axis().to_vector(); 
+        std::vector<Point_3> points;
+        for (size_t i : cylinder->indices_of_assigned_points()) {
+            points.push_back(cloud[i]);
+        }
 
-        std::cout << cylinder->axis() << " / " << cylinder->axis().direction() << " - " << cylinder->axis().direction().vector();
-        out.push_back(Cylinder {
-            center,
-            axis,
-            cylinder->radius(),
-            std::sqrt(axis.squared_length()) * 0.5f
+        out.push_back(CylinderWithPoints {
+            cylinder->get_cylinder(),
+            points
         });
     }
 }
