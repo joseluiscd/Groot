@@ -63,50 +63,7 @@ struct CylinderWithPoints {
     std::vector<Point_3> points;
 };
 
-class FitCylinder : public CGAL::Shape_detection::Shape_base<RansacTraits> {
-public:
-    FitCylinder()
-        : Shape_base<RansacTraits>()
-    {
-    }
-
-    Cylinder get_cylinder() { return cylinder; }
-
-    float squared_distance(const Point_3 &p) const override
-    {
-        return 0.0;
-    }
-
-protected:
-    size_t minimum_sample_size() const override { return 2; }
-    void create_shape(const std::vector<std::size_t>& indices) override
-    {
-        Point_3 p1 = this->point(indices[0]);
-        Point_3 p2 = this->point(indices[1]);
-
-        Vector_3 n1 = this->normal(indices[0]);
-        Vector_3 n2 = this->normal(indices[1]);
-
-        Vector_3 axis = CGAL::cross_product(n1, n2);
-        FT axisL = CGAL::sqrt(axis.squared_length());
-    }
-
-    void squared_distance(
-        const std::vector<std::size_t>& indices,
-        std::vector<FT>& dists) const override
-    {
-    }
-
-    void cos_to_normal(
-        const std::vector<std::size_t>& indices,
-        std::vector<FT>& angles) const override
-    {
-    }
-
-private:
-    Cylinder cylinder;
-    float length;
-};
+using FitCylinder = CGAL::Shape_detection::Cylinder<RansacTraits>;
 
 bool point_in_cylinder(const cgal::Point_3& p, const Cylinder& c);
 
@@ -114,10 +71,11 @@ void find_cylinders(
     glm::vec3* cloud,
     size_t count);
 
-void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vector<CylinderWithPoints>& out, Ransac::Parameters params = Ransac::Parameters(), float cylinder_length = 0.2f);
+std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params = Ransac::Parameters());
+std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
+
 std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius);
 void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k, size_t d = 3, size_t dprime = 2);
-PlantGraph cylinder_marching(Curvature* input, size_t count, float height, float h_extend = 2.0f, float r_extend = 1.5f);
 std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);
 
 }

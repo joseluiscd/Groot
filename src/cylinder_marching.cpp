@@ -1,13 +1,14 @@
+#include <CGAL/pca_estimate_normals.h>
 #include <CGAL/property_map.h>
+#include <Eigen/Dense>
+#include <Eigen/SVD>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>
 #include <gfx/debug_draw.hpp>
 #include <groot/cylinder_marching.hpp>
-#include <tbb/parallel_for.h>
-#include <CGAL/pca_estimate_normals.h>
 #include <spdlog/spdlog.h>
-#include <Eigen/SVD>
-#include <Eigen/Dense>
+#include <tbb/parallel_for.h>
+#include <groot/cloud.hpp>
 
 namespace groot {
 
@@ -22,7 +23,7 @@ float distance(const Cylinder& cylinder, const Point_3& point)
         float proj_center_dist = std::sqrt(CGAL::squared_distance(projection, cylinder.center));
         float x_diff = (axis_dist - cylinder.radius);
         float y_diff = (proj_center_dist - cylinder.middle_height);
-    
+
         return std::sqrt(x_diff * x_diff + y_diff * y_diff);
     }
 }
@@ -30,22 +31,33 @@ float distance(const Cylinder& cylinder, const Point_3& point)
 std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius)
 {
     std::vector<Vector_3> normals(count);
-    
+
     std::vector<size_t> indices;
     std::copy(boost::make_counting_iterator<size_t>(0), boost::make_counting_iterator(count), std::back_inserter(indices));
 
     CGAL::pca_estimate_normals<CGAL::Parallel_tag>(indices, k,
         CGAL::parameters::point_map(CGAL::make_property_map(cloud))
-        .normal_map(CGAL::make_property_map(normals.data()))
-        .neighbor_radius(radius));
+            .normal_map(CGAL::make_property_map(normals.data()))
+            .neighbor_radius(radius));
 
     return normals;
 }
 
-void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vector<CylinderWithPoints>& out, Ransac::Parameters params, float cylinder_length)
+Cylinder from_cgal(const FitCylinder& c)
 {
-    std::vector<size_t> indices;
-    std::copy(boost::make_counting_iterator<size_t>(0), boost::make_counting_iterator(count), std::back_inserter(indices));
+    cgal::Line_3 axis = c.axis();
+
+    return Cylinder {
+        axis.point(0.0),
+        axis.to_vector(),
+        c.radius(),
+        std::sqrt(axis.to_vector().squared_length()) * 0.5f
+    };
+}
+
+std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params)
+{
+    std::vector<CylinderWithPoints> cylinders;
 
     Ransac ransac;
     ransac.set_input(indices, PointMap(cloud), NormalMap(normals));
@@ -53,20 +65,36 @@ void compute_cylinders(Point_3* cloud, Vector_3* normals, size_t count, std::vec
     ransac.detect(params);
 
     spdlog::info("Shape count: {}", ransac.shapes().size());
-    
+
     for (auto it = ransac.shapes().begin(); it != ransac.shapes().end(); ++it) {
-        FitCylinder* cylinder = static_cast<FitCylinder*>(&**it);
+        FitCylinder* c = static_cast<FitCylinder*>(&**it);
 
         std::vector<Point_3> points;
-        for (size_t i : cylinder->indices_of_assigned_points()) {
+        for (size_t i : c->indices_of_assigned_points()) {
             points.push_back(cloud[i]);
         }
 
-        out.push_back(CylinderWithPoints {
-            cylinder->get_cylinder(),
-            points
-        });
+        cylinders.emplace_back(CylinderWithPoints {
+            from_cgal(*c),
+            std::move(points) });
     }
+
+    return cylinders;
+}
+
+std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params)
+{
+    VoxelGrid grid = voxel_grid(cloud, count, voxel_size);
+    std::vector<CylinderWithPoints> cylinders;
+
+    for (std::vector<size_t>& cell : grid.voxels) {
+        if (cell.size() > params.min_points) {
+            std::vector<CylinderWithPoints> cell_cylinders = compute_cylinders(cloud, normals, cell, params);
+            std::copy(cell_cylinders.begin(), cell_cylinders.end(), std::back_inserter(cylinders));
+        }
+    }
+
+    return cylinders;
 }
 
 void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k, size_t d, size_t dprime)

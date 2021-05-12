@@ -12,8 +12,9 @@ public:
         lua_init();
     }
 
-    void run_file(std::string& filename)
+    void run_file(std::string& filename, const std::string& config)
     {
+        lua["config"] = config;
         lua.script_file(filename);
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <stdexcept>
 
 enum class CommandState : bool {
     Ok = false,
@@ -14,5 +15,19 @@ public:
     virtual CommandState execute() = 0;
     virtual void on_finish() {}
 
+    CommandState run() {
+        if (this->execute() == CommandState::Ok) {
+            this->on_finish();
+            return CommandState::Ok;
+        }
+        return CommandState::Error;
+    }
+
     std::string error_string = "";
 };
+
+inline void throw_on_error(CommandState state, const std::string& error)
+{
+    if (state != CommandState::Ok)
+        throw std::runtime_error(error);
+}

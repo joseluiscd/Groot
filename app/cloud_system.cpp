@@ -11,18 +11,23 @@
 #include <groot/cloud.hpp>
 #include <spdlog/spdlog.h>
 
-ComputeNormals::ComputeNormals(entt::registry& reg)
-    : registry(reg)
+ComputeNormals::ComputeNormals(entt::handle&& handle)
+    : registry(*handle.registry())
 {
-    target = reg.ctx<SelectedEntity>().selected;
-
-    if (reg.valid(target) && reg.all_of<PointCloud>(target)) {
-        this->cloud = &reg.get<PointCloud>(target);
-
+    target = handle.entity();
+    if (registry.valid(target) && registry.all_of<PointCloud>(target)) {
+        this->cloud = &registry.get<PointCloud>(target);
     } else {
         throw std::runtime_error("Selected entity must have PointCloud");
     }
+}
 
+ComputeNormals::ComputeNormals(entt::registry& reg)
+    : ComputeNormals(entt::handle {
+        reg,
+        reg.ctx<SelectedEntity>().selected
+    })
+{
 }
 
 GuiState ComputeNormals::draw_gui()

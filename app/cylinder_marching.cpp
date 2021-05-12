@@ -10,9 +10,17 @@
 #include <queue>
 
 CylinderMarching::CylinderMarching(entt::registry& _reg)
-    : reg(_reg)
+    : CylinderMarching(entt::handle{
+        _reg,
+        reg.ctx<SelectedEntity>().selected
+    })
 {
-    target = reg.ctx<SelectedEntity>().selected;
+}
+
+CylinderMarching::CylinderMarching(entt::handle&& handle)
+    : reg(*handle.registry())
+{
+    target = handle.entity();
 
     if (reg.valid(target) && reg.all_of<PointCloud, PointNormals>(target)) {
         cloud = &reg.get<PointCloud>(target);
@@ -37,6 +45,7 @@ GuiState CylinderMarching::draw_gui()
         ImGui::InputFloat("Sampling resolution", &sampling, 0.05, 0.1);
         ImGui::InputFloat("Normal Threshold", &normal_deviation, 1.0, 5.0);
         ImGui::InputFloat("Missing probability", &overlook_probability, 0.01, 0.1);
+        ImGui::InputFloat("Voxel size", &voxel_size, 0.1, 0.5);
 
         ImGui::Separator();
 
@@ -60,7 +69,7 @@ CommandState CylinderMarching::execute()
     params.normal_threshold = std::cos(normal_deviation * M_PI / 180.0);
     params.probability = overlook_probability;
 
-    groot::compute_cylinders(cloud->cloud.data(), normals->normals.data(), cloud->cloud.size(), result, params);
+    result = groot::compute_cylinders_voxelized(cloud->cloud.data(), normals->normals.data(), cloud->cloud.size(), voxel_size, params);
     return CommandState::Ok;
 }
 
@@ -70,16 +79,22 @@ void CylinderMarching::on_finish()
 }
 
 CylinderFilter::CylinderFilter(entt::registry& _reg)
-    : reg(_reg)
+    : CylinderFilter(entt::handle{
+        _reg,
+        reg.ctx<SelectedEntity>().selected
+    })
 {
-    target = reg.ctx<SelectedEntity>().selected;
+}
 
+CylinderFilter::CylinderFilter(entt::handle&& handle)
+    : reg(*handle.registry())
+{
+    target = handle.entity();
     if (reg.valid(target) && reg.all_of<Cylinders>(target)) {
     } else {
         throw std::runtime_error("Selected entity must have Cylinders component");
     }
 }
-
 GuiState CylinderFilter::draw_gui()
 {
     bool show = true;

@@ -9,6 +9,7 @@
 class ComputeNormals : public CommandGui {
 public:
     ComputeNormals(entt::registry& reg);
+    ComputeNormals(entt::handle&& handle);
 
     GuiState draw_gui() override;
     CommandState execute() override;
@@ -20,10 +21,12 @@ private:
     entt::entity target;
     std::vector<groot::Vector_3> normals;
 
+    int selected_k = 1;
+public:
+    // Parameters
+
     int k = 0;
     float radius = 1.0;
-
-    int selected_k = 1;
 };
 
 class RecenterCloud : public CommandGui {

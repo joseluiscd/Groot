@@ -9,6 +9,7 @@
 class CylinderMarching : public CommandGui {
 public:
     CylinderMarching(entt::registry& reg);
+    CylinderMarching(entt::handle&& handle);
 
     GuiState draw_gui() override;
     CommandState execute() override;
@@ -21,19 +22,21 @@ private:
     PointNormals* normals;
     std::vector<groot::CylinderWithPoints> result;
 
+public:
     //Params
-    groot::Ransac::Parameters params;
     int min_points = 20;
     float epsilon = 0.03;
     float sampling = 0.06;
     float normal_deviation = 25.0;
     float overlook_probability = 0.01;
+    float voxel_size = 1.0f;
 
 };
 
 class CylinderFilter : public CommandGui {
 public:
     CylinderFilter(entt::registry& reg);
+    CylinderFilter(entt::handle&& handle);
 
     GuiState draw_gui() override;
     CommandState execute() override;
@@ -41,6 +44,7 @@ private:
     entt::registry& reg;
     entt::entity target;
 
+public:
     // Params
     bool filter_radius = true;
     float radius_range[2] = {0.0, 1.0};

@@ -15,11 +15,15 @@ public:
     CommandState execute() override;
     void on_finish() override;
 
+    entt::entity result;
+
 private:
     entt::registry& registry;
 
     ImGui::FileBrowser open;
-    std::string input_file = "";
 
     std::vector<groot::Point_3> cloud;
+public:
+    // Parameters
+    std::string input_file = "";
 };

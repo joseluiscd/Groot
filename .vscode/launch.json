@@ -5,6 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Cylinder Marching Script",
+            "program": "${workspaceFolder}/build/app/groot_exe",
+            "args": ["--script", "cylinders.lua", "--config", "cylinder_params.lua"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "(gdb) Iniciar",
             "type": "cppdbg",
             "request": "launch",
@@ -22,6 +30,6 @@
                     "ignoreFailures": true
                 }
             ]
-        }
+        },
     ]
 }

@@ -52,4 +52,5 @@ void ImportPLY::on_finish()
     auto entity = registry.create();
     registry.emplace<PointCloud>(entity, std::move(cloud));
     registry.emplace<Name>(entity, this->input_file);
+    result = entity;
 }

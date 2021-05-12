@@ -13,6 +13,7 @@ set(CMAKE_MODULE_PATH
     )
 
 set(Boost_USE_STATIC_LIBS ON)
+set(CGAL_Boost_USE_STATIC_LIBS ON)
 
 find_package(CGAL 5 REQUIRED)
 find_package(TBB REQUIRED)
