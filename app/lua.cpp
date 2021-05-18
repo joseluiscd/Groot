@@ -6,7 +6,10 @@
 #include "open_workspace.hpp"
 #include "save_workspace.hpp"
 #include <entt/entt.hpp>
+
+#ifndef __INTELLISENSE__
 #include <sol/sol.hpp>
+#endif // Intellisense blocker
 
 void LuaEnv::lua_init()
 {
@@ -49,46 +52,46 @@ void LuaEnv::lua_init()
         "select", [](entt::handle e) { e.registry()->ctx<SelectedEntity>().selected = e.entity(); },
         "compute_normals", [](entt::handle e, sol::table args) {
             ComputeNormals cmd(std::move(e));
-            if (std::optional<int> r; r = args["k"]) {
+            if (std::optional<int> r = args["k"]; r) {
                 cmd.k = *r;
             }
-            if (std::optional<float> r; r = args["radius"]) {
+            if (std::optional<float> r = args["radius"]; r) {
                 cmd.radius = *r;
             }
  
             throw_on_error(cmd.run(), "Error computing normals"); },
         "cylinder_marching", [](entt::handle e, sol::table args) {
             CylinderMarching cm(std::move(e));
-            if (std::optional<int> r; r = args["min_points"]) {
+            if (std::optional<int> r = args["min_points"]; r) {
                 cm.min_points = *r;
             }
-            if (std::optional<float> r; r = args["epsilon"]) {
+            if (std::optional<float> r = args["epsilon"]; r) {
                 cm.epsilon = *r;
             }
-            if (std::optional<float> r; r = args["sampling"]) {
+            if (std::optional<float> r = args["sampling"]; r) {
                 cm.sampling = *r;
             }
-            if (std::optional<float> r; r = args["normal_deviation"]) {
+            if (std::optional<float> r = args["normal_deviation"]; r) {
                 cm.normal_deviation = *r;
             }
-            if (std::optional<float> r; r = args["overlook_probability"]) {
+            if (std::optional<float> r = args["overlook_probability"]; r) {
                 cm.overlook_probability = *r;
             }
-            if (std::optional<float> r; r = args["voxel_size"]) {
+            if (std::optional<float> r = args["voxel_size"]; r) {
                 cm.voxel_size = *r;
             }
 
             throw_on_error(cm.run(), "Cylinder marching error"); },
         "cylinder_filter", [](entt::handle e, sol::table args){
             CylinderFilter cmd(std::move(e));
-            if (std::optional<sol::table> r; r = args["radius"]) {
+            if (std::optional<sol::table> r = args["radius"]; r) {
                 cmd.filter_radius = true;
                 cmd.radius_range[0] = (*r)[1];
                 cmd.radius_range[1] = (*r)[2];
             } else {
                 cmd.filter_radius = false;
             }
-            if (std::optional<sol::table> r; r = args["length"]) {
+            if (std::optional<sol::table> r = args["length"]; r) {
                 cmd.filter_length = true;
                 cmd.length_range[0] = (*r)[1];
                 cmd.length_range[1] = (*r)[2];

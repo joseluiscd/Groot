@@ -19,3 +19,6 @@
 [submodule "3rdparty/sol2"]
 	path = 3rdparty/sol2
 	url = https://github.com/ThePhD/sol2.git
+[submodule "3rdparty/glfw"]
+	path = 3rdparty/glfw
+	url = https://github.com/glfw/glfw.git

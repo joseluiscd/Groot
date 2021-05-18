@@ -12,8 +12,6 @@ set(CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
     )
 
-set(Boost_USE_STATIC_LIBS ON)
-set(CGAL_Boost_USE_STATIC_LIBS ON)
 
 find_package(CGAL 5 REQUIRED)
 find_package(TBB REQUIRED)
@@ -30,8 +28,8 @@ set(BUILD_DEMOS OFF CACHE BOOL "enable Zep demos")
 set(BUILD_EXTENSIONS OFF CACHE BOOL "enable Zep extensions")
 include(CMakePackageConfigHelpers)
 
+add_subdirectory(3rdparty/glfw)
 add_subdirectory(3rdparty/gfx)
-add_subdirectory(3rdparty/zep)
 add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/entt)
 add_subdirectory(3rdparty/lua)
@@ -56,7 +54,6 @@ add_library(groot
 )
 
 target_link_libraries(groot
-    glm
     CGAL::CGAL
     CGAL::TBB_support
     CGAL::Eigen_support

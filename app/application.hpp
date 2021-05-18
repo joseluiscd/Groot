@@ -2,7 +2,6 @@
 
 #include "command.hpp"
 #include "command_gui.hpp"
-//#include "editor.hpp"
 #include <future>
 #include <gfx/gfx.hpp>
 #include <groot/plant_graph.hpp>

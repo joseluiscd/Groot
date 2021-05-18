@@ -12,7 +12,7 @@
 CylinderMarching::CylinderMarching(entt::registry& _reg)
     : CylinderMarching(entt::handle{
         _reg,
-        reg.ctx<SelectedEntity>().selected
+        _reg.ctx<SelectedEntity>().selected
     })
 {
 }
@@ -81,7 +81,7 @@ void CylinderMarching::on_finish()
 CylinderFilter::CylinderFilter(entt::registry& _reg)
     : CylinderFilter(entt::handle{
         _reg,
-        reg.ctx<SelectedEntity>().selected
+        _reg.ctx<SelectedEntity>().selected
     })
 {
 }

@@ -1,11 +1,13 @@
 #include <CGAL/pca_estimate_normals.h>
 #include <CGAL/property_map.h>
+#include <CGAL/squared_distance_3_0.h>
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>
 #include <gfx/debug_draw.hpp>
 #include <groot/cylinder_marching.hpp>
+#include <iterator>
 #include <spdlog/spdlog.h>
 #include <tbb/parallel_for.h>
 #include <groot/cloud.hpp>
@@ -95,6 +97,88 @@ std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vect
     }
 
     return cylinders;
+}
+
+/** Check if cylinders are similar
+@param a Cylinder a
+@param b Cyilnder b
+@param cos_angle The minimum cos (similarity) of the angle between the axes of a-b: 1 = equal (e.g. 0.9 for 25º)
+@param max_dist The maximum distance from center of cylinder to the projection on the other.
+@param radius_ratio The ratio of radii: 1 = equal, 0 = very different 
+*/
+bool cylinders_similar(const Cylinder& a, const Cylinder& b, float cos_angle, float max_dist, float radius_ratio)
+{
+    float m_a = 1.0 / std::sqrt(a.direction.squared_length());
+    float m_b = 1.0 / std::sqrt(b.direction.squared_length());
+
+    float ab_cos = std::abs(a.direction * b.direction * m_a * m_b);
+
+    if (ab_cos < cos_angle) {
+        return false;
+    }
+
+    Line_3 a_axis = cgal::Line_3(a.center, a.direction);
+    Line_3 b_axis = cgal::Line_3(b.center, b.direction);
+
+    Point_3 a_proj_b = b_axis.projection(a.center);
+    Point_3 b_proj_a = a_axis.projection(b.center);
+
+    float a_axis_dist = CGAL::squared_distance(b_proj_a, a.center);
+    float b_axis_dist = CGAL::squared_distance(a_proj_b, b.center);
+
+    float max_dist_squared = max_dist * max_dist;
+
+    if (a_axis_dist > a.middle_height && b_axis_dist > b.middle_height) {
+        return false;
+    }
+
+    float radius_big;
+    float radius_small;
+
+    if (a.radius > b.radius) {
+        radius_big = a.radius;
+        radius_small = b.radius;
+    } else {
+        radius_big = b.radius;
+        radius_small = a.radius;
+    }
+
+    if (radius_small / radius_big < radius_ratio) {
+        return false;
+    }
+
+    return true;
+}
+
+//TODO: Possible change of this
+CylinderWithPoints merge_cylinders(const CylinderWithPoints& a, const CylinderWithPoints& b)
+{
+    CylinderWithPoints ret;
+
+    std::copy(a.points.begin(), b.points.end(), std::back_inserter(ret.points));
+    std::copy(a.points.begin(), b.points.begin(), std::back_inserter(ret.points));
+
+    if (a.cylinder.middle_height > b.cylinder.middle_height) {
+        ret.cylinder = a.cylinder;
+    } else {
+        ret.cylinder = b.cylinder;
+    }
+
+    return ret;
+}
+
+std::vector<CylinderWithPoints> merge_cylinders(const std::vector<CylinderWithPoints>& a, const std::vector<CylinderWithPoints>& b)
+{
+    std::vector<CylinderWithPoints> result;
+    for(const CylinderWithPoints& c1 : a) {
+        for (const CylinderWithPoints& c2: b) {
+            if (cylinders_similar(c1.cylinder, c2.cylinder, 0.9, 0.9, 0.9)) {
+                result.push_back(merge_cylinders(c1, c2));
+            }
+        }
+    }
+
+    return result;
 }
 
 void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k, size_t d, size_t dprime)

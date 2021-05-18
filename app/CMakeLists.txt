@@ -58,7 +58,6 @@ include_directories(${CMAKE_SOURCE_DIR}/3rdparty/zep/include ${LUA_INCLUDE_DIR})
 target_link_libraries(groot_exe
     groot
     gfx
-    Zep::Zep
     EnTT::EnTT
     lua
     sol2::sol2

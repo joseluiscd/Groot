@@ -73,9 +73,9 @@ void find_cylinders(
 
 std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params = Ransac::Parameters());
 std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
+std::vector<CylinderWithPoints> merge_cylinders(const std::vector<CylinderWithPoints>& a, const std::vector<CylinderWithPoints>& b);
 
 std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius);
-void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, size_t count, size_t k, size_t d = 3, size_t dprime = 2);
 std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);
 
 }

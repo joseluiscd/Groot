@@ -1,6 +1,9 @@
 #pragma once
 
+#ifndef __INTELLISENSE__
 #include <sol/sol.hpp>
+#endif // Intellisense blocker
+
 #include <entt/entt.hpp>
 
 class LuaEnv {

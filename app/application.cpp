@@ -3,7 +3,6 @@
 #include "components.hpp"
 #include "create_graph.hpp"
 #include "cylinder_marching.hpp"
-//#include "editor_display_imgui.hpp"
 #include "graph_cluster.hpp"
 #include "graph_viewer_system.hpp"
 #include "import_ply.hpp"

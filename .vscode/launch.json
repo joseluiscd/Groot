@@ -14,22 +14,11 @@
         },
         {
             "name": "(gdb) Iniciar",
-            "type": "cppdbg",
+            "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/app/groot_exe",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build/",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Habilitar la impresión con sangría para gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
         },
     ]
 }
