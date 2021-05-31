@@ -5,7 +5,6 @@
 #include "cylinder_marching.hpp"
 #include "entt/entity/fwd.hpp"
 #include "gfx/font_awesome.hpp"
-#include "graph_cluster.hpp"
 #include "graph_viewer_system.hpp"
 #include "import_ply.hpp"
 #include "open_workspace.hpp"

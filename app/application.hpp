@@ -2,17 +2,13 @@
 
 #include "command.hpp"
 #include "command_gui.hpp"
+#include "lua.hpp"
+#include "resources.hpp"
 #include <future>
 #include <gfx/gfx.hpp>
-#include <groot/plant_graph.hpp>
 #include <list>
-#include <mutex>
-#include <shared_mutex>
 #include <queue>
-#include <stack>
-#include <entt/entt.hpp>
-#include "resources.hpp"
-#include "lua.hpp"
+#include <shared_mutex>
 
 class Application;
 
@@ -47,18 +43,16 @@ public:
     BackgroundTaskHandle execute_command_async(std::unique_ptr<Command>&& command);
 
     void open_window(CommandGui* gui);
-    //void open_window(Editor* editor);
 
     template <typename T, typename... Args>
-    void open_new_window(Args&&... args) {
+    void open_new_window(Args&&... args)
+    {
         try {
             open_window(new T(args...));
         } catch (std::runtime_error err) {
             show_error(std::string(err.what()));
         }
     }
-
-    lua_State* create_lua_context();
 
     void notify_task_finished(BackgroundTaskHandle task, CommandState result);
 
@@ -69,10 +63,7 @@ public:
     void draw_editors();
     void draw_background_tasks();
 
-    lua_State* create_context();
-
     void main_loop();
-
 
 private:
     entt::entity get_selected_entity();
