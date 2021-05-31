@@ -6,6 +6,8 @@
 #include "command_gui.hpp"
 #include <optional>
 #include <groot/cgal.hpp>
+#include "components.hpp"
+#include "entt/entity/fwd.hpp"
 
 class ImportPLY : public CommandGui {
 public:
@@ -23,7 +25,35 @@ private:
     ImGui::FileBrowser open;
 
     std::vector<groot::Point_3> cloud;
+    std::vector<groot::Vector_3> normals;
 public:
     // Parameters
     std::string input_file = "";
+};
+
+class ExportPLY : public CommandGui {
+public:
+    ExportPLY(entt::handle&& handle);
+    ExportPLY(entt::registry& _reg)
+        : ExportPLY(entt::handle {
+            _reg,
+            _reg.ctx<SelectedEntity>().selected })
+    {
+    }
+    GuiState draw_gui() override;
+    CommandState execute() override;
+
+    entt::entity result;
+
+private:
+    entt::registry& registry;
+    entt::entity target;
+
+    ImGui::FileBrowser save;
+    PointCloud* cloud;
+    std::optional<PointNormals*> normals;
+    
+public:
+    // Parameters
+    std::string output_file = "";
 };
