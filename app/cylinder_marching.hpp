@@ -1,9 +1,8 @@
 #pragma once
 
-#include <entt/entt.hpp>
-#include <groot/cylinder_marching.hpp>
 #include "command_gui.hpp"
 #include "components.hpp"
+#include <entt/entt.hpp>
 #include <groot/cylinder_marching.hpp>
 
 class CylinderMarching : public CommandGui {
@@ -30,7 +29,6 @@ public:
     float normal_deviation = 25.0;
     float overlook_probability = 0.01;
     float voxel_size = 1.0f;
-
 };
 
 class CylinderFilter : public CommandGui {
@@ -40,6 +38,7 @@ public:
 
     GuiState draw_gui() override;
     CommandState execute() override;
+
 private:
     entt::registry& reg;
     entt::entity target;
@@ -47,10 +46,36 @@ private:
 public:
     // Params
     bool filter_radius = true;
-    float radius_range[2] = {0.0, 1.0};
+    float radius_range[2] = { 0.0, 1.0 };
 
     bool filter_length = false;
-    float length_range[2] = {0.0, 1.0};
+    float length_range[2] = { 0.0, 1.0 };
+};
+
+class CylinderPointFilter : public CommandGui {
+public:
+    CylinderPointFilter(entt::handle&& handle);
+    CylinderPointFilter(entt::registry& _reg)
+        : CylinderPointFilter(entt::handle {
+            _reg,
+            _reg.ctx<SelectedEntity>().selected })
+    {
+    }
+
+    GuiState draw_gui() override
+    {
+        return GuiState::RunAsync;
+    }
+
+    CommandState execute() override;
+    void on_finish() override;
+
+private:
+    entt::registry& reg;
+    entt::entity target;
+
+    Cylinders* cylinders;
+    PointCloud cloud;
 };
 
 namespace cylinder_view_system {

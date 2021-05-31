@@ -1,16 +1,17 @@
 #include <CGAL/pca_estimate_normals.h>
 #include <CGAL/property_map.h>
+#include <CGAL/squared_distance_2_2.h>
 #include <CGAL/squared_distance_3_0.h>
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>
 #include <gfx/debug_draw.hpp>
+#include <groot/cloud.hpp>
 #include <groot/cylinder_marching.hpp>
 #include <iterator>
 #include <spdlog/spdlog.h>
 #include <tbb/parallel_for.h>
-#include <groot/cloud.hpp>
 
 namespace groot {
 
@@ -53,7 +54,7 @@ Cylinder from_cgal(const FitCylinder& c)
         axis.point(0.0),
         axis.to_vector(),
         c.radius(),
-        std::sqrt(axis.to_vector().squared_length()) * 0.5f
+        c.radius()
     };
 }
 
@@ -72,6 +73,7 @@ std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* norm
         FitCylinder* c = static_cast<FitCylinder*>(&**it);
 
         std::vector<Point_3> points;
+
         for (size_t i : c->indices_of_assigned_points()) {
             points.push_back(cloud[i]);
         }
@@ -170,8 +172,8 @@ CylinderWithPoints merge_cylinders(const CylinderWithPoints& a, const CylinderWi
 std::vector<CylinderWithPoints> merge_cylinders(const std::vector<CylinderWithPoints>& a, const std::vector<CylinderWithPoints>& b)
 {
     std::vector<CylinderWithPoints> result;
-    for(const CylinderWithPoints& c1 : a) {
-        for (const CylinderWithPoints& c2: b) {
+    for (const CylinderWithPoints& c1 : a) {
+        for (const CylinderWithPoints& c2 : b) {
             if (cylinders_similar(c1.cylinder, c2.cylinder, 0.9, 0.9, 0.9)) {
                 result.push_back(merge_cylinders(c1, c2));
             }

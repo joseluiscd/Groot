@@ -5,6 +5,7 @@
 #include "import_ply.hpp"
 #include "open_workspace.hpp"
 #include "save_workspace.hpp"
+#include "sol/raii.hpp"
 #include <entt/entt.hpp>
 
 #ifndef __INTELLISENSE__
@@ -49,6 +50,7 @@ void LuaEnv::lua_init()
         "new", [&]() { return entt::handle(reg, reg.create()); },
         "point_cloud", [](entt::handle e) { return e.try_get<PointCloud>(); },
         "cloud_normals", [](entt::handle e) { return e.try_get<PointNormals>(); },
+        "cylinders", [](entt::handle e) { return e.try_get<Cylinders>(); },
         "select", [](entt::handle e) { e.registry()->ctx<SelectedEntity>().selected = e.entity(); },
         "compute_normals", [](entt::handle e, sol::table args) {
             ComputeNormals cmd(std::move(e));
@@ -100,5 +102,21 @@ void LuaEnv::lua_init()
             }
 
             throw_on_error(cmd.run(), "Cylinder filter error");
-        });
+        },
+        
+        "split_cloud", [](entt::handle e, float voxel_size) {
+            SplitCloud cmd(std::move(e));
+            cmd.voxel_size = voxel_size;
+            throw_on_error(cmd.run(), "Voxel split error");
+            return sol::as_table(cmd.result);
+        },
+        "rebuild_cloud_from_cylinders", [](entt::handle e) {
+            CylinderPointFilter cmd(std::move(e));
+            throw_on_error(cmd.run(), "Point cloud from cylinders error");
+        }
+        );
+
+        sol::usertype<Cylinders> cylinders_type = lua.new_usertype<Cylinders>(
+            "Cylinders", sol::no_constructor,
+            "len", [](const Cylinders& c) { return c.cylinders.size(); });
 }

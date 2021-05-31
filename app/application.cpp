@@ -3,6 +3,8 @@
 #include "components.hpp"
 #include "create_graph.hpp"
 #include "cylinder_marching.hpp"
+#include "entt/entity/fwd.hpp"
+#include "gfx/font_awesome.hpp"
 #include "graph_cluster.hpp"
 #include "graph_viewer_system.hpp"
 #include "import_ply.hpp"
@@ -212,6 +214,27 @@ void Application::draw_gui()
                 open_new_window<SaveWorkspace>(registry);
             }
 
+            ImGui::Separator();
+
+            if (ImGui::MenuItem(ICON_FA_TRASH "\tClear Invisible")) {
+                registry.each([&](entt::entity e){
+                    if (! registry.all_of<Visible>(e)) {
+                        registry.destroy(e);
+                    }
+                });
+            }
+
+            if (ImGui::MenuItem(ICON_FA_TRASH "\tClear Workspace")) {
+                registry.clear();
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("View")) {
+            if (ImGui::MenuItem(ICON_FA_EYE_SLASH "\tHide all")) {
+                registry.clear<Visible>();
+            }
             ImGui::EndMenu();
         }
 
@@ -220,9 +243,20 @@ void Application::draw_gui()
                 open_new_window<ImportPLY>(registry);
             }
 
+            if (ImGui::MenuItem(ICON_FA_FILE_EXPORT "\tExport PLY")) {
+                open_new_window<ExportPLY>(registry);
+            }
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
                 open_new_window<ComputeNormals>(registry);
             }
+
+            if (ImGui::MenuItem(ICON_FA_CUBES "\tSplit Voxels...")) {
+                open_new_window<SplitCloud>(registry);
+            }
+
             ImGui::EndMenu();
         }
 
@@ -242,6 +276,9 @@ void Application::draw_gui()
             }
             if (ImGui::MenuItem(ICON_FA_FILTER "\tFilter Cylinders...")) {
                 open_new_window<CylinderFilter>(registry);
+            }
+            if (ImGui::MenuItem(ICON_FA_CUBE "\tBuild cloud from cylinders")) {
+                open_new_window<CylinderPointFilter>(registry);
             }
             ImGui::EndMenu();
         }

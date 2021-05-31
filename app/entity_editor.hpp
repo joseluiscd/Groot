@@ -31,6 +31,7 @@ inline void EntityWidget(EntityType& e, entt::basic_registry<EntityType>& reg, b
 		const char * name;
 		char namebuff[32];
 		auto& selected = reg.template ctx<SelectedEntity>().selected;
+        bool visible = reg.template all_of<Visible>(e);
 
         if (reg.template all_of<Name>(e)) {
 			name = reg.template get<Name>(e).name.c_str();
@@ -39,7 +40,19 @@ inline void EntityWidget(EntityType& e, entt::basic_registry<EntityType>& reg, b
 			name = namebuff;
         }
 
+        ImGui::PushID("###Checkbox");
+        ImGui::PushID((void*) e);
+        if (ImGui::Checkbox("###CB", &visible)) {
+            if (visible) {
+                reg.template emplace<Visible>(e);
+            } else {
+                reg.template remove<Visible>(e);
+            }
+        }
+        ImGui::PopID();
+        ImGui::PopID();
 
+        ImGui::SameLine();
 		if (ImGui::Selectable(name, selected == e)){
 			selected = e;
 		}

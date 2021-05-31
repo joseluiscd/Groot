@@ -1,5 +1,6 @@
 #include "cylinder_marching.hpp"
 #include "components.hpp"
+#include "groot/cylinder_marching.hpp"
 #include "render.hpp"
 #include "resources.hpp"
 #include <future>
@@ -7,6 +8,7 @@
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iterator>
 #include <queue>
 
 CylinderMarching::CylinderMarching(entt::registry& _reg)
@@ -152,6 +154,32 @@ CommandState CylinderFilter::execute()
     return CommandState::Ok;
 }
 
+CylinderPointFilter::CylinderPointFilter(entt::handle&& handle)
+    : reg(*handle.registry())
+{
+    target = handle.entity();
+    if (reg.valid(target) && reg.all_of<Cylinders>(target)) {
+        cylinders = &reg.get<Cylinders>(target);
+    } else {
+        throw std::runtime_error("Selected entity must have Cylinders component");
+    }
+}
+
+CommandState CylinderPointFilter::execute()
+{
+    for (size_t i = 0; i < cylinders->cylinders.size(); i++) {
+        groot::CylinderWithPoints& cylinder = cylinders->cylinders[i];
+
+        std::copy(cylinder.points.begin(), cylinder.points.end(), std::back_inserter(cloud.cloud));
+    }
+    return CommandState::Ok;
+}
+
+void CylinderPointFilter::on_finish()
+{
+    reg.emplace_or_replace<PointCloud>(target, std::move(cloud));
+}
+
 namespace cylinder_view_system {
 
 struct CylinderViewComponent {
@@ -200,7 +228,7 @@ void init(entt::registry& reg)
             .with_shader(shaders.get_shader(ShaderCollection::Cylinders))
             .build() });
 
-    reg.on_destroy<Cylinders>().connect<&entt::registry::remove_if_exists<CylinderViewComponent>>();
+    reg.on_destroy<Cylinders>().connect<&entt::registry::remove<CylinderViewComponent>>();
     reg.on_construct<Cylinders>().connect<&entt::registry::emplace_or_replace<CylinderViewComponent>>();
     reg.on_construct<CylinderViewComponent>().connect<&entt::registry::emplace_or_replace<Visible>>();
 

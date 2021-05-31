@@ -1,4 +1,6 @@
 #include "cloud_system.hpp"
+#include "components.hpp"
+#include "entt/entity/fwd.hpp"
 #include "render.hpp"
 #include "resources.hpp"
 #include "viewer_system.hpp"
@@ -7,8 +9,8 @@
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <groot/cylinder_marching.hpp>
 #include <groot/cloud.hpp>
+#include <groot/cylinder_marching.hpp>
 #include <spdlog/spdlog.h>
 
 ComputeNormals::ComputeNormals(entt::handle&& handle)
@@ -25,8 +27,7 @@ ComputeNormals::ComputeNormals(entt::handle&& handle)
 ComputeNormals::ComputeNormals(entt::registry& reg)
     : ComputeNormals(entt::handle {
         reg,
-        reg.ctx<SelectedEntity>().selected
-    })
+        reg.ctx<SelectedEntity>().selected })
 {
 }
 
@@ -107,12 +108,82 @@ GuiState RecenterCloud::draw_gui()
 
 CommandState RecenterCloud::execute()
 {
-    reg.patch<PointCloud>(target, [&](auto& cloud){
+    reg.patch<PointCloud>(target, [&](auto& cloud) {
         groot::recenter_cloud_centroid(cloud.cloud.data(), cloud.cloud.size());
     });
     return CommandState::Ok;
 }
 
+SplitCloud::SplitCloud(entt::handle&& _handle)
+    : reg(*_handle.registry())
+    , grid(0, 0, 0)
+    , normals()
+{
+    target = _handle.entity();
+
+    if (reg.valid(target) && reg.all_of<PointCloud>(target)) {
+        this->cloud = &reg.get<PointCloud>(target);
+    } else {
+        throw std::runtime_error("Selected entity must have PointCloud");
+    }
+    if (reg.all_of<PointNormals>(target)) {
+        this->normals = &reg.get<PointNormals>(target);
+    }
+}
+
+GuiState SplitCloud::draw_gui()
+{
+    bool show = true;
+    ImGui::OpenPopup("Split Cloud in Voxels");
+    if (ImGui::BeginPopupModal("Split Cloud in Voxels", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
+        ImGui::InputFloat("Voxel size", &this->voxel_size, 0.5, 0.1);
+        ImGui::Separator();
+
+        if (ImGui::Button("Run")) {
+            ImGui::EndPopup();
+            return GuiState::RunAsync;
+        }
+
+        ImGui::EndPopup();
+    }
+
+    return show ? GuiState::Editing : GuiState::Close;
+}
+
+CommandState SplitCloud::execute()
+{
+    this->grid = std::move(groot::voxel_grid(this->cloud->cloud.data(), cloud->cloud.size(), voxel_size));
+    for (size_t i = 0; i < this->grid.voxels.size(); i++) {
+        if (!this->grid.voxels[i].empty()) {
+            PointCloud& current_cloud = this->result_clouds.emplace_back();
+            for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
+                current_cloud.cloud.push_back(cloud->cloud[this->grid.voxels[i][j]]);
+            }
+
+            if (normals) {
+                PointNormals& current_normals = this->result_normals.emplace_back();
+                for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
+                    current_normals.normals.push_back((*normals)->normals[this->grid.voxels[i][j]]);
+                }
+            }
+        }
+    }
+
+    return CommandState::Ok;
+}
+
+void SplitCloud::on_finish()
+{
+    for (size_t i = 0; i < result_clouds.size(); i++) {
+        entt::entity entity = reg.create();
+        reg.emplace<PointCloud>(entity, std::move(result_clouds[i]));
+        if (normals) {
+            reg.emplace<PointNormals>(entity, std::move(result_normals[i]));
+        }
+
+        result.emplace_back(reg, entity);
+    }
+}
 
 namespace cloud_view_system {
 
@@ -209,15 +280,20 @@ void init(entt::registry& reg)
             .with_shader(shaders.get_shader(ShaderCollection::Vectors))
             .build() });
     // Destroy the views
-    reg.on_destroy<PointCloud>().connect<&entt::registry::remove_if_exists<PointViewComponent>>();
-    reg.on_destroy<PointNormals>().connect<&entt::registry::remove_if_exists<NormalViewComponent>>();
-    reg.on_destroy<PointViewComponent>().connect<&entt::registry::remove_if_exists<NormalViewComponent>>();
+    reg.on_destroy<PointCloud>().connect<&entt::registry::remove<PointViewComponent>>();
+    reg.on_destroy<PointNormals>().connect<&entt::registry::remove<NormalViewComponent>>();
+    reg.on_destroy<PointViewComponent>().connect<&entt::registry::remove<NormalViewComponent>>();
 
     // Create/update the views
     reg.on_construct<PointCloud>().connect<&entt::registry::emplace<PointViewComponent>>();
-    reg.on_construct<PointCloud>().connect<&entt::registry::emplace_or_replace<Visible>>();
     reg.on_construct<PointCloud>().connect<&update_cloud_view>();
+    reg.on_construct<PointCloud>().connect<&entt::registry::emplace_or_replace<Visible>>();
     reg.on_update<PointCloud>().connect<&update_cloud_view>();
+
+    // Tie the normals to the cloud
+    reg.on_construct<PointCloud>().connect<&entt::registry::remove<PointNormals>>();
+    reg.on_update<PointCloud>().connect<&entt::registry::remove<PointNormals>>();
+    reg.on_destroy<PointCloud>().connect<&entt::registry::remove<PointNormals>>();
 
     reg.on_construct<PointNormals>().connect<&create_normal_view>();
     reg.on_construct<PointNormals>().connect<&entt::registry::emplace_or_replace<Visible>>();
