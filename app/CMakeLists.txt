@@ -2,7 +2,9 @@
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 #set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 
-add_executable(groot_exe
+add_library(groot
+    SHARED
+
     application.hpp
     application.cpp
     
@@ -21,23 +23,17 @@ add_executable(groot_exe
     create_graph.cpp
     graph_cluster.hpp
     graph_cluster.cpp
-    #graph_view.hpp
-    #graph_view.cpp
 
     open_workspace.hpp
     open_workspace.cpp
     save_workspace.hpp
     save_workspace.cpp
 
-    #editor.hpp
-    #editor_imgui.hpp
-    #editor.cpp
-
     render.hpp
     render.cpp
 
-    lua.hpp
-    lua.cpp
+    python.hpp
+    python.cpp
 
     cloud_system.hpp
     cloud_system.cpp
@@ -50,20 +46,22 @@ add_executable(groot_exe
 
     graph_viewer_system.cpp
     graph_viewer_system.hpp
-    
-    main.cpp
+
+    testing.cpp
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/3rdparty/zep/include ${LUA_INCLUDE_DIR})
-target_link_libraries(groot_exe
-    groot
+target_link_libraries(groot
+    groot_base
     gfx
     EnTT::EnTT
-    lua
-    sol2::sol2
-    ${LUA_LIBRARIES})
+    Python3::Python
+)
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
-target_link_libraries(groot_exe jet-live)
-target_compile_definitions(groot_exe PUBLIC HOT_CODE_RELOAD)
+target_link_libraries(groot jet-live)
+target_compile_definitions(groot PUBLIC HOT_CODE_RELOAD)
 endif()
+
+add_executable(groot_exe main.cpp)
+target_link_libraries(groot_exe groot)

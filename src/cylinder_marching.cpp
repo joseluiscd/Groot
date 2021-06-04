@@ -1,7 +1,9 @@
 #include <CGAL/pca_estimate_normals.h>
+#include <CGAL/jet_estimate_normals.h>
 #include <CGAL/property_map.h>
 #include <CGAL/squared_distance_2_2.h>
 #include <CGAL/squared_distance_3_0.h>
+#include <CGAL/tags.h>
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include <boost/iterator/transform_iterator.hpp>
@@ -38,7 +40,7 @@ std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int
     std::vector<size_t> indices;
     std::copy(boost::make_counting_iterator<size_t>(0), boost::make_counting_iterator(count), std::back_inserter(indices));
 
-    CGAL::pca_estimate_normals<CGAL::Parallel_tag>(indices, k,
+    CGAL::jet_estimate_normals<CGAL::Parallel_tag>(indices, k,
         CGAL::parameters::point_map(CGAL::make_property_map(cloud))
             .normal_map(CGAL::make_property_map(normals.data()))
             .neighbor_radius(radius));
@@ -74,8 +76,9 @@ std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* norm
 
         std::vector<Point_3> points;
 
-        for (size_t i : c->indices_of_assigned_points()) {
-            points.push_back(cloud[i]);
+        const std::vector<size_t>& assigned_points = c->indices_of_assigned_points();
+        for (size_t i = 0; i < assigned_points.size(); i++) {
+            points.push_back(cloud[indices[assigned_points[i]]]);
         }
 
         cylinders.emplace_back(CylinderWithPoints {

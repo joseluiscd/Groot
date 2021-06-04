@@ -1,11 +1,9 @@
 #pragma once
 
 #include "command_gui.hpp"
-#include "lua.hpp"
 #include <entt/entt.hpp>
 #include <filesystem>
 #include <gfx/imgui/imfilebrowser.h>
-#include <sol/table.hpp>
 
 class OpenWorkspace : public CommandGui {
 public:

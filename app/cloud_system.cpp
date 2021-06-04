@@ -302,6 +302,42 @@ void init(entt::registry& reg)
     auto& entity_editor = reg.ctx<EntityEditor>();
     entity_editor.registerComponent<PointViewComponent>("PointCloud View");
     entity_editor.registerComponent<NormalViewComponent>("PointCloud Normal View");
+
+    reg.view<PointCloud>().each([&](entt::entity e, const auto& _){
+        reg.emplace<PointViewComponent>(e);
+        update_cloud_view(reg, e);
+    });
+
+    reg.view<PointNormals>().each([&](entt::entity e, const auto& _){
+        create_normal_view(reg, e);
+    });
+}
+
+void deinit(entt::registry &reg)
+{
+    reg.clear<PointViewComponent>();
+    reg.clear<NormalViewComponent>();
+
+    // Destroy the views
+    reg.on_destroy<PointCloud>().disconnect<&entt::registry::remove<PointViewComponent>>();
+    reg.on_destroy<PointNormals>().disconnect<&entt::registry::remove<NormalViewComponent>>();
+    reg.on_destroy<PointViewComponent>().disconnect<&entt::registry::remove<NormalViewComponent>>();
+
+    // Create/update the views
+    reg.on_construct<PointCloud>().disconnect<&entt::registry::emplace<PointViewComponent>>();
+    reg.on_construct<PointCloud>().disconnect<&update_cloud_view>();
+    reg.on_construct<PointCloud>().disconnect<&entt::registry::emplace_or_replace<Visible>>();
+    reg.on_update<PointCloud>().disconnect<&update_cloud_view>();
+
+    // Tie the normals to the cloud
+    reg.on_construct<PointCloud>().disconnect<&entt::registry::remove<PointNormals>>();
+    reg.on_update<PointCloud>().disconnect<&entt::registry::remove<PointNormals>>();
+    reg.on_destroy<PointCloud>().disconnect<&entt::registry::remove<PointNormals>>();
+
+    reg.on_construct<PointNormals>().disconnect<&create_normal_view>();
+    reg.on_construct<PointNormals>().disconnect<&entt::registry::emplace_or_replace<Visible>>();
+    reg.on_update<PointNormals>().disconnect<&create_normal_view>();
+    reg.unset<SystemData>();
 }
 
 void run(entt::registry& reg)

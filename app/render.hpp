@@ -38,6 +38,7 @@ class ShaderCollection {
 public:
     ShaderCollection();
     static void init(entt::registry& reg);
+    static void deinit(entt::registry& reg);
 
     enum ShaderID {
         Points = 0,

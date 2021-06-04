@@ -1,0 +1,21 @@
+input = "/home/joseluis/Trees/castaños_subsample.ply"
+output = "/home/joseluis/groot/cylinders.ggf"
+filter_cloud_with_cylinders = false
+
+[normals]
+k = 10
+radius = 0.1
+
+[cylinders]
+min_points = 50
+epsilon = 0.006
+sampling = 0.06
+normal_deviation = 25.0
+overlook_probability = 0.001
+voxel_size = 0.4
+
+[cylinder_filter]
+radius_min = 0.0
+radius_max = 0.4
+length_min = 0.0
+length_max = 99999999999999.99

@@ -235,3 +235,8 @@ void ShaderCollection::init(entt::registry& reg)
 {
     reg.set<ShaderCollection>();
 }
+
+void ShaderCollection::deinit(entt::registry &reg)
+{
+    reg.unset<ShaderCollection>();
+}

@@ -82,6 +82,7 @@ public:
 namespace cloud_view_system {
 
 void init(entt::registry& reg);
+void deinit(entt::registry& reg);
 void run(entt::registry& reg);
 
 }

@@ -5,20 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Cylinder Marching Script",
             "type": "lldb",
             "request": "launch",
-            "name": "Cylinder Marching Script",
-            "program": "${workspaceFolder}/build/app/groot_exe",
-            "args": ["--script", "cylinders.lua", "--config", "cylinder_params.lua"],
+            "program": "python3",
+            "args": ["scripts/cylinders.py", "cylinder_params.toml", "--debug"],
             "cwd": "${workspaceFolder}"
         },
         {
-            "name": "(gdb) Iniciar",
+            "name": "Viewer",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/build/app/groot_exe",
-            "args": [],
-            "cwd": "${workspaceFolder}/build/",
+            "program": "python3",
+            "args": ["scripts/viewer.py", "--debug"],
+            "cwd": "${workspaceFolder}",
         },
     ]
 }

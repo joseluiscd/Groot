@@ -237,6 +237,23 @@ void init(entt::registry& reg)
 
     auto& entity_editor = reg.ctx<EntityEditor>();
     entity_editor.registerComponent<CylinderViewComponent>("Cylinder View");
+
+    reg.view<Cylinders>().each([&](entt::entity e, const auto& _){
+        update_cylinder_view(reg, e);
+    });
+}
+
+void deinit(entt::registry &reg)
+{
+    reg.on_destroy<Cylinders>().disconnect<&entt::registry::remove<CylinderViewComponent>>();
+    reg.on_construct<Cylinders>().disconnect<&entt::registry::emplace_or_replace<CylinderViewComponent>>();
+    reg.on_construct<CylinderViewComponent>().disconnect<&entt::registry::emplace_or_replace<Visible>>();
+
+    reg.on_construct<Cylinders>().disconnect<&update_cylinder_view>();
+    reg.on_update<Cylinders>().disconnect<&update_cylinder_view>();
+
+    reg.clear<CylinderViewComponent>();
+    reg.unset<SystemData>();
 }
 
 void run(entt::registry& reg)

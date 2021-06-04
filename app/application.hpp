@@ -2,7 +2,6 @@
 
 #include "command.hpp"
 #include "command_gui.hpp"
-#include "lua.hpp"
 #include "resources.hpp"
 #include <future>
 #include <gfx/gfx.hpp>
@@ -33,7 +32,8 @@ class Application {
     friend class PlantGraphSource;
 
 public:
-    Application();
+    Application(entt::registry& reg);
+
     ~Application();
 
     void execute_command(Command* command);
@@ -69,7 +69,7 @@ private:
     entt::entity get_selected_entity();
 
     gfx::Gfx gui_app;
-    entt::registry registry;
+    entt::registry& registry;
 
     std::set<EntityEditor::ComponentTypeID> entity_filter;
 
@@ -82,5 +82,4 @@ private:
     std::shared_mutex command_gui_lock;
 
     Windows windows;
-    LuaEnv lua;
 };

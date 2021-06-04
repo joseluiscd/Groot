@@ -1,0 +1,21 @@
+input = "/home/joseluis/Trees/sampled.ply"
+output = "../cylinders.ggf"
+filter_cloud_with_cylinders = true
+
+[normals]
+k = 99999
+radius = 0.08
+
+[cylinders]
+min_points = 1000
+epsilon = 0.03
+sampling = 0.06
+normal_deviation = 25.0
+overlook_probability = 0.001
+voxel_size = 0.5
+
+[cylinder_filter]
+radius_min = 0.0
+radius_max = 0.8
+length_min = 0.0
+length_max = 9.99

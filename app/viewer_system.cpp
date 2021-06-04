@@ -66,4 +66,9 @@ void init(entt::registry& registry)
     registry.ctx<EntityEditor>().registerComponent<Visible>("Visible");
 }
 
+void deinit(entt::registry &registry)
+{
+    registry.unset<RenderData>();
+}
+
 }

@@ -1,6 +1,7 @@
 #include "graph_viewer_system.hpp"
 #include "components.hpp"
 #include "entity_editor.hpp"
+#include "entt/entity/fwd.hpp"
 #include "render.hpp"
 #include "resources.hpp"
 #include <gfx/buffer.hpp>
@@ -90,6 +91,12 @@ void init(entt::registry& registry)
     auto& entity_editor = registry.ctx<EntityEditor>();
     entity_editor.registerComponent<GraphViewerComponent>("PlantGraphViewer");
     entity_editor.registerComponent<groot::PlantGraph>("PlantGraph");
+}
+
+void deinit(entt::registry &registry)
+{
+    registry.clear<GraphViewerComponent>();
+    registry.unset<SystemData>();
 }
 
 void run(entt::registry& registry)

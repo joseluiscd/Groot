@@ -52,7 +52,7 @@ jet::Live& jet_instance()
 }
 #endif
 
-Application::Application()
+Application::Application(entt::registry& _reg)
     : gui_app(gfx::InitOptions {
         .title = "Groot Graph Viewer",
         .maximized = true,
@@ -61,8 +61,7 @@ Application::Application()
         .debug_draw = true,
         .debug_context = true,
     })
-    , registry()
-    , lua(registry)
+    , registry(_reg)
 {
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();
@@ -77,6 +76,11 @@ Application::Application()
 
 Application::~Application()
 {
+    ShaderCollection::deinit(registry);
+    viewer_system::deinit(registry);
+    graph_viewer_system::deinit(registry);
+    cloud_view_system::deinit(registry);
+    cylinder_view_system::deinit(registry);
 }
 
 BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>&& command)
@@ -281,13 +285,6 @@ void Application::draw_gui()
             }
             ImGui::EndMenu();
         }
-
-        /*if (ImGui::BeginMenu("Scripts")) {
-            if (ImGui::MenuItem(ICON_FA_FOLDER_PLUS "\tNew script")) {
-                open_window(new Editor(this->create_lua_context()));
-            }
-            ImGui::EndMenu();
-        }*/
 
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem(ICON_FA_BUG "\tDemo window")) {
