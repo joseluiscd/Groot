@@ -1,6 +1,7 @@
 #include "save_workspace.hpp"
 #include "components.hpp"
 #include "serde.hpp"
+#include <groot/plant_graph.hpp>
 #include <fstream>
 #include <spdlog/spdlog.h>
 
@@ -38,7 +39,8 @@ CommandState SaveWorkspace::execute()
             Visible,
             PointCloud,
             PointNormals,
-            Cylinders>(out_archive);
+            Cylinders,
+            groot::PlantGraph>(out_archive);
 
     spdlog::info("Exported to file: {}", selected_file.string());
 

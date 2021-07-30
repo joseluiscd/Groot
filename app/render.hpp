@@ -10,6 +10,7 @@ using namespace entt::literals;
 
 DEF_UNIFORM_SEMANTICS(Color, glm::vec3, "kColor");
 DEF_UNIFORM_SEMANTICS(PointSize, float, "kPointSize");
+DEF_UNIFORM_SEMANTICS(VectorSize, float, "kVectorSize");
 
 extern gfx::VertexArray::Layout point_layout;
 extern gfx::VertexArray::Layout direction_layout;

@@ -10,6 +10,7 @@
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <groot/plant_graph.hpp>
+#include <gfx/debug_draw.hpp>
 
 namespace graph_viewer_system {
 
@@ -33,6 +34,7 @@ struct GraphViewerComponent {
 
     gfx::Uniform<Color> color_point;
     gfx::Uniform<Color> color_line;
+    glm::vec3 root_color;
 
     glm::vec3 root;
     gfx::Uniform<PointSize> point_size;
@@ -89,7 +91,7 @@ void init(entt::registry& registry)
             .build() });
 
     auto& entity_editor = registry.ctx<EntityEditor>();
-    entity_editor.registerComponent<GraphViewerComponent>("PlantGraphViewer");
+    entity_editor.registerComponent<GraphViewerComponent>("Graph View", true);
     entity_editor.registerComponent<groot::PlantGraph>("PlantGraph");
 }
 
@@ -159,7 +161,14 @@ void run(entt::registry& registry)
 
     const auto view = registry.view<GraphViewerComponent, Visible>();
     for (const auto entity : view) {
-        auto& graph_view = registry.get<GraphViewerComponent>(entity);
+        auto [graph, graph_view] = registry.get<groot::PlantGraph, GraphViewerComponent>(entity);
+        gfx::DebugDraw::Builder dd;
+
+        dd.set_color(graph_view.root_color);
+        // TODO: Dont try at home
+        glm::vec3 root = *reinterpret_cast<glm::vec3*>(&graph[graph.m_property->root_index].position);
+        dd.point(root);
+        gfx::DebugDraw d = dd.build();
 
         gfx::RenderPass pass(view_data.framebuffer, gfx::ClearOperation::nothing());
         auto pipe = pass.viewport({ 0, 0 }, view_data.size)
@@ -225,7 +234,7 @@ void ComponentEditorWidget<graph_viewer_system::GraphViewerComponent>(entt::regi
     ImGui::Checkbox("Show points", &t.show_points);
     if (t.show_points) {
         ImGui::ColorEdit3("Point color", glm::value_ptr(*t.color_point));
-        ImGui::InputFloat("Point size", &*t.point_size);
+        ImGui::DragFloat("Point size", &*t.point_size, 0.05, INFINITY);
     }
 
     ImGui::Checkbox("Show edges", &t.show_lines);

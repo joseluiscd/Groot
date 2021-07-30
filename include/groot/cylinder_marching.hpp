@@ -23,7 +23,10 @@ using FuzzySphere = CGAL::Fuzzy_sphere<SearchTraits>;
 using PointMap = boost::iterator_property_map<Point_3*, boost::identity_property_map>;
 using NormalMap = boost::iterator_property_map<Vector_3*, boost::identity_property_map>;
 
-using RansacTraits = CGAL::Shape_detection::Efficient_RANSAC_traits<Kernel, std::vector<size_t>, PointMap, NormalMap>;
+class RansacTraits : public CGAL::Shape_detection::Efficient_RANSAC_traits<Kernel, std::vector<size_t>, PointMap, NormalMap>{
+
+};
+
 using Ransac = CGAL::Shape_detection::Efficient_RANSAC<RansacTraits>;
 
 struct Curvature {
@@ -65,6 +68,32 @@ struct CylinderWithPoints {
 
 using FitCylinder = CGAL::Shape_detection::Cylinder<RansacTraits>;
 
+class CurvatureCylinder : public CGAL::Shape_detection::Shape_base<RansacTraits> {
+public:
+    size_t minimum_sample_size() const override
+    {
+        return 6;
+    }
+
+    void create_shape(const std::vector<size_t>& indices) override;
+    float squared_distance(const Point_3& p) const override
+    {
+        Line_3 axis(this->cylinder.center, this->cylinder.direction);
+        return CGAL::squared_distance(axis, p) - this->cylinder.radius;
+    }
+    void squared_distance(const std::vector<size_t>& indices, std::vector<float>& distances) const override;
+    void cos_to_normal(const std::vector<size_t>& indices, std::vector<float>& angles) const override
+    {
+        for (size_t i = 0; i < indices.size(); i++) {
+            angles[i] = 1.0;
+        }
+    }
+
+    Cylinder cylinder;
+};
+
+using DiscardPlane = CGAL::Shape_detection::Plane<RansacTraits>;
+
 bool point_in_cylinder(const cgal::Point_3& p, const Cylinder& c);
 
 void find_cylinders(
@@ -72,7 +101,9 @@ void find_cylinders(
     size_t count);
 
 std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params = Ransac::Parameters());
+std::vector<CylinderWithPoints> compute_cylinders_curvature(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params = Ransac::Parameters());
 std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
+std::vector<CylinderWithPoints> compute_cylinders_voxelized_curvature(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
 std::vector<CylinderWithPoints> merge_cylinders(const std::vector<CylinderWithPoints>& a, const std::vector<CylinderWithPoints>& b);
 
 std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius);

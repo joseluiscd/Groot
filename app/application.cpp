@@ -2,7 +2,9 @@
 #include "cloud_system.hpp"
 #include "components.hpp"
 #include "create_graph.hpp"
+#include "graph_cluster.hpp"
 #include "cylinder_marching.hpp"
+#include "cylinder_connect.hpp"
 #include "entt/entity/fwd.hpp"
 #include "gfx/font_awesome.hpp"
 #include "graph_viewer_system.hpp"
@@ -16,41 +18,6 @@
 #include <gfx/render_pass.hpp>
 #include <spdlog/spdlog.h>
 #include <gfx/glad.h>
-
-
-#ifdef HOT_CODE_RELOAD
-#include <jet/live/Live.hpp>
-class JetListener : public jet::ILiveListener {
-public:
-    JetListener() { }
-
-    void onLog(jet::LogSeverity severity, const std::string& message) override
-    {
-        switch (severity) {
-        case jet::LogSeverity::kDebug:
-            spdlog::debug("[Jet] {}", message);
-            break;
-        case jet::LogSeverity::kInfo:
-            spdlog::info("[Jet] {}", message);
-            break;
-        case jet::LogSeverity::kWarning:
-            spdlog::warn("[Jet] {}", message);
-            break;
-        case jet::LogSeverity::kError:
-            spdlog::error("[Jet] {}", message);
-            break;
-        }
-    }
-    void onCodePreLoad() override { }
-    void onCodePostLoad() override { }
-};
-
-jet::Live& jet_instance()
-{
-    static jet::Live live = jet::Live(std::make_unique<JetListener>());
-    return live;
-}
-#endif
 
 Application::Application(entt::registry& _reg)
     : gui_app(gfx::InitOptions {
@@ -142,22 +109,6 @@ void Application::show_error(const std::string& error)
     spdlog::error("{}", error);
 }
 
-/*void Application::open_window(Editor* editor)
-{
-    editors.emplace_back(editor);
-}*/
-
-void Application::draw_editors()
-{
-    /*auto it = editors.begin();
-    while (it != editors.end()) {
-        if (!(*it)->render()) {
-            editors.erase(it++);
-        } else {
-            it++;
-        }
-    }*/
-}
 
 void Application::draw_background_tasks()
 {
@@ -268,7 +219,17 @@ void Application::draw_gui()
                 open_new_window<CreateGraph>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
-                //open_window(new GraphCluster(stack_top, stack_push));
+                open_new_window<GraphCluster>(registry);
+            }
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute from cylinders")) {
+                open_new_window<CylinderConnection>(registry);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tGeodesic graph")) {
+                open_new_window<GeodesicGraphCommand>(registry);
+            }
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tMinimum Spanning Tree")) {
+                open_new_window<MSTGraphCommand>(registry);
             }
             ImGui::EndMenu();
         }
@@ -292,13 +253,6 @@ void Application::draw_gui()
             }
             ImGui::EndMenu();
         }
-
-#ifdef HOT_CODE_RELOAD
-        if (ImGui::MenuItem("Reload App")) {
-            jet_instance().tryReload();
-            spdlog::info("Reloading");
-        }
-#endif
         ImGui::EndMenuBar();
     }
 
@@ -326,7 +280,6 @@ void Application::draw_gui()
     }
     ImGui::End();
 
-    draw_editors();
     draw_command_gui();
     draw_background_tasks();
 
@@ -340,10 +293,6 @@ void Application::draw_gui()
 void Application::main_loop()
 {
     gui_app.main_loop([&]() {
-#ifdef HOT_CODE_RELOAD
-        jet_instance().update();
-#endif
-
         while (!remove_background_tasks.empty()) {
             remove_background_tasks.front()->command->on_finish();
             remove_background_tasks.pop();

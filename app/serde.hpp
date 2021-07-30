@@ -6,7 +6,10 @@
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/vector.hpp>
 
-template <typename Archive>
+struct SerializeTag;
+struct DeserializeTag;
+
+template <typename Archive, typename Tag>
 struct Serde {
     Archive archive;
 
@@ -30,8 +33,8 @@ struct Serde {
     }
 };
 
-using Serializer = Serde<boost::archive::binary_oarchive>;
-using Deserializer = Serde<boost::archive::binary_iarchive>;
+using Serializer = Serde<boost::archive::binary_oarchive, SerializeTag>;
+using Deserializer = Serde<boost::archive::binary_iarchive, DeserializeTag>;
 
 namespace boost {
 namespace serialization {

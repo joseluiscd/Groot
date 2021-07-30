@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/adj_list_serialize.hpp>
 #include <boost/graph/subgraph.hpp>
 #include <glm/glm.hpp>
 #include <groot/cgal.hpp>
@@ -113,14 +114,20 @@ PlantGraph empty();
 PlantGraph from_delaunay(
     cgal::Point_3* cloud,
     size_t size);
+/// Finds the alpha shape and converts to a graph
+/// If alpha == 0, the specified number of components are searched
+/// If alpha != 0, the last parameter is ignored
 PlantGraph from_alpha_shape(
     cgal::Point_3* cloud,
     size_t count,
-    float alpha = 0.0f);
+    float alpha = 0.0f,
+    size_t components = 1);
 PlantGraph from_search(
     cgal::Point_3* cloud,
     size_t size,
     const SearchParams& search = SearchParams { 3, 0.0, SearchType::kKnnSearch });
+
+PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius);
 
 /// Computes distances to ther root on the original graph and returns simplified version.
 PlantGraph geodesic(PlantGraph& g);

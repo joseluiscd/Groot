@@ -2,16 +2,21 @@
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>
+#include <gfx/imgui/imgui.h>
+#include <groot/cgal.hpp>
 #include <list>
 #include <spdlog/spdlog.h>
 #include <vector>
-#include <groot/cgal.hpp>
-#include <gfx/imgui/imgui.h>
 
-GraphCluster::GraphCluster(/*IDataSource<groot::PlantGraph>& _graph, IDataOutput<groot::PlantGraph>& _output*/)
-    /*: graph(_graph)
-    , output(_output)*/
+GraphCluster::GraphCluster(entt::handle&& handle)
+    : reg(*handle.registry())
 {
+    target = handle.entity();
+    if (reg.valid(target) && reg.all_of<groot::PlantGraph>(target)) {
+        graph = &reg.get<groot::PlantGraph>(target);
+    } else {
+        throw std::runtime_error("Selected entity must have PlantGraph component");
+    }
 }
 
 // Map of (vertex_index) -> (cluster ID, component ID)
@@ -35,8 +40,8 @@ struct IntervalFilterOperator {
 
 CommandState GraphCluster::execute()
 {
-    // sgroot::PlantGraph g(*graph);
-/*
+    groot::PlantGraph g = groot::geodesic(*graph);
+
     float max_root_distance = g.m_property->max_root_distance;
     std::vector<std::pair<size_t, size_t>> clusters(boost::num_vertices(g));
     ClusterMap clusters_map = ClusterMap(clusters.begin(), boost::get(boost::vertex_index, g));
@@ -52,15 +57,17 @@ CommandState GraphCluster::execute()
         clusters_map[*it].first = interval;
     }
 
-    // Find the connected components in each interval
+    // Find the connected components in each interval (in original graph)
     for (size_t interval = 0; interval < interval_count; interval++) {
         boost::filtered_graph<groot::PlantGraph, boost::keep_all, IntervalFilterOperator> filtered(
-            g, boost::keep_all(),
+            *graph,
+            boost::keep_all(),
             IntervalFilterOperator(clusters_map, interval));
 
-        auto components = boost::make_transform_value_property_map([&](ClusterMap::reference r) -> size_t& {
-            return r.second;
-        },
+        auto components = boost::make_transform_value_property_map(
+            [&](ClusterMap::reference r) -> size_t& {
+                return r.second;
+            },
             clusters_map);
 
         boost::connected_components(filtered, components);
@@ -103,7 +110,7 @@ CommandState GraphCluster::execute()
         }
     }
 
-    simplified.m_property->root_index = cluster_vertices[{0, 0}];
+    simplified.m_property->root_index = cluster_vertices[{ 0, 0 }];
 
     auto [s_it, s_end] = boost::vertices(simplified);
     for (; s_it != s_end; ++s_it) {
@@ -117,8 +124,9 @@ CommandState GraphCluster::execute()
         center /= point_list.size();
         simplified[*s_it].position = groot::cgal::Point_3(center.x(), center.y(), center.z());
     }
-*/
-    //output = std::move(simplified);
+
+    groot::reindex(simplified);
+    result = std::move(simplified);
     return CommandState::Ok;
 }
 
@@ -159,6 +167,11 @@ GuiState GraphCluster::draw_gui()
     }
 
     ImGui::OpenPopup("Graph Clustering");
-    
+
     return show ? GuiState::Editing : GuiState::Close;
+}
+
+void GraphCluster::on_finish()
+{
+    reg.emplace_or_replace<groot::PlantGraph>(target, std::move(result));
 }

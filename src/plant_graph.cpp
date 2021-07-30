@@ -1,11 +1,14 @@
+#include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Fuzzy_sphere.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
+#include <boost/graph/connected_components.hpp>
 #include <boost/graph/copy.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/prim_minimum_spanning_tree.hpp>
+#include <boost/iterator/function_output_iterator.hpp>
 #include <groot/cgal_helper.hpp>
 #include <groot/plant_graph.hpp>
 #include <spdlog/spdlog.h>
@@ -121,22 +124,34 @@ PlantGraph from_delaunay(cgal::Point_3* cloud, size_t count)
 PlantGraph from_alpha_shape(
     cgal::Point_3* cloud,
     size_t count,
-    float alpha)
+    float alpha,
+    size_t components)
 {
     PlantGraph graph;
-    cgal::Delaunay delaunay;
 
-    for (size_t i = 0; i < count; i++) {
-        Vertex vertex = boost::add_vertex(graph);
-        graph[vertex].position = cloud[i];
+    // Just something stupid
+    std::vector<std::pair<Point_3, Vertex>> vertices;
+    for (int i = 0; i < count; i++) {
+        Vertex v = boost::add_vertex(graph);
+        graph[v].position = cloud[i];
 
-        cgal::Delaunay::Vertex_handle handle = delaunay.insert(cloud[i]);
-        handle->info() = vertex;
+        vertices.push_back(std::make_pair(cloud[i], v));
     }
 
-    for (auto i = delaunay.finite_edges_begin(); i != delaunay.finite_edges_end(); i++) {
-        cgal::Delaunay::Vertex_handle v1 = i->first->vertex(i->second);
-        cgal::Delaunay::Vertex_handle v2 = i->first->vertex(i->third);
+    cgal::AlphaShape alpha_shape(vertices.begin(), vertices.end());
+
+    if (alpha == 0) {
+        alpha = *alpha_shape.find_optimal_alpha(components);
+    }
+    alpha_shape.set_alpha(alpha);
+
+    std::vector<cgal::AlphaShape::Edge> edges;
+
+    alpha_shape.get_alpha_shape_edges(std::back_inserter(edges), AlphaShape::INTERIOR);
+
+    for (auto i = edges.begin(); i != edges.end(); ++i) {
+        cgal::AlphaShape::Vertex_handle v1 = i->first->vertex(i->second);
+        cgal::AlphaShape::Vertex_handle v2 = i->first->vertex(i->third);
 
         Vertex n1 = v1->info();
         Vertex n2 = v2->info();
@@ -147,6 +162,67 @@ PlantGraph from_alpha_shape(
 
     reindex(graph);
     return graph;
+}
+
+PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius)
+{
+    PlantGraph radius_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius, .search = SearchType::kRadiusSearch });
+
+    std::vector<size_t> connected_components(boost::num_vertices(radius_graph));
+    auto component_map = boost::make_iterator_property_map(connected_components.begin(), boost::get(boost::vertex_index, radius_graph));
+
+    size_t components = boost::connected_components(radius_graph, component_map);
+
+    if (components == 1) {
+        // Only 1 connected component, no need for further operation
+        return radius_graph;
+    }
+    spdlog::info("Connected components: {}", components);
+
+    struct EdgeElement {
+        Vertex a;
+        Vertex b;
+        float distance = +INFINITY;
+    };
+
+    //std::vector<EdgeElement> elements(components * components);
+
+    // Further operation
+    //PlantGraph alpha_graph = from_alpha_shape(cloud, count, 0.0, 1);
+    //PlantGraph alpha_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius * 2, .search = SearchType::kRadiusSearch});
+    //PlantGraph alpha_graph = from_cardenas_et_al(cloud, count, radius * 2);
+    PlantGraph alpha_graph = from_delaunay(cloud, count);
+    alpha_graph = minimum_spanning_tree(alpha_graph);
+
+    auto [edge_begin, edge_end] = boost::edges(alpha_graph);
+    for (auto i = edge_begin; i != edge_end; ++i) {
+        Vertex a = boost::source(*i, alpha_graph);
+        Vertex b = boost::target(*i, alpha_graph);
+
+        size_t c_a = component_map[a];
+        size_t c_b = component_map[b];
+
+        if (c_a < c_b) {
+            std::swap(c_a, c_b);
+        }
+
+        if (c_a != c_b) {
+            auto [edge, _] = boost::add_edge(a, b, radius_graph);
+            radius_graph[edge].length = alpha_graph[*i].length;
+        }
+    }
+
+    //for (size_t a = 0; a < components; a++) {
+    //    for (size_t b = 0; b < a; b++) {
+    //        EdgeElement& e = elements[a * components + b];
+    //        if (e.distance != INFINITY) {
+    //            auto [edge, _] = boost::add_edge(e.a, e.b, radius_graph);
+    //            radius_graph[edge].length = e.distance;
+    //        }
+    //    }
+    //}
+    reindex(radius_graph);
+    return radius_graph;
 }
 
 template <typename MapType>

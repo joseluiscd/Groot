@@ -35,13 +35,6 @@ add_subdirectory(3rdparty/gfx)
 add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/entt)
 
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-message("Debug mode")
-include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live/cmake/jet_live_setup.cmake) # setup needed compiler and linker flags, include this file in your root CMakeLists.txt
-set(JET_LIVE_BUILD_EXAMPLE OFF)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/jet-live)
-endif()
-
 file(GLOB SOURCES 
     include/groot/*.hpp
     include/groot/*.h

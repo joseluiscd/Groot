@@ -1,18 +1,32 @@
 #pragma once
 
 #include "command_gui.hpp"
+#include "components.hpp"
+#include <entt/entt.hpp>
 #include <groot/plant_graph.hpp>
 #include <list>
 #include <vector>
 
 class GraphCluster : public CommandGui {
 public:
-    GraphCluster(/*IDataSource<groot::PlantGraph>& _graph, IDataOutput<groot::PlantGraph>& _output*/);
+    GraphCluster(entt::handle&& handle);
+    GraphCluster(entt::registry& _reg)
+        : GraphCluster(entt::handle {
+            _reg,
+            _reg.ctx<SelectedEntity>().selected })
+    {
+    }
 
     CommandState execute() override;
     GuiState draw_gui() override;
+    void on_finish() override;
 
 private:
+    entt::registry& reg;
+    entt::entity target;
+
+    groot::PlantGraph* graph;
+
     enum IntervalType : int {
         FixedIntervalDistance = 0,
         FixedIntervalCount,
@@ -27,12 +41,7 @@ private:
         CentroidType_COUNT
     };
 
-    //IDataSource<groot::PlantGraph>& graph;
-    //IDataOutput<groot::PlantGraph>& output;
     IntervalType selected_interval_type = FixedIntervalCount;
-
-    float interval_distance = 1.0;
-    int interval_count = 50;
 
     CentroidType selected_centroid_type = CentroidMedian;
 
@@ -40,4 +49,10 @@ private:
         "Median",
         "Mean",
     };
+
+public:
+    float interval_distance = 1.0;
+    int interval_count = 50;
+
+    groot::PlantGraph result;
 };

@@ -8,7 +8,7 @@
 #include <CGAL/Search_traits_3.h>
 #include <CGAL/Search_traits_adapter.h>
 #include <CGAL/Simple_cartesian.h>
-#include <CGAL/Triangulation_vertex_base_with_info_3.h>
+#include <CGAL/Alpha_shape_3.h>
 #include <tuple>
 
 namespace groot::cgal {

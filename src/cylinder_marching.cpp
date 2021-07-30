@@ -1,5 +1,5 @@
-#include <CGAL/pca_estimate_normals.h>
 #include <CGAL/jet_estimate_normals.h>
+#include <CGAL/pca_estimate_normals.h>
 #include <CGAL/property_map.h>
 #include <CGAL/squared_distance_2_2.h>
 #include <CGAL/squared_distance_3_0.h>
@@ -14,6 +14,8 @@
 #include <iterator>
 #include <spdlog/spdlog.h>
 #include <tbb/parallel_for.h>
+#include <tbb/parallel_for_each.h>
+#include <spdlog/spdlog.h>
 
 namespace groot {
 
@@ -66,13 +68,17 @@ std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* norm
 
     Ransac ransac;
     ransac.set_input(indices, PointMap(cloud), NormalMap(normals));
+    //ransac.add_shape_factory<DiscardPlane>();
     ransac.add_shape_factory<FitCylinder>();
     ransac.detect(params);
 
     spdlog::info("Shape count: {}", ransac.shapes().size());
 
     for (auto it = ransac.shapes().begin(); it != ransac.shapes().end(); ++it) {
-        FitCylinder* c = static_cast<FitCylinder*>(&**it);
+        FitCylinder* c = dynamic_cast<FitCylinder*>(&**it);
+        if (c == nullptr) {
+            continue;
+        }
 
         std::vector<Point_3> points;
 
@@ -89,17 +95,95 @@ std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* norm
     return cylinders;
 }
 
+void CurvatureCylinder::create_shape(const std::vector<size_t>& indices)
+{
+    std::vector<cgal::Point_3> pts(indices.size());
+    Monge_via_jet_fitting monge_fitting;
+
+    size_t u = 0;
+    for (size_t i = 0; i < indices.size(); i++) {
+        pts[i] = this->point(indices[i]);
+    }
+
+    Monge_form f = monge_fitting(pts.begin(), pts.end(), 2, 2);
+
+    Vector_3 n = f.normal_direction();
+    cylinder.radius = 1.0f / f.principal_curvatures(0);
+    cylinder.direction = f.maximal_principal_direction();
+    cylinder.center = point(indices[0]) - cylinder.radius * n;
+    cylinder.middle_height = 0.5;
+}
+ 
+void CurvatureCylinder::squared_distance(const std::vector<size_t>& indices, std::vector<float>& distances) const
+{
+    for (size_t i = 0; i < indices.size(); i++) {
+        distances[i] = this->squared_distance(this->point(i));
+    }
+}
+
+std::vector<CylinderWithPoints> compute_cylinders_curvature(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params)
+{
+    std::vector<CylinderWithPoints> cylinders;
+
+    Ransac ransac;
+    ransac.set_input(indices, PointMap(cloud), NormalMap(normals));
+    ransac.add_shape_factory<CurvatureCylinder>();
+    ransac.detect(params);
+
+    spdlog::info("Shape count: {}", ransac.shapes().size());
+
+    for (auto it = ransac.shapes().begin(); it != ransac.shapes().end(); ++it) {
+        CurvatureCylinder* c = dynamic_cast<CurvatureCylinder*>(&**it);
+        if (c == nullptr) {
+            continue;
+        }
+
+        std::vector<Point_3> points;
+
+        const std::vector<size_t>& assigned_points = c->indices_of_assigned_points();
+        for (size_t i = 0; i < assigned_points.size(); i++) {
+            points.push_back(cloud[indices[assigned_points[i]]]);
+        }
+
+        cylinders.emplace_back(CylinderWithPoints {
+            c->cylinder,
+            std::move(points) });
+    }
+
+    return cylinders;
+}
 std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params)
 {
     VoxelGrid grid = voxel_grid(cloud, count, voxel_size);
     std::vector<CylinderWithPoints> cylinders;
+    std::shared_mutex mutex;
 
-    for (std::vector<size_t>& cell : grid.voxels) {
+    tbb::parallel_for_each(grid.voxels.begin(), grid.voxels.end(), [&](auto& cell) {
         if (cell.size() > params.min_points) {
             std::vector<CylinderWithPoints> cell_cylinders = compute_cylinders(cloud, normals, cell, params);
+
+            std::shared_lock _lock(mutex);
             std::copy(cell_cylinders.begin(), cell_cylinders.end(), std::back_inserter(cylinders));
         }
-    }
+    });
+
+    return cylinders;
+}
+
+std::vector<CylinderWithPoints> compute_cylinders_voxelized_curvature(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params)
+{
+    VoxelGrid grid = voxel_grid(cloud, count, voxel_size);
+    std::vector<CylinderWithPoints> cylinders;
+    std::shared_mutex mutex;
+
+    tbb::parallel_for_each(grid.voxels.begin(), grid.voxels.end(), [&](auto& cell) {
+        if (cell.size() > params.min_points) {
+            std::vector<CylinderWithPoints> cell_cylinders = compute_cylinders_curvature(cloud, normals, cell, params);
+
+            std::shared_lock _lock(mutex);
+            std::copy(cell_cylinders.begin(), cell_cylinders.end(), std::back_inserter(cylinders));
+        }
+    });
 
     return cylinders;
 }
@@ -192,9 +276,10 @@ void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, siz
     kdtree.insert(cloud, cloud + count);
     kdtree.build<CGAL::Parallel_tag>();
 
-    std::vector<cgal::Point_3> nn(k);
     tbb::parallel_for((size_t)0, count, [&](size_t i) {
         KNeighbour knn(kdtree, cloud[i], k);
+        std::vector<cgal::Point_3> nn(k+1);
+        nn[0] = cloud[i];
 
         Monge_via_jet_fitting monge_fitting;
 

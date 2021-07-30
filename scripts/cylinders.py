@@ -18,8 +18,10 @@ print("Reading from", params["input"])
 entity = registry.load_ply(params["input"])
 print("Loaded PLY")
 
-print("Computing normals")
-entity.compute_normals(**params["normals"])
+if "normals" in params:
+    print("Computing normals")
+    entity.compute_normals(**params["normals"])
+
 print("Marching cylinders")
 entity.cylinder_marching(**params["cylinders"])
 print("Cylinder count:", len(entity.cylinders()))
@@ -30,6 +32,8 @@ print("Cylinder count:", len(entity.cylinders()))
 if params["filter_cloud_with_cylinders"]: 
     print("Rebuilding cloud from found cylinders...")
     entity.rebuild_cloud_from_cylinders()
+
+#entity.build_graph_from_cylinders()
 
 print("Done!")
 print("Writing output file")

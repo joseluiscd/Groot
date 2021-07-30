@@ -1,17 +1,12 @@
 #include "create_graph.hpp"
-#include <spdlog/spdlog.h>
 #include "components.hpp"
+#include <spdlog/spdlog.h>
 
-CreateGraph::CreateGraph(entt::registry& _registry)
-    : registry(_registry)
+CreateGraph::CreateGraph(entt::handle&& handle)
+    : registry(*handle.registry())
+    , target(handle.entity())
 {
-    target = registry.ctx<SelectedEntity>().selected;
-
-    if (registry.valid(target) && registry.all_of<PointCloud>(target)) {
-        cloud = &registry.get<PointCloud>(target);
-    } else {
-        throw std::runtime_error("Selected entity must have PointCloud and PointNormals");
-    }
+    cloud = require_components<PointCloud>(handle);
 }
 
 GuiState CreateGraph::draw_gui()
@@ -24,6 +19,8 @@ GuiState CreateGraph::draw_gui()
         ImGui::RadioButton("Radius search", (int*)&selected_method, Method::kRadius);
         ImGui::RadioButton("kNN", (int*)&selected_method, Method::kKnn);
         ImGui::RadioButton("3D Delaunay", (int*)&selected_method, Method::kDelaunay);
+        ImGui::RadioButton("Alpha-shape", (int*)&selected_method, Method::kAlphaShape);
+        ImGui::RadioButton("Cárdenas-Donoso et al. (2021)", (int*)&selected_method, Method::kCardenasDonosoEtAl);
         ImGui::Separator();
 
         ImGui::Text("Parameters");
@@ -39,6 +36,19 @@ GuiState CreateGraph::draw_gui()
 
         case kDelaunay:
             ImGui::Text("--None--");
+            break;
+        case kAlphaShape:
+            ImGui::Checkbox("Desired components", &use_alpha_components);
+
+            if (use_alpha_components) {
+                ImGui::InputInt("# Components", &components);
+                alpha = 0.0;
+            } else {
+                ImGui::InputFloat("Alpha", &alpha);
+            }
+            break;
+        case kCardenasDonosoEtAl:
+            ImGui::InputDouble("Point cloud resolution", &radius);
             break;
         }
 
@@ -65,39 +75,45 @@ GuiState CreateGraph::draw_gui()
 CommandState CreateGraph::execute()
 {
     bool is_delaunay = false;
+    bool is_alpha_shape = false;
     groot::SearchType search_val;
 
+    groot::PlantGraph graph;
+    
     switch (selected_method) {
     case kKnn:
-        search_val = groot::SearchType::kKnnSearch;
+        spdlog::info("Running knn search...");
+        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams {
+            .k = (int)k,
+            .radius = (float)radius,
+            .search = groot::SearchType::kKnnSearch
+        });
         break;
     case kRadius:
-        search_val = groot::SearchType::kRadiusSearch;
+        spdlog::info("Running radius search...");
+        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams {
+            .k = (int)k,
+            .radius = (float)radius,
+            .search = groot::SearchType::kRadiusSearch
+        });
         break;
     case kDelaunay:
-        is_delaunay = true;
+        spdlog::info("Building 3D Delaunay...");
+        graph = groot::from_delaunay(cloud->cloud.data(), cloud->cloud.size());
+        break;
+    case kAlphaShape:
+        spdlog::info("Building Alpha shape...");
+        graph = groot::from_alpha_shape(cloud->cloud.data(), cloud->cloud.size(), alpha, components);
+        break;
+    case kCardenasDonosoEtAl:
+        spdlog::info("Building graph according to Cárdenas-Donoso et al. 2021");
+        graph = groot::from_cardenas_et_al(cloud->cloud.data(), cloud->cloud.size(), radius);
         break;
     default:
         error_string = "Unknown method";
         return CommandState::Error;
     }
-
-    groot::PlantGraph graph;
-    if (is_delaunay) {
-        spdlog::info("Building 3D Delaunay...");
-        graph = groot::from_delaunay(cloud->cloud.data(), cloud->cloud.size());
-        spdlog::info("Built 3D delaunay!");
-    } else {
-        groot::SearchParams params {
-            .k = (int)k,
-            .radius = (float)radius,
-            .search = search_val
-        };
-
-        spdlog::info("Running neighbour search...");
-        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), params);
-        spdlog::info("Neighbour search done!");
-    }
+    spdlog::info("Done");
 
     spdlog::info("Finding root point...");
     switch (selected_root_find_method) {

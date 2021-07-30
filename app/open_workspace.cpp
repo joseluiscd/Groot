@@ -1,6 +1,7 @@
 #include "open_workspace.hpp"
 #include <fstream>
 #include "serde.hpp"
+#include <groot/plant_graph.hpp>
 #include <spdlog/spdlog.h>
 
 OpenWorkspace::OpenWorkspace(entt::registry& _reg)
@@ -38,7 +39,9 @@ CommandState OpenWorkspace::execute()
             Visible,
             PointCloud,
             PointNormals,
-            Cylinders>(in_archive);
+            Cylinders,
+            groot::PlantGraph>(in_archive);
             
+
     return CommandState::Ok;
 }

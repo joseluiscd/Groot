@@ -39,6 +39,8 @@ layout (location=kColor) uniform vec3 u_color;
 
 void main()
 {
+    vec2 pp = gl_PointCoord - vec2(0.5, 0.5);
+    if (dot(pp, pp) > 0.25) discard;
     out_FragColor = vec4(u_color, 1.0);
 }
 )";
@@ -66,6 +68,7 @@ layout (line_strip, max_vertices=2) out;
 
 layout (location = kProjectionMatrix) uniform mat4 mProj;
 layout (location = kViewMatrix) uniform mat4 mView;
+layout (location = kVectorSize) uniform float uVectorSize;
 
 in VertexData
 {
@@ -76,7 +79,7 @@ in VertexData
 void main()
 {
     vec3 p = v_data[0].position;
-    vec3 n = p + normalize(v_data[0].direction);
+    vec3 n = p + uVectorSize * normalize(v_data[0].direction);
 
     gl_Position = mProj * mView * vec4(p, 1.0);
     EmitVertex();
@@ -216,6 +219,7 @@ ShaderCollection::ShaderCollection()
                 .register_class<gfx::CameraLens>()
                 .register_class<gfx::CameraRig>()
                 .register_uniform<Color>()
+                .register_uniform<VectorSize>()
                 .with_vertex_shader(vector_vs)
                 .with_geometry_shader(vector_gs)
                 .with_fragment_shader(vector_fs)

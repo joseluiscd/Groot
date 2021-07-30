@@ -9,7 +9,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "python3",
-            "args": ["scripts/cylinders.py", "cylinder_params.toml", "--debug"],
+            "args": ["scripts/cylinders.py", "cylinder_palos.toml", "--debug"],
             "cwd": "${workspaceFolder}"
         },
         {

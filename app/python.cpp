@@ -1,12 +1,15 @@
 #include "python.hpp"
 #include "components.hpp"
 #include "cylinder_marching.hpp"
+#include "cylinder_connect.hpp"
 #include "entt/entity/fwd.hpp"
 #include "groot/cgal.hpp"
 #include "groot/cloud.hpp"
 #include "import_ply.hpp"
+#include "graph_cluster.hpp"
 #include "open_workspace.hpp"
 #include "save_workspace.hpp"
+#include "create_graph.hpp"
 #include "cloud_system.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/python/list.hpp>
@@ -25,10 +28,24 @@ public:
         : e(_reg, _e)
     {}
 
+    Entity(const entt::handle& h)
+        : e(h)
+    {}
+
+    Entity(entt::handle&& h)
+        : e(h)
+    {}
+
     template <typename Component>
     Component* get_component()
     {
         return e.try_get<Component>();
+    }
+
+    template <typename Component>
+    void remove_component()
+    {
+        e.remove<Component>();
     }
 
     void select()
@@ -100,15 +117,42 @@ public:
 
     boost::python::list split_cloud(float voxel_size)
     {
+        boost::python::list result;
+
         SplitCloud cmd{entt::handle(e)};
         cmd.voxel_size = voxel_size;
         cmd.run();
-        return boost::python::list(cmd.result);
+
+        for (auto i : cmd.result) {
+            result.append(Entity(i));
+        }
+        return result;
     }
 
     void rebuild_cloud_from_cylinders()
     {
         CylinderPointFilter cmd{entt::handle(e)};
+        cmd.run();
+    }
+
+    void build_graph_from_cylinders()
+    {
+        CylinderConnection cmd{entt::handle(e)};
+        cmd.run();
+    }
+    
+    void graph_cluster(int intervals)
+    {
+        GraphCluster cmd{entt::handle(e)};
+        cmd.interval_count = intervals;
+        cmd.run();
+    }
+
+    void graph_from_cloud_knn(int k)
+    {
+        CreateGraph cmd{entt::handle(e)};
+        cmd.selected_method = CreateGraph::Method::kKnn;
+        cmd.k = k;
         cmd.run();
     }
 
@@ -228,6 +272,7 @@ BOOST_PYTHON_MODULE(groot)
         .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1>())
         .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1>())
         .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1>())
+        .def("graph", &Entity::get_component<groot::PlantGraph>, return_internal_reference<1>())
         .def("select", &Entity::select)
         .def("compute_normals", &Entity::compute_normals,
             (arg("k")=10, arg("radius")=10.0f))
@@ -245,6 +290,9 @@ BOOST_PYTHON_MODULE(groot)
             arg("length_max") = 99.0))
         .def("split_cloud", &Entity::split_cloud)
         .def("rebuild_cloud_from_cylinders", &Entity::rebuild_cloud_from_cylinders)
+        .def("build_graph_from_cylinders", &Entity::build_graph_from_cylinders)
+        .def("graph_cluster", &Entity::graph_cluster)
+        .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn)
     ;
 
     class_<PointCloud>("PointCloud", no_init)

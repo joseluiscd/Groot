@@ -41,6 +41,9 @@ add_library(groot
     cylinder_marching.hpp
     cylinder_marching.cpp
     
+    cylinder_connect.hpp
+    cylinder_connect.cpp
+
     viewer_system.cpp
     viewer_system.hpp
 
@@ -50,18 +53,12 @@ add_library(groot
     testing.cpp
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/3rdparty/zep/include ${LUA_INCLUDE_DIR})
 target_link_libraries(groot
     groot_base
     gfx
     EnTT::EnTT
     Python3::Python
 )
-
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-target_link_libraries(groot jet-live)
-target_compile_definitions(groot PUBLIC HOT_CODE_RELOAD)
-endif()
 
 add_executable(groot_exe main.cpp)
 target_link_libraries(groot_exe groot)

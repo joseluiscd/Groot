@@ -4,6 +4,7 @@
 #include "render.hpp"
 #include "resources.hpp"
 #include "viewer_system.hpp"
+#include <cfloat>
 #include <gfx/buffer.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
@@ -218,12 +219,40 @@ struct NormalViewComponent {
     gfx::Buffer<glm::vec3> directions;
 
     gfx::Uniform<Color> color;
+    gfx::Uniform<VectorSize> vector_size;
+};
+
+struct CurvatureViewComponent {
+    CurvatureViewComponent(PointViewComponent& points);
+    CurvatureViewComponent(CurvatureViewComponent&& other) = default;
+    CurvatureViewComponent& operator=(CurvatureViewComponent&& other) = default;
+
+    gfx::VertexArray vao;
+    gfx::Buffer<glm::vec3> directions;
+    gfx::Buffer<glm::vec3> normals;
+
+    gfx::Uniform<Color> color;
+    gfx::Uniform<VectorSize> vector_size;
 };
 
 NormalViewComponent::NormalViewComponent(PointViewComponent& points)
     : vao()
     , directions()
     , color({ 0.0, 0.0, 1.0 })
+    , vector_size(1.0)
+{
+    vao
+        .add_buffer(point_layout, points.points)
+        .add_buffer(direction_layout, directions)
+        .set_mode(gfx::Mode::Points);
+}
+
+CurvatureViewComponent::CurvatureViewComponent(PointViewComponent& points)
+    : vao()
+    , directions()
+    , normals()
+    , color({ 0.0, 0.0, 1.0 })
+    , vector_size(1.0)
 {
     vao
         .add_buffer(point_layout, points.points)
@@ -234,6 +263,8 @@ NormalViewComponent::NormalViewComponent(PointViewComponent& points)
 struct SystemData {
     gfx::RenderPipeline pipeline_points;
     gfx::RenderPipeline pipeline_vectors;
+
+    std::vector<entt::connection> connections;
 };
 
 void update_cloud_view(entt::registry& registry, entt::entity entity)
@@ -269,74 +300,83 @@ void create_normal_view(entt::registry& reg, entt::entity entity)
     view_data.vao.set_element_count(edit_normals.vector().size());
 }
 
+void create_curvature_view(entt::registry& reg, entt::entity entity)
+{
+    auto& cloud_view = reg.get<PointViewComponent>(entity);
+    reg.emplace_or_replace<CurvatureViewComponent>(entity, cloud_view);
+
+    auto [curvature, view_data] = reg.get<PointCurvature, CurvatureViewComponent>(entity);
+
+    auto edit_curvature = view_data.directions.edit(false);
+
+    edit_curvature.vector().clear();
+
+    for (auto it = curvature.direction.begin(); it != curvature.direction.end(); ++it) {
+        edit_curvature.vector().push_back(glm::vec3(it->direction.x(), it->direction.y(), it->direction.z()));
+    }
+
+    view_data.vao.set_element_count(edit_curvature.vector().size());
+}
+
 void init(entt::registry& reg)
 {
     auto& shaders = reg.ctx<ShaderCollection>();
-    reg.set<SystemData>(SystemData {
+    auto& system_data = reg.set<SystemData>(SystemData {
         gfx::RenderPipeline::Builder()
             .with_shader(shaders.get_shader(ShaderCollection::Points))
             .build(),
         gfx::RenderPipeline::Builder()
             .with_shader(shaders.get_shader(ShaderCollection::Vectors))
-            .build() });
-    // Destroy the views
-    reg.on_destroy<PointCloud>().connect<&entt::registry::remove<PointViewComponent>>();
-    reg.on_destroy<PointNormals>().connect<&entt::registry::remove<NormalViewComponent>>();
-    reg.on_destroy<PointViewComponent>().connect<&entt::registry::remove<NormalViewComponent>>();
+            .build(),
+        {
+            // Destroy the views
+            reg.on_destroy<PointCloud>().connect<&entt::registry::remove<PointViewComponent>>(),
+            reg.on_destroy<PointNormals>().connect<&entt::registry::remove<NormalViewComponent>>(),
+            reg.on_destroy<PointCurvature>().connect<&entt::registry::remove<CurvatureViewComponent>>(),
+            reg.on_destroy<PointViewComponent>().connect<&entt::registry::remove<NormalViewComponent>>(),
+            reg.on_destroy<PointViewComponent>().connect<&entt::registry::remove<CurvatureViewComponent>>(),
 
-    // Create/update the views
-    reg.on_construct<PointCloud>().connect<&entt::registry::emplace<PointViewComponent>>();
-    reg.on_construct<PointCloud>().connect<&update_cloud_view>();
-    reg.on_construct<PointCloud>().connect<&entt::registry::emplace_or_replace<Visible>>();
-    reg.on_update<PointCloud>().connect<&update_cloud_view>();
+            // Create/update the views
+            reg.on_construct<PointCloud>().connect<&entt::registry::emplace<PointViewComponent>>(),
+            reg.on_construct<PointCloud>().connect<&update_cloud_view>(),
+            reg.on_construct<PointCloud>().connect<&entt::registry::emplace_or_replace<Visible>>(),
+            reg.on_update<PointCloud>().connect<&update_cloud_view>(),
 
-    // Tie the normals to the cloud
-    reg.on_construct<PointCloud>().connect<&entt::registry::remove<PointNormals>>();
-    reg.on_update<PointCloud>().connect<&entt::registry::remove<PointNormals>>();
-    reg.on_destroy<PointCloud>().connect<&entt::registry::remove<PointNormals>>();
+            // Tie the normals to the cloud
+            reg.on_construct<PointCloud>().connect<&entt::registry::remove<PointNormals>>(),
+            reg.on_update<PointCloud>().connect<&entt::registry::remove<PointNormals>>(),
+            reg.on_destroy<PointCloud>().connect<&entt::registry::remove<PointNormals>>(),
 
-    reg.on_construct<PointNormals>().connect<&create_normal_view>();
-    reg.on_construct<PointNormals>().connect<&entt::registry::emplace_or_replace<Visible>>();
-    reg.on_update<PointNormals>().connect<&create_normal_view>();
+            reg.on_construct<PointNormals>().connect<&create_normal_view>(),
+            reg.on_construct<PointNormals>().connect<&entt::registry::emplace_or_replace<Visible>>(),
+            reg.on_update<PointNormals>().connect<&create_normal_view>(),
+        } });
 
     auto& entity_editor = reg.ctx<EntityEditor>();
-    entity_editor.registerComponent<PointViewComponent>("PointCloud View");
-    entity_editor.registerComponent<NormalViewComponent>("PointCloud Normal View");
+    entity_editor.registerComponent<PointViewComponent>("Point View", true);
+    entity_editor.registerComponent<NormalViewComponent>("Normal View", true);
 
-    reg.view<PointCloud>().each([&](entt::entity e, const auto& _){
+    reg.view<PointCloud>().each([&](entt::entity e, const auto& _) {
         reg.emplace<PointViewComponent>(e);
         update_cloud_view(reg, e);
     });
 
-    reg.view<PointNormals>().each([&](entt::entity e, const auto& _){
+    reg.view<PointNormals>().each([&](entt::entity e, const auto& _) {
         create_normal_view(reg, e);
     });
 }
 
-void deinit(entt::registry &reg)
+void deinit(entt::registry& reg)
 {
     reg.clear<PointViewComponent>();
     reg.clear<NormalViewComponent>();
+    reg.clear<CurvatureViewComponent>();
 
-    // Destroy the views
-    reg.on_destroy<PointCloud>().disconnect<&entt::registry::remove<PointViewComponent>>();
-    reg.on_destroy<PointNormals>().disconnect<&entt::registry::remove<NormalViewComponent>>();
-    reg.on_destroy<PointViewComponent>().disconnect<&entt::registry::remove<NormalViewComponent>>();
+    SystemData& d = reg.ctx<SystemData>();
+    for (size_t i = 0; i< d.connections.size(); i++) {
+        d.connections[i].release();
+    }
 
-    // Create/update the views
-    reg.on_construct<PointCloud>().disconnect<&entt::registry::emplace<PointViewComponent>>();
-    reg.on_construct<PointCloud>().disconnect<&update_cloud_view>();
-    reg.on_construct<PointCloud>().disconnect<&entt::registry::emplace_or_replace<Visible>>();
-    reg.on_update<PointCloud>().disconnect<&update_cloud_view>();
-
-    // Tie the normals to the cloud
-    reg.on_construct<PointCloud>().disconnect<&entt::registry::remove<PointNormals>>();
-    reg.on_update<PointCloud>().disconnect<&entt::registry::remove<PointNormals>>();
-    reg.on_destroy<PointCloud>().disconnect<&entt::registry::remove<PointNormals>>();
-
-    reg.on_construct<PointNormals>().disconnect<&create_normal_view>();
-    reg.on_construct<PointNormals>().disconnect<&entt::registry::emplace_or_replace<Visible>>();
-    reg.on_update<PointNormals>().disconnect<&create_normal_view>();
     reg.unset<SystemData>();
 }
 
@@ -365,6 +405,7 @@ void run(entt::registry& reg)
             auto [_, view] = entity;
             pipe
                 .bind(view.color)
+                .bind(view.vector_size)
                 .draw(view.vao);
         })
         .end_pipeline();
@@ -380,7 +421,7 @@ void ComponentEditorWidget<cloud_view_system::PointViewComponent>(entt::registry
     auto& t = reg.get<cloud_view_system::PointViewComponent>(e);
 
     ImGui::ColorEdit3("Point color", glm::value_ptr(*t.color));
-    ImGui::InputFloat("Point size", &*t.size);
+    ImGui::DragFloat("Point size", &*t.size, 0.05, 0.0, INFINITY);
 }
 
 template <>
@@ -389,6 +430,16 @@ void ComponentEditorWidget<cloud_view_system::NormalViewComponent>(entt::registr
     auto& t = reg.get<cloud_view_system::NormalViewComponent>(e);
 
     ImGui::ColorEdit3("Line color", glm::value_ptr(*t.color));
+    ImGui::DragFloat("Line size", &*t.vector_size, 0.01, 0.0, INFINITY);
+}
+
+template <>
+void ComponentAddAction<cloud_view_system::PointViewComponent>(entt::registry& reg, entt::entity entity)
+{
+    if (reg.all_of<PointCloud>(entity)) {
+        reg.emplace<cloud_view_system::PointViewComponent>(entity);
+        cloud_view_system::update_cloud_view(reg, entity);
+    }
 }
 
 template <>

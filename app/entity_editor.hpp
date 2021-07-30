@@ -89,6 +89,7 @@ public:
         using Callback = std::function<void(Registry&, EntityType)>;
         std::string name;
         Callback widget, create, destroy;
+        bool alt_color;
     };
 
     bool show_window = true;
@@ -113,20 +114,21 @@ public:
     }
 
     template <class Component>
-    ComponentInfo& registerComponent(const std::string& name, typename ComponentInfo::Callback widget)
+    ComponentInfo& registerComponent(const std::string& name, typename ComponentInfo::Callback widget, bool alt_color = false)
     {
         return registerComponent<Component>(ComponentInfo {
             name,
             widget,
             ComponentAddAction<Component, EntityType>,
             ComponentRemoveAction<Component, EntityType>,
+            alt_color
         });
     }
 
     template <class Component>
-    ComponentInfo& registerComponent(const std::string& name)
+    ComponentInfo& registerComponent(const std::string& name, bool alt_color = false)
     {
-        return registerComponent<Component>(name, ComponentEditorWidget<Component, EntityType>);
+        return registerComponent<Component>(name, ComponentEditorWidget<Component, EntityType>, alt_color);
     }
 
     void renderEditor(Registry& registry, EntityType& e)
@@ -165,6 +167,8 @@ public:
         ImGui::Separator();
 
         if (registry.valid(e)) {
+            ImGuiStyle& style = ImGui::GetStyle();
+
             ImGui::PushID(static_cast<int>(entt::to_integral(e)));
             std::map<ComponentTypeID, ComponentInfo> has_not;
             for (auto& [component_type_id, ci] : component_infos) {
@@ -178,6 +182,11 @@ public:
                         ImGui::SameLine();
                     }
 
+                    if (ci.alt_color) {
+                        ImGui::PushStyleColor(ImGuiCol_Header, style.Colors[ImGuiCol_PlotHistogram]);
+                        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, style.Colors[ImGuiCol_PlotHistogramHovered]);
+                        ImGui::PushStyleColor(ImGuiCol_HeaderActive, style.Colors[ImGuiCol_PlotHistogram]);
+                    }
                     if (ImGui::CollapsingHeader(ci.name.c_str())) {
                         ImGui::Indent(30.f);
                         ImGui::PushID("Widget");
@@ -185,6 +194,10 @@ public:
                         ImGui::PopID();
                         ImGui::Unindent(30.f);
                     }
+                    if (ci.alt_color) {
+                        ImGui::PopStyleColor(3);
+                    }
+
                     ImGui::PopID();
                 } else {
                     has_not[component_type_id] = ci;

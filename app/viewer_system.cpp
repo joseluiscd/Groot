@@ -29,12 +29,13 @@ void run(entt::registry& registry)
 
         drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0.0);
         data.camera->truck(-drag.x * 0.01);
-        data.camera->crane(drag.y * 0.01);
+        data.camera->vertical(drag.y * 0.01);
         ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
     }
 
     if (ImGui::IsItemHovered()) {
-        data.lens->zoom(1.0 + ImGui::GetIO().MouseWheel * 0.001);
+        data.camera->advance(ImGui::GetIO().MouseWheel * 0.2);
+        //data.lens->zoom(1.0 + ImGui::GetIO().MouseWheel * 0.001);
     }
 
     ImGui::EndFramebuffer();

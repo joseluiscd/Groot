@@ -60,7 +60,6 @@ public:
 
     void draw_gui();
     void draw_command_gui();
-    void draw_editors();
     void draw_background_tasks();
 
     void main_loop();

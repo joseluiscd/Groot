@@ -71,7 +71,7 @@ CommandState CylinderMarching::execute()
     params.normal_threshold = std::cos(normal_deviation * M_PI / 180.0);
     params.probability = overlook_probability;
 
-    result = groot::compute_cylinders_voxelized(cloud->cloud.data(), normals->normals.data(), cloud->cloud.size(), voxel_size, params);
+    result = groot::compute_cylinders_voxelized_curvature(cloud->cloud.data(), normals->normals.data(), cloud->cloud.size(), voxel_size, params);
     return CommandState::Ok;
 }
 
@@ -236,7 +236,7 @@ void init(entt::registry& reg)
     reg.on_update<Cylinders>().connect<&update_cylinder_view>();
 
     auto& entity_editor = reg.ctx<EntityEditor>();
-    entity_editor.registerComponent<CylinderViewComponent>("Cylinder View");
+    entity_editor.registerComponent<CylinderViewComponent>("Cylinder View", true);
 
     reg.view<Cylinders>().each([&](entt::entity e, const auto& _){
         update_cylinder_view(reg, e);
