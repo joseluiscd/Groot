@@ -164,7 +164,7 @@ PlantGraph from_alpha_shape(
     return graph;
 }
 
-PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius)
+PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder &f)
 {
     PlantGraph radius_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius, .search = SearchType::kRadiusSearch });
 
@@ -192,6 +192,7 @@ PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius)
     //PlantGraph alpha_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius * 2, .search = SearchType::kRadiusSearch});
     //PlantGraph alpha_graph = from_cardenas_et_al(cloud, count, radius * 2);
     PlantGraph alpha_graph = from_delaunay(cloud, count);
+    groot::find_root(radius_graph, f);
     alpha_graph = minimum_spanning_tree(alpha_graph);
 
     auto [edge_begin, edge_end] = boost::edges(alpha_graph);
@@ -339,6 +340,14 @@ PlantGraph read_from_file(std::istream& input)
 }
 
 namespace point_finder {
+
+    MinX MinXPointFinder;
+    MinY MinYPointFinder;
+    MinZ MinZPointFinder;
+    MaxX MaxXPointFinder;
+    MaxY MaxYPointFinder;
+    MaxZ MaxZPointFinder;
+
     Vertex min_coord(const PlantGraph& graph, size_t axis)
     {
         Vertex point;

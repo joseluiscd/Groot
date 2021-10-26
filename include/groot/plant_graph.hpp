@@ -1,7 +1,7 @@
 #pragma once
 
-#include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
+#include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/subgraph.hpp>
 #include <glm/glm.hpp>
 #include <groot/cgal.hpp>
@@ -70,6 +70,7 @@ namespace point_finder {
             return min_coord(graph, 0);
         }
     };
+    extern MinX MinXPointFinder;
 
     struct MinY : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
@@ -77,6 +78,7 @@ namespace point_finder {
             return min_coord(graph, 1);
         }
     };
+    extern MinY MinYPointFinder;
 
     struct MinZ : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
@@ -84,6 +86,7 @@ namespace point_finder {
             return min_coord(graph, 2);
         }
     };
+    extern MinZ MinZPointFinder;
 
     struct MaxX : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
@@ -91,13 +94,15 @@ namespace point_finder {
             return max_coord(graph, 0);
         }
     };
+    extern MaxX MaxXPointFinder;
 
     struct MaxY : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
         {
             return max_coord(graph, 1);
         }
-    };
+    }; 
+    extern MaxY MaxYPointFinder;
 
     struct MaxZ : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
@@ -105,6 +110,7 @@ namespace point_finder {
             return max_coord(graph, 2);
         }
     };
+    extern MaxZ MaxZPointFinder;
 };
 
 void write_to_file(const PlantGraph& g, std::ostream& output);
@@ -127,7 +133,7 @@ PlantGraph from_search(
     size_t size,
     const SearchParams& search = SearchParams { 3, 0.0, SearchType::kKnnSearch });
 
-PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius);
+PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f = point_finder::MinY());
 
 /// Computes distances to ther root on the original graph and returns simplified version.
 PlantGraph geodesic(PlantGraph& g);

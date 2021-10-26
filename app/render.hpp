@@ -13,6 +13,8 @@ DEF_UNIFORM_SEMANTICS(PointSize, float, "kPointSize");
 DEF_UNIFORM_SEMANTICS(VectorSize, float, "kVectorSize");
 
 extern gfx::VertexArray::Layout point_layout;
+extern gfx::VertexArray::Layout point_color_layout;
+extern gfx::VertexArray::Layout color_layout;
 extern gfx::VertexArray::Layout direction_layout;
 extern gfx::VertexArray::Layout cylinder_layout;
 
@@ -20,7 +22,8 @@ enum Attribs {
     Position = 0,
     Direction,
     Radius,
-    Height
+    Height,
+    ColorAttr,
 };
 
 struct RenderData {
@@ -43,6 +46,7 @@ public:
 
     enum ShaderID {
         Points = 0,
+        PointsColor,
         Vectors,
         Cylinders,
         ShaderID_Count

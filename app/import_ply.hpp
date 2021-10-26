@@ -25,7 +25,9 @@ private:
     ImGui::FileBrowser open;
 
     std::vector<groot::Point_3> cloud;
-    std::vector<groot::Vector_3> normals;
+    std::optional<std::vector<groot::Vector_3>> normals;
+    std::optional<std::vector<groot::Vector_3>> colors;
+    entt::entity target;
 public:
     // Parameters
     std::string input_file = "";

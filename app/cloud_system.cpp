@@ -127,8 +127,12 @@ SplitCloud::SplitCloud(entt::handle&& _handle)
     } else {
         throw std::runtime_error("Selected entity must have PointCloud");
     }
+
     if (reg.all_of<PointNormals>(target)) {
         this->normals = &reg.get<PointNormals>(target);
+    }
+    if (reg.all_of<PointColors>(target)) {
+        this->colors = &reg.get<PointColors>(target);
     }
 }
 
@@ -167,6 +171,13 @@ CommandState SplitCloud::execute()
                     current_normals.normals.push_back((*normals)->normals[this->grid.voxels[i][j]]);
                 }
             }
+
+            if (colors) {
+                PointColors& current_colors = this->result_colors.emplace_back();
+                for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
+                    current_colors.colors.push_back((*colors)->colors[this->grid.voxels[i][j]]);
+                }
+            }
         }
     }
 
@@ -182,31 +193,50 @@ void SplitCloud::on_finish()
             reg.emplace<PointNormals>(entity, std::move(result_normals[i]));
         }
 
+        if (colors) {
+            reg.emplace<PointColors>(entity, std::move(result_colors[i]));
+        }
+
         result.emplace_back(reg, entity);
     }
 }
 
 namespace cloud_view_system {
 
+entt::observer cloud_modified;
+entt::observer normals_modified;
+
 struct PointViewComponent {
     PointViewComponent();
 
     gfx::VertexArray vao;
+    gfx::VertexArray vao_colors;
 
     gfx::Buffer<glm::vec3> points;
+    gfx::Buffer<glm::vec3> colors;
 
     gfx::Uniform<Color> color;
     gfx::Uniform<PointSize> size;
+
+    bool uniform_color = false;
+    bool cloud_has_colors = false;
 };
 
 PointViewComponent::PointViewComponent()
     : vao()
+    , vao_colors()
     , points()
+    , colors()
     , color({ 1.0, 0.0, 0.0 })
     , size(4.0)
 {
     vao
         .add_buffer(point_layout, points)
+        .set_mode(gfx::Mode::Points);
+
+    vao_colors
+        .add_buffer(point_layout, points)
+        .add_buffer(color_layout, colors)
         .set_mode(gfx::Mode::Points);
 }
 
@@ -262,6 +292,7 @@ CurvatureViewComponent::CurvatureViewComponent(PointViewComponent& points)
 
 struct SystemData {
     gfx::RenderPipeline pipeline_points;
+    gfx::RenderPipeline pipeline_points_color;
     gfx::RenderPipeline pipeline_vectors;
 
     std::vector<entt::connection> connections;
@@ -269,7 +300,8 @@ struct SystemData {
 
 void update_cloud_view(entt::registry& registry, entt::entity entity)
 {
-    auto [cloud, view_data] = registry.get<PointCloud, PointViewComponent>(entity);
+    auto& view_data = registry.emplace_or_replace<PointViewComponent>(entity);
+    auto& cloud = registry.get<PointCloud>(entity);
 
     auto edit_points = view_data.points.edit(false);
 
@@ -278,7 +310,21 @@ void update_cloud_view(entt::registry& registry, entt::entity entity)
     for (auto it = cloud.cloud.begin(); it != cloud.cloud.end(); ++it) {
         edit_points.vector().push_back(glm::vec3(it->x(), it->y(), it->z()));
     }
+    
+    view_data.cloud_has_colors = registry.all_of<PointColors>(entity);
+    if (view_data.cloud_has_colors) {
+        auto colors = registry.get<PointColors>(entity);
+        auto edit_colors = view_data.colors.edit(false);
 
+        edit_colors.vector().clear();
+
+        for (auto it = colors.colors.begin(); it != colors.colors.end(); ++it) {
+            edit_colors.vector().push_back(glm::vec3(it->x(), it->y(), it->z()));
+        }
+        view_data.vao_colors.set_element_count(edit_points.vector().size());
+    } else {
+        view_data.uniform_color = true;
+    }
     view_data.vao.set_element_count(edit_points.vector().size());
 }
 
@@ -326,6 +372,9 @@ void init(entt::registry& reg)
             .with_shader(shaders.get_shader(ShaderCollection::Points))
             .build(),
         gfx::RenderPipeline::Builder()
+            .with_shader(shaders.get_shader(ShaderCollection::PointsColor))
+            .build(),
+        gfx::RenderPipeline::Builder()
             .with_shader(shaders.get_shader(ShaderCollection::Vectors))
             .build(),
         {
@@ -336,21 +385,25 @@ void init(entt::registry& reg)
             reg.on_destroy<PointViewComponent>().connect<&entt::registry::remove<NormalViewComponent>>(),
             reg.on_destroy<PointViewComponent>().connect<&entt::registry::remove<CurvatureViewComponent>>(),
 
-            // Create/update the views
-            reg.on_construct<PointCloud>().connect<&entt::registry::emplace<PointViewComponent>>(),
-            reg.on_construct<PointCloud>().connect<&update_cloud_view>(),
+            // Create the views
             reg.on_construct<PointCloud>().connect<&entt::registry::emplace_or_replace<Visible>>(),
-            reg.on_update<PointCloud>().connect<&update_cloud_view>(),
 
             // Tie the normals to the cloud
             reg.on_construct<PointCloud>().connect<&entt::registry::remove<PointNormals>>(),
             reg.on_update<PointCloud>().connect<&entt::registry::remove<PointNormals>>(),
             reg.on_destroy<PointCloud>().connect<&entt::registry::remove<PointNormals>>(),
-
-            reg.on_construct<PointNormals>().connect<&create_normal_view>(),
-            reg.on_construct<PointNormals>().connect<&entt::registry::emplace_or_replace<Visible>>(),
-            reg.on_update<PointNormals>().connect<&create_normal_view>(),
         } });
+
+    cloud_modified.connect(reg,
+        entt::collector
+            .group<PointCloud>()
+            .update<PointCloud>()
+            .update<PointColors>());
+
+    normals_modified.connect(reg,
+        entt::collector
+            .group<PointNormals>()
+            .update<PointNormals>());
 
     auto& entity_editor = reg.ctx<EntityEditor>();
     entity_editor.registerComponent<PointViewComponent>("Point View", true);
@@ -388,16 +441,40 @@ void run(entt::registry& reg)
     auto point_views = reg.view<PointViewComponent, Visible>().each();
     auto normal_views = reg.view<NormalViewComponent, Visible>().each();
 
+    cloud_modified.each([&reg](auto entity){
+        if (! reg.all_of<PointViewComponent>(entity)) {
+            reg.emplace<PointViewComponent>(entity);
+        }
+        update_cloud_view(reg, entity);
+    });
+
+    normals_modified.each([&reg](auto entity){
+        create_normal_view(reg, entity);
+    });
+
     gfx::RenderPass(view_data.framebuffer, gfx::ClearOperation::nothing())
         .viewport({ 0, 0 }, view_data.size)
         .set_pipeline(system_data.pipeline_points)
         .with_camera(*view_data.camera)
         .for_each(point_views.begin(), point_views.end(), [](auto& pipe, auto&& entity) {
             auto [_, view] = entity;
-            pipe
-                .bind(view.size)
-                .bind(view.color)
-                .draw(view.vao);
+
+            if (!view.cloud_has_colors || view.uniform_color) {
+                pipe
+                    .bind(view.size)
+                    .bind(view.color)
+                    .draw(view.vao);
+            }
+        })
+        .set_pipeline(system_data.pipeline_points_color)
+        .with_camera(*view_data.camera)
+        .for_each(point_views.begin(), point_views.end(), [](auto& pipe, auto&& entity) {
+            auto [_, view] = entity;
+            if (view.cloud_has_colors && ! view.uniform_color) {
+                pipe
+                    .bind(view.size)
+                    .draw(view.vao_colors);
+            } 
         })
         .set_pipeline(system_data.pipeline_vectors)
         .with_camera(*view_data.camera)
@@ -420,8 +497,16 @@ void ComponentEditorWidget<cloud_view_system::PointViewComponent>(entt::registry
 {
     auto& t = reg.get<cloud_view_system::PointViewComponent>(e);
 
-    ImGui::ColorEdit3("Point color", glm::value_ptr(*t.color));
     ImGui::DragFloat("Point size", &*t.size, 0.05, 0.0, INFINITY);
+
+    if (t.cloud_has_colors) {
+        ImGui::Checkbox("Show uniform color", &t.uniform_color);
+        if (t.uniform_color) {
+            ImGui::ColorEdit3("Point color", glm::value_ptr(*t.color));
+        }
+    } else {
+        ImGui::ColorEdit3("Point color", glm::value_ptr(*t.color));
+    }
 }
 
 template <>

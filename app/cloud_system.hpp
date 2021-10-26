@@ -63,6 +63,7 @@ private:
     entt::registry& reg;
     PointCloud* cloud;
     std::optional<PointNormals*> normals;
+    std::optional<PointColors*> colors;
 
     entt::entity target;
 
@@ -70,6 +71,7 @@ private:
 
     std::vector<PointCloud> result_clouds;
     std::vector<PointNormals> result_normals;
+    std::vector<PointColors> result_colors;
 
 public:
     // Parameters
