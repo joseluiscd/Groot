@@ -34,6 +34,7 @@ add_subdirectory(3rdparty/glfw)
 add_subdirectory(3rdparty/gfx)
 add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/entt)
+add_subdirectory(3rdparty/asyncplusplus)
 
 file(GLOB SOURCES 
     include/groot/*.hpp

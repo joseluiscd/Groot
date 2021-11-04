@@ -13,11 +13,21 @@
 #include "render.hpp"
 #include "save_workspace.hpp"
 #include "viewer_system.hpp"
+#include <boost/stacktrace/stacktrace_fwd.hpp>
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <spdlog/spdlog.h>
 #include <gfx/glad.h>
+#include <boost/stacktrace.hpp>
+
+void ui_wait_handler(async::task_wait_handle h)
+{
+    std::stringstream ss;
+    ss << boost::stacktrace::stacktrace();
+
+    spdlog::error("Waiting for async task on the main thread. \n{}", ss.str());
+}
 
 Application::Application(entt::registry& _reg)
     : gui_app(gfx::InitOptions {
@@ -29,6 +39,7 @@ Application::Application(entt::registry& _reg)
         .debug_context = true,
     })
     , registry(_reg)
+    , sync_scheduler()
 {
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();
@@ -39,6 +50,8 @@ Application::Application(entt::registry& _reg)
     graph_viewer_system::init(registry);
     cloud_view_system::init(registry);
     cylinder_view_system::init(registry);
+
+    async::set_thread_wait_handler(ui_wait_handler);
 }
 
 Application::~Application()
@@ -299,5 +312,6 @@ void Application::main_loop()
         }
 
         draw_gui();
+        sync_scheduler.run_all_tasks();
     });
 }

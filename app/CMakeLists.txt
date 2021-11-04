@@ -29,6 +29,9 @@ add_library(groot
     save_workspace.hpp
     save_workspace.cpp
 
+    command_gui.hpp
+    command_gui.cpp
+
     render.hpp
     render.cpp
 
@@ -58,6 +61,7 @@ target_link_libraries(groot
     gfx
     EnTT::EnTT
     Python3::Python
+    Async++
 )
 
 add_executable(groot_exe main.cpp)

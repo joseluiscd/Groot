@@ -8,6 +8,7 @@
 #include <list>
 #include <queue>
 #include <shared_mutex>
+#include <async++.h>
 
 class Application;
 
@@ -79,6 +80,8 @@ private:
 
     std::shared_mutex background_task_lock;
     std::shared_mutex command_gui_lock;
+
+    async::fifo_scheduler sync_scheduler;
 
     Windows windows;
 };
