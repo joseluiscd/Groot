@@ -22,6 +22,10 @@ struct PointNormals {
     std::vector<groot::Vector_3> normals;
 };
 
+struct PointColors {
+    std::vector<groot::Vector_3> colors;
+};
+
 struct PointCurvature {
     struct Curvature {
         groot::Vector_3 direction;
@@ -32,6 +36,10 @@ struct PointCurvature {
 
 struct Cylinders {
     std::vector<groot::CylinderWithPoints> cylinders;
+};
+
+struct AABB {
+    groot::cgal::Bbox_3 box;
 };
 
 void init_components(entt::registry& reg);

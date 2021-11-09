@@ -51,6 +51,7 @@ target_link_libraries(groot_base
     Boost::serialization
     Boost::python39
     Boost::numpy39
+    EnTT::EnTT
     doctest
     gfx
 )

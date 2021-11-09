@@ -5,6 +5,15 @@ gfx::VertexArray::Layout point_layout = {
     { Attribs::Position, 3, gfx::Type::Float }
 };
 
+gfx::VertexArray::Layout color_layout = {
+    { Attribs::ColorAttr, 3, gfx::Type::Float }
+};
+
+gfx::VertexArray::Layout point_color_layout = {
+    { Attribs::Position, 3, gfx::Type::Float },
+    { Attribs::ColorAttr, 3, gfx::Type::Float }
+};
+
 gfx::VertexArray::Layout direction_layout = {
     { Attribs::Direction, 3, gfx::Type::Float } 
 };
@@ -32,7 +41,6 @@ void main()
 )";
 
 const char* point_fs = R"(
-in  vec4 v_Color;
 out vec4 out_FragColor;
 
 layout (location=kColor) uniform vec3 u_color;
@@ -42,6 +50,37 @@ void main()
     vec2 pp = gl_PointCoord - vec2(0.5, 0.5);
     if (dot(pp, pp) > 0.25) discard;
     out_FragColor = vec4(u_color, 1.0);
+}
+)";
+
+const char* point_color_vs = R"(
+layout (location=0) in vec3 in_Position;
+layout (location=4) in vec3 in_Color;
+
+layout (location=kViewMatrix) uniform mat4 u_mvMatrix;
+layout (location=kProjectionMatrix) uniform mat4 u_pMatrix;
+layout (location=kPointSize) uniform float point_size;
+
+out vec4 v_Color;
+
+void main()
+{
+    mat4 u_MvpMatrix = u_pMatrix * u_mvMatrix;
+    gl_Position  = u_MvpMatrix * vec4(in_Position, 1.0);
+    gl_PointSize = point_size;
+    v_Color = vec4(in_Color, 1.0);
+};
+)";
+
+const char* point_color_fs = R"(
+in  vec4 v_Color;
+out vec4 out_FragColor;
+
+void main()
+{
+    vec2 pp = gl_PointCoord - vec2(0.5, 0.5);
+    if (dot(pp, pp) > 0.25) discard;
+    out_FragColor = v_Color;
 }
 )";
 
@@ -214,6 +253,13 @@ ShaderCollection::ShaderCollection()
                 .register_uniform<PointSize>()
                 .with_vertex_shader(point_vs)
                 .with_fragment_shader(point_fs)
+                .build_shared(),
+            gfx::ShaderProgram::Builder("PointsColor")
+                .register_class<gfx::CameraLens>()
+                .register_class<gfx::CameraRig>()
+                .register_uniform<PointSize>()
+                .with_vertex_shader(point_color_vs)
+                .with_fragment_shader(point_color_fs)
                 .build_shared(),
             gfx::ShaderProgram::Builder("Vectors")
                 .register_class<gfx::CameraLens>()

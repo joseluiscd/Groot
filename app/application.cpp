@@ -8,6 +8,15 @@
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/font_awesome.hpp>
 #include "cloud_system.hpp"
+#include <boost/stacktrace.hpp>
+
+void ui_wait_handler(async::task_wait_handle h)
+{
+    std::stringstream ss;
+    ss << boost::stacktrace::stacktrace();
+
+    spdlog::error("Waiting for async task on the main thread. \n{}", ss.str());
+}
 
 Application::Application(entt::registry& _reg)
     : bait::Application(_reg, gfx::InitOptions {
@@ -21,11 +30,14 @@ Application::Application(entt::registry& _reg)
     , systems(bait::make_dynamic_system_collection(
         ComputeNormals{}
     ))
+    , sync_scheduler()
 {
     registry.set<EntityEditor>();
 
     init_components(registry);
     ShaderCollection::init(registry);
+
+    async::set_thread_wait_handler(ui_wait_handler);
 }
 
 Application::~Application()
@@ -175,5 +187,6 @@ void Application::main_loop()
         }
 
         draw_gui();
+        sync_scheduler.run_all_tasks();
     });
 }

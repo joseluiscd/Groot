@@ -639,7 +639,7 @@ std::shared_ptr<PlyData> PlyFile::PlyFileImpl::request_properties_from_element(c
             std::stringstream ss;
             for (auto& str : keys_not_found)
                 ss << str << ", ";
-            throw std::invalid_argument("the following property keys were not found in the header: " + ss.str());
+            return nullptr;
         }
 
         for (const auto& key : propertyKeys) {
@@ -649,7 +649,7 @@ std::shared_ptr<PlyData> PlyFile::PlyFileImpl::request_properties_from_element(c
             helper.data->isList = property.isList;
             auto result = userData.insert(std::pair<uint32_t, ParsingHelper>(hash_fnv1a(element.name + property.name), helper));
             if (result.second == false) {
-                throw std::invalid_argument("element-property key has already been requested: " + element.name + " " + property.name);
+                return nullptr;
             }
         }
 
@@ -665,7 +665,7 @@ std::shared_ptr<PlyData> PlyFile::PlyFileImpl::request_properties_from_element(c
             throw std::invalid_argument("all requested properties must share the same type.");
         }
     } else
-        throw std::invalid_argument("the element key was not found in the header: " + elementKey);
+        return nullptr;
 
     return out_data;
 }

@@ -72,6 +72,26 @@ GuiState CreateGraph::draw_gui()
     return show ? GuiState::Editing : GuiState::Close;
 }
 
+const groot::point_finder::PointFinder& choose_point_finder(int m)
+{
+    switch (m) {
+    case CreateGraph::kMinX:
+        return groot::point_finder::MinXPointFinder;
+    case CreateGraph::kMinY:
+        return groot::point_finder::MinYPointFinder;
+    case CreateGraph::kMinZ:
+        return groot::point_finder::MinZPointFinder;
+    case CreateGraph::kMaxX:
+        return groot::point_finder::MaxXPointFinder;
+    case CreateGraph::kMaxY:
+        return groot::point_finder::MaxYPointFinder;
+    case CreateGraph::kMaxZ:
+        return groot::point_finder::MaxZPointFinder;
+    default:
+        return groot::point_finder::MaxZPointFinder;
+    }
+}
+
 CommandState CreateGraph::execute()
 {
     bool is_delaunay = false;
@@ -83,19 +103,11 @@ CommandState CreateGraph::execute()
     switch (selected_method) {
     case kKnn:
         spdlog::info("Running knn search...");
-        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams {
-            .k = (int)k,
-            .radius = (float)radius,
-            .search = groot::SearchType::kKnnSearch
-        });
+        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { .k = (int)k, .radius = (float)radius, .search = groot::SearchType::kKnnSearch });
         break;
     case kRadius:
         spdlog::info("Running radius search...");
-        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams {
-            .k = (int)k,
-            .radius = (float)radius,
-            .search = groot::SearchType::kRadiusSearch
-        });
+        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { .k = (int)k, .radius = (float)radius, .search = groot::SearchType::kRadiusSearch });
         break;
     case kDelaunay:
         spdlog::info("Building 3D Delaunay...");
@@ -107,7 +119,7 @@ CommandState CreateGraph::execute()
         break;
     case kCardenasDonosoEtAl:
         spdlog::info("Building graph according to Cárdenas-Donoso et al. 2021");
-        graph = groot::from_cardenas_et_al(cloud->cloud.data(), cloud->cloud.size(), radius);
+        graph = groot::from_cardenas_et_al(cloud->cloud.data(), cloud->cloud.size(), radius, choose_point_finder(selected_root_find_method));
         break;
     default:
         error_string = "Unknown method";
@@ -116,31 +128,9 @@ CommandState CreateGraph::execute()
     spdlog::info("Done");
 
     spdlog::info("Finding root point...");
-    switch (selected_root_find_method) {
-    case kMinX:
-        groot::find_root(graph, groot::point_finder::MinX());
-        break;
-    case kMinY:
-        groot::find_root(graph, groot::point_finder::MinY());
-        break;
-    case kMinZ:
-        groot::find_root(graph, groot::point_finder::MinZ());
-        break;
-    case kMaxX:
-        groot::find_root(graph, groot::point_finder::MaxX());
-        break;
-    case kMaxY:
-        groot::find_root(graph, groot::point_finder::MaxY());
-        break;
-    case kMaxZ:
-        groot::find_root(graph, groot::point_finder::MaxZ());
-        break;
-    default:
-        error_string = "Unrecognized root find method";
-        return CommandState::Error;
-    }
-
+    groot::find_root(graph, choose_point_finder(selected_root_find_method));
     spdlog::info("Found root point!");
+
 
     switch (selected_make_tree_method) {
     case kGeodesic:
@@ -166,4 +156,3 @@ void CreateGraph::on_finish()
         registry.emplace_or_replace<groot::PlantGraph>(target, std::move(*this->result));
     }
 }
-

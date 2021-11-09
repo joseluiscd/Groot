@@ -29,6 +29,9 @@ add_library(groot
     save_workspace.hpp
     save_workspace.cpp
 
+    command_gui.hpp
+    command_gui.cpp
+
     render.hpp
     render.cpp
 

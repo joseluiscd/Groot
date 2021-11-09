@@ -41,10 +41,12 @@ CommandState ImportPLY::execute()
         error_string = "Cannot open file";
         return CommandState::Error;
     }
-    auto&& ret = groot::load_PLY(input_file.c_str());
 
-    cloud = std::move(ret.first);
-    normals = std::move(ret.second);
+    auto&& data = groot::load_PLY(input_file.c_str());
+
+    cloud = std::move(data.points);
+    normals = std::move(data.normals);
+    colors = std::move(data.colors);
 
     spdlog::info("Loaded PLY file with {} points!", cloud.size());
     return CommandState::Ok;
@@ -56,8 +58,11 @@ void ImportPLY::on_finish()
     registry.emplace<PointCloud>(entity, std::move(cloud));
     registry.emplace<Name>(entity, this->input_file);
 
-    if (! normals.empty()) {
-        registry.emplace<PointNormals>(entity, std::move(normals));
+    if (normals) {
+        registry.emplace<PointNormals>(entity, std::move(*normals));
+    }
+    if (colors) {
+        registry.emplace<PointColors>(entity, std::move(*colors));
     }
 
     result = entity;
