@@ -14,99 +14,33 @@
 #include <groot/cylinder_marching.hpp>
 #include <spdlog/spdlog.h>
 
-ComputeNormals::ComputeNormals(entt::handle&& handle)
-    : registry(*handle.registry())
+void ComputeNormals::draw_gui(Cmd& cmd)
 {
-    target = handle.entity();
-    if (registry.valid(target) && registry.all_of<PointCloud>(target)) {
-        this->cloud = &registry.get<PointCloud>(target);
+    ImGui::RadioButton("Radius search", &cmd.selected_k, 0);
+    ImGui::RadioButton("kNN##normals", &cmd.selected_k, 1);
+
+    ImGui::Separator();
+    if (cmd.selected_k == 0) { // Radius search
+        ImGui::InputFloat("Radius", &cmd.radius);
+        ImGui::InputInt("Max NN", &cmd.k);
     } else {
-        throw std::runtime_error("Selected entity must have PointCloud");
+        cmd.radius = 0.0;
+        ImGui::InputInt("kNN", &cmd.k);
     }
 }
 
-ComputeNormals::ComputeNormals(entt::registry& reg)
-    : ComputeNormals(entt::handle {
-        reg,
-        reg.ctx<SelectedEntity>().selected })
+PointNormals ComputeNormals::update_async(std::tuple<const PointCloud&, const Cmd&> data)
 {
+    auto [cloud, cmd] = data;
+    return PointNormals { groot::compute_normals(cloud.cloud.data(), cloud.cloud.size(), cmd.k, cmd.radius) };
 }
 
-GuiState ComputeNormals::draw_gui()
+void ComputeNormals::update_sync(entt::handle h, PointNormals &&normals)
 {
-    bool show = true;
-    ImGui::OpenPopup("Compute normals");
-    if (ImGui::BeginPopupModal("Compute normals", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        ImGui::RadioButton("Radius search", &selected_k, 0);
-        ImGui::RadioButton("kNN##normals", &selected_k, 1);
-
-        ImGui::Separator();
-        if (selected_k == 0) { // Radius search
-            ImGui::InputFloat("Radius", &radius);
-            ImGui::InputInt("Max NN", &k);
-        } else {
-            radius = 0.0;
-            ImGui::InputInt("kNN", &k);
-        }
-        ImGui::Separator();
-
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunAsync;
-        }
-
-        ImGui::EndPopup();
-    }
-
-    return show ? GuiState::Editing : GuiState::Close;
+    h.emplace_or_replace<PointNormals>(std::move(normals));
 }
 
-CommandState ComputeNormals::execute()
-{
-    normals = std::move(
-        groot::compute_normals(cloud->cloud.data(), cloud->cloud.size(), k, radius));
-
-    return CommandState::Ok;
-}
-
-void ComputeNormals::on_finish()
-{
-    registry.emplace_or_replace<PointNormals>(target, std::move(normals));
-}
-
-RecenterCloud::RecenterCloud(entt::registry& _reg)
-    : reg(_reg)
-{
-    target = reg.ctx<SelectedEntity>().selected;
-
-    if (reg.valid(target) && reg.all_of<PointCloud>(target)) {
-        this->cloud = &reg.get<PointCloud>(target);
-    } else {
-        throw std::runtime_error("Selected entity must have PointCloud");
-    }
-}
-
-GuiState RecenterCloud::draw_gui()
-{
-    bool show = true;
-    ImGui::OpenPopup("Compute normals");
-    if (ImGui::BeginPopupModal("Compute normals", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        ImGui::RadioButton("Using centroid##recenter", &selected, 0);
-        ImGui::RadioButton("Using bounding box center##recenter", &selected, 1);
-
-        ImGui::Separator();
-
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunSync;
-        }
-
-        ImGui::EndPopup();
-    }
-
-    return show ? GuiState::Editing : GuiState::Close;
-}
-
+void RecenterCloud::update_async(std::tuple<>)
 CommandState RecenterCloud::execute()
 {
     reg.patch<PointCloud>(target, [&](auto& cloud) {
@@ -373,7 +307,7 @@ void deinit(entt::registry& reg)
     reg.clear<CurvatureViewComponent>();
 
     SystemData& d = reg.ctx<SystemData>();
-    for (size_t i = 0; i< d.connections.size(); i++) {
+    for (size_t i = 0; i < d.connections.size(); i++) {
         d.connections[i].release();
     }
 

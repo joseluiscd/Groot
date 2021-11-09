@@ -55,9 +55,8 @@ add_library(groot
 
 target_link_libraries(groot
     groot_base
-    gfx
-    EnTT::EnTT
     Python3::Python
+    bait
 )
 
 add_executable(groot_exe main.cpp)

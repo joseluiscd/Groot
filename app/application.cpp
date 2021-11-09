@@ -1,26 +1,16 @@
 #include "application.hpp"
-#include "cloud_system.hpp"
-#include "components.hpp"
-#include "create_graph.hpp"
-#include "graph_cluster.hpp"
-#include "cylinder_marching.hpp"
-#include "cylinder_connect.hpp"
-#include "entt/entity/fwd.hpp"
-#include "gfx/font_awesome.hpp"
-#include "graph_viewer_system.hpp"
-#include "import_ply.hpp"
-#include "open_workspace.hpp"
-#include "render.hpp"
-#include "save_workspace.hpp"
-#include "viewer_system.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <spdlog/spdlog.h>
 #include <gfx/glad.h>
+#include "render.hpp"
+#include <gfx/imgui/gfx.hpp>
+#include <gfx/font_awesome.hpp>
+#include "cloud_system.hpp"
 
 Application::Application(entt::registry& _reg)
-    : gui_app(gfx::InitOptions {
+    : bait::Application(_reg, gfx::InitOptions {
         .title = "Groot Graph Viewer",
         .maximized = true,
         .resizable = true,
@@ -28,130 +18,19 @@ Application::Application(entt::registry& _reg)
         .debug_draw = true,
         .debug_context = true,
     })
-    , registry(_reg)
+    , systems(bait::make_dynamic_system_collection(
+        ComputeNormals{}
+    ))
 {
     registry.set<EntityEditor>();
-    registry.set<SelectedEntity>();
 
     init_components(registry);
     ShaderCollection::init(registry);
-    viewer_system::init(registry);
-    graph_viewer_system::init(registry);
-    cloud_view_system::init(registry);
-    cylinder_view_system::init(registry);
 }
 
 Application::~Application()
 {
     ShaderCollection::deinit(registry);
-    viewer_system::deinit(registry);
-    graph_viewer_system::deinit(registry);
-    cloud_view_system::deinit(registry);
-    cylinder_view_system::deinit(registry);
-}
-
-BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>&& command)
-{
-    BackgroundTaskHandle it;
-
-    {
-        std::unique_lock _lock(background_task_lock);
-        it = background_tasks.emplace(background_tasks.end(), std::make_shared<BackgroundTask>());
-    }
-
-    (*it)->command = std::move(command);
-    (*it)->task = std::async([=]() {
-        std::shared_lock _lock((*it)->lock);
-
-        CommandState result = (*it)->command->execute();
-        this->notify_task_finished(it, result);
-    });
-
-    return it;
-}
-
-BackgroundTaskHandle Application::execute_command_async(Command* command)
-{
-    return execute_command_async(std::unique_ptr<Command>(command));
-}
-
-void Application::execute_command(Command* command)
-{
-    switch (command->execute()) {
-    case CommandState::Error:
-        this->show_error(command->error_string);
-        break;
-
-    default:
-        break;
-    }
-}
-
-void Application::notify_task_finished(BackgroundTaskHandle task, CommandState result)
-{
-    std::unique_lock _lock(background_task_lock);
-    if (result == CommandState::Error) {
-        this->show_error((*task)->command->error_string);
-    }
-    remove_background_tasks.push(*task);
-    background_tasks.erase(task);
-}
-
-void Application::open_window(CommandGui* gui)
-{
-    std::unique_lock _lock(command_gui_lock);
-
-    command_guis.emplace_back(gui);
-}
-
-void Application::show_error(const std::string& error)
-{
-    spdlog::error("{}", error);
-}
-
-
-void Application::draw_background_tasks()
-{
-    if (ImGui::Begin("Background tasks", &windows.background_tasks)) {
-        std::shared_lock _lock(background_task_lock);
-        for (auto it = background_tasks.begin(); it != background_tasks.end(); ++it) {
-            ImGui::Spinner("##spinner", 10.0f);
-            ImGui::SameLine();
-            ImGui::Text("Background task 0x%zx", (size_t)it->get());
-        }
-    }
-    ImGui::End();
-}
-
-void Application::draw_command_gui()
-{
-    std::unique_lock _lock(command_gui_lock);
-
-    auto it = command_guis.begin();
-    while (it != command_guis.end()) {
-        switch ((*it)->draw_gui()) {
-        case GuiState::Close:
-            command_guis.erase(it++);
-            break;
-
-        case GuiState::Editing:
-            ++it;
-            break;
-
-        case GuiState::RunSync:
-            this->execute_command(it->get());
-            command_guis.erase(it++);
-            break;
-        case GuiState::RunAsync:
-            this->execute_command_async(std::move(*it));
-            command_guis.erase(it++);
-            break;
-        case GuiState::RunAsyncUpdate:
-            this->execute_command_async(std::move(*it));
-            ++it;
-            break;
-        }
-    }
 }
 
 void Application::draw_gui()
@@ -258,14 +137,11 @@ void Application::draw_gui()
 
     {
         auto& fbo = registry.ctx<RenderData>().framebuffer;
-        gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
+        gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 1.0, 1.0, 1.0, 0.0 }));
+        //gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
         glEnable(GL_DEPTH_TEST);
     }
 
-    graph_viewer_system::run(registry);
-    cloud_view_system::run(registry);
-    cylinder_view_system::run(registry);
-    viewer_system::run(registry);
 
     auto& entity_editor = registry.ctx<EntityEditor>();
     if (ImGui::Begin("Entity List")) {

@@ -1,60 +1,79 @@
 #pragma once
 
-#include "command_gui.hpp"
 #include "components.hpp"
 #include "groot/cloud.hpp"
-#include <entt/entt.hpp>
+#include <bait/gui_system.hpp>
 #include <groot/cgal.hpp>
 
-class ComputeNormals : public CommandGui {
-public:
-    ComputeNormals(entt::registry& reg);
-    ComputeNormals(entt::handle&& handle);
+// Forward declarations
 
-    GuiState draw_gui() override;
-    CommandState execute() override;
-    void on_finish() override;
+struct ComputeNormals;
+struct RecenterCloud;
+struct SplitCloud;
 
-private:
-    entt::registry& registry;
-    PointCloud* cloud;
-    entt::entity target;
-    std::vector<groot::Vector_3> normals;
+// Compute normals
+// -------------------------
 
+struct ComputeNormalsCmd {
     int selected_k = 1;
-
-public:
-    // Parameters
-
     int k = 0;
     float radius = 1.0;
 };
 
-class RecenterCloud : public CommandGui {
-public:
-    RecenterCloud(entt::registry& reg);
 
-    GuiState draw_gui() override;
-    CommandState execute() override;
+template <>
+struct bait::SystemTraits<ComputeNormals> {
+    using Cmd = ComputeNormalsCmd;
+    using Get = entt::get_t<const PointCloud>;
+    using Result = PointNormals;
 
-private:
-    entt::registry& reg;
-    PointCloud* cloud;
-    entt::entity target;
-
-    int selected;
+    static constexpr const std::string_view name = "Compute Normals";
 };
 
-class SplitCloud : public CommandGui {
-public:
-    SplitCloud(entt::handle&& handle);
-    SplitCloud(entt::registry& _reg)
-        : SplitCloud(entt::handle {
-            _reg,
-            _reg.ctx<SelectedEntity>().selected })
-    {
-    }
+struct ComputeNormals : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<ComputeNormals>>> {
+    static void draw_gui(Cmd& cmd);
+    static PointNormals update_async(std::tuple<const PointCloud&, const Cmd&> data);
+    static void update_sync(entt::handle h, PointNormals&& normals);
+};
 
+// Recenter cloud
+// ------------------
+
+struct RecenterCloudCmd {
+};
+
+template <>
+struct bait::SystemTraits<RecenterCloud> {
+    using Cmd = RecenterCloudCmd;
+    using Get = entt::get_t<const PointCloud>;
+    using Result = PointCloud;
+};
+
+struct RecenterCloud : public bait::SystemImpl<bait::System<RecenterCloud>> {
+    static PointCloud update_async(std::tuple<const PointCloud&, const Cmd&> data);
+    static void update_sync(entt::handle h, PointCloud&& new_cloud);
+};
+
+// Split cloud
+// ----------------
+
+struct SplitCloudCmd {
+    float voxel_size = 1.0;
+};
+
+struct SplitCloudResult {
+    std::vector<PointCloud> clouds;
+    std::optional<std::vector<PointNormals>> normals;
+    std::optional<std::vector<PointColors>> colors;
+};
+
+template <>
+struct bait::SystemTraits<SplitCloud> {
+
+};
+
+struct SplitCloud : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<SplitCloud>>> {
+public:
     GuiState draw_gui() override;
     CommandState execute() override;
     void on_finish() override;

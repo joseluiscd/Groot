@@ -106,7 +106,7 @@ std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vect
 std::vector<CylinderWithPoints> compute_cylinders_voxelized_curvature(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
 std::vector<CylinderWithPoints> merge_cylinders(const std::vector<CylinderWithPoints>& a, const std::vector<CylinderWithPoints>& b);
 
-std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius);
+std::vector<Vector_3> compute_normals(const Point_3* cloud, size_t count, unsigned int k, float radius);
 std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);
 
 }

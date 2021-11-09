@@ -26,14 +26,10 @@ include(CGAL_TBB_support)
 include(CGAL_Eigen_support)
 
 set(GFX_BUILD_EXAMPLES OFF)
-set(BUILD_DEMOS OFF CACHE BOOL "enable Zep demos")
-set(BUILD_EXTENSIONS OFF CACHE BOOL "enable Zep extensions")
 include(CMakePackageConfigHelpers)
 
-add_subdirectory(3rdparty/glfw)
-add_subdirectory(3rdparty/gfx)
+add_subdirectory(3rdparty/bait)
 add_subdirectory(3rdparty/doctest)
-add_subdirectory(3rdparty/entt)
 
 file(GLOB SOURCES 
     include/groot/*.hpp

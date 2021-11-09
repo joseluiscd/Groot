@@ -35,7 +35,7 @@ float distance(const Cylinder& cylinder, const Point_3& point)
     }
 }
 
-std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius)
+std::vector<Vector_3> compute_normals(const Point_3* cloud, size_t count, unsigned int k, float radius)
 {
     std::vector<Vector_3> normals(count);
 
