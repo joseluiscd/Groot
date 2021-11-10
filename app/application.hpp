@@ -35,7 +35,5 @@ private:
 
     bait::AbstractSystem::Ptr systems;
 
-    async::fifo_scheduler sync_scheduler;
-
     Windows windows;
 };

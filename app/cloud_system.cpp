@@ -1,6 +1,5 @@
 #include "cloud_system.hpp"
 #include "components.hpp"
-#include "entt/entity/fwd.hpp"
 #include "render.hpp"
 #include "resources.hpp"
 #include "viewer_system.hpp"
@@ -13,6 +12,9 @@
 #include <groot/cloud.hpp>
 #include <groot/cylinder_marching.hpp>
 #include <spdlog/spdlog.h>
+
+// Compute normals
+// ----------------------
 
 void ComputeNormals::draw_gui(Cmd& cmd)
 {
@@ -29,98 +31,72 @@ void ComputeNormals::draw_gui(Cmd& cmd)
     }
 }
 
-PointNormals ComputeNormals::update_async(std::tuple<const PointCloud&, const Cmd&> data)
+
+PointNormals ComputeNormals::update_async(const Cmd& cmd, const PointCloud& cloud)
 {
-    auto [cloud, cmd] = data;
     return PointNormals { groot::compute_normals(cloud.cloud.data(), cloud.cloud.size(), cmd.k, cmd.radius) };
 }
 
-void ComputeNormals::update_sync(entt::handle h, PointNormals &&normals)
+void ComputeNormals::update_sync(entt::handle h, PointNormals&& normals)
 {
     h.emplace_or_replace<PointNormals>(std::move(normals));
 }
 
-void RecenterCloud::update_async(std::tuple<>)
-CommandState RecenterCloud::execute()
+PointCloud RecenterCloud::update_async(const Cmd& cmd, const PointCloud& cloud)
 {
-    reg.patch<PointCloud>(target, [&](auto& cloud) {
-        groot::recenter_cloud_centroid(cloud.cloud.data(), cloud.cloud.size());
-    });
-    return CommandState::Ok;
+    PointCloud new_cloud(cloud);
+    groot::recenter_cloud_centroid(new_cloud.cloud.data(), new_cloud.cloud.size());
+    return new_cloud;
 }
 
-SplitCloud::SplitCloud(entt::handle&& _handle)
-    : reg(*_handle.registry())
-    , grid(0, 0, 0)
-    , normals()
+void RecenterCloud::update_sync(entt::handle h, PointCloud &&new_cloud)
 {
-    target = _handle.entity();
-
-    if (reg.valid(target) && reg.all_of<PointCloud>(target)) {
-        this->cloud = &reg.get<PointCloud>(target);
-    } else {
-        throw std::runtime_error("Selected entity must have PointCloud");
-    }
-
-    if (reg.all_of<PointNormals>(target)) {
-        this->normals = &reg.get<PointNormals>(target);
-    }
-    if (reg.all_of<PointColors>(target)) {
-        this->colors = &reg.get<PointColors>(target);
-    }
+    h.emplace_or_replace<PointCloud>(std::move(new_cloud));
 }
 
-GuiState SplitCloud::draw_gui()
+// Split cloud
+// ----------------------
+
+void SplitCloud::draw_gui(Cmd& cmd)
 {
-    bool show = true;
-    ImGui::OpenPopup("Split Cloud in Voxels");
-    if (ImGui::BeginPopupModal("Split Cloud in Voxels", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        ImGui::InputFloat("Voxel size", &this->voxel_size, 0.5, 0.1);
-        ImGui::Separator();
-
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunAsync;
-        }
-
-        ImGui::EndPopup();
-    }
-
-    return show ? GuiState::Editing : GuiState::Close;
+    ImGui::InputFloat("Voxel size", &cmd.voxel_size, 0.5, 0.1);
 }
 
-CommandState SplitCloud::execute()
+SplitCloudResult SplitCloud::update_async(const Cmd& cmd, const PointCloud& cloud, const PointNormals* normals, const PointColors* colors)
 {
-    this->grid = std::move(groot::voxel_grid(this->cloud->cloud.data(), cloud->cloud.size(), voxel_size));
-    for (size_t i = 0; i < this->grid.voxels.size(); i++) {
-        if (!this->grid.voxels[i].empty()) {
-            PointCloud& current_cloud = this->result_clouds.emplace_back();
-            for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
-                current_cloud.cloud.push_back(cloud->cloud[this->grid.voxels[i][j]]);
+    groot::VoxelGrid grid = groot::voxel_grid(cloud.cloud.data(), cloud.cloud.size(), cmd.voxel_size);
+    
+    SplitCloudResult result;
+
+    for (size_t i = 0; i < grid.voxels.size(); i++) {
+        if (!grid.voxels[i].empty()) {
+            PointCloud& current_cloud = result.clouds.emplace_back();
+            for (size_t j = 0; j < grid.voxels[i].size(); j++) {
+                current_cloud.cloud.push_back(cloud.cloud[grid.voxels[i][j]]);
             }
 
-            if (normals) {
-                PointNormals& current_normals = this->result_normals.emplace_back();
-                for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
-                    current_normals.normals.push_back((*normals)->normals[this->grid.voxels[i][j]]);
+            if (normals != nullptr) {
+                PointNormals& current_normals = result.normals.emplace_back();
+                for (size_t j = 0; j < grid.voxels[i].size(); j++) {
+                    current_normals.normals.push_back(normals->normals[grid.voxels[i][j]]);
                 }
             }
 
-            if (colors) {
-                PointColors& current_colors = this->result_colors.emplace_back();
-                for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
-                    current_colors.colors.push_back((*colors)->colors[this->grid.voxels[i][j]]);
+            if (colors != nullptr) {
+                PointColors& current_colors = result.colors.emplace_back();
+                for (size_t j = 0; j < grid.voxels[i].size(); j++) {
+                    current_colors.colors.push_back(colors->colors[grid.voxels[i][j]]);
                 }
             }
         }
     }
 
-    return CommandState::Ok;
+    return result;
 }
 
-void SplitCloud::on_finish()
+void SplitCloud::update_sync(entt::handle h, SplitCloudResult &&split)
 {
-    for (size_t i = 0; i < result_clouds.size(); i++) {
+    for (size_t i = 0; i < split.clouds.size(); i++) {
         entt::entity entity = reg.create();
         reg.emplace<PointCloud>(entity, std::move(result_clouds[i]));
         if (normals) {
@@ -244,7 +220,7 @@ void update_cloud_view(entt::registry& registry, entt::entity entity)
     for (auto it = cloud.cloud.begin(); it != cloud.cloud.end(); ++it) {
         edit_points.vector().push_back(glm::vec3(it->x(), it->y(), it->z()));
     }
-    
+
     view_data.cloud_has_colors = registry.all_of<PointColors>(entity);
     if (view_data.cloud_has_colors) {
         auto colors = registry.get<PointColors>(entity);
@@ -375,14 +351,14 @@ void run(entt::registry& reg)
     auto point_views = reg.view<PointViewComponent, Visible>().each();
     auto normal_views = reg.view<NormalViewComponent, Visible>().each();
 
-    cloud_modified.each([&reg](auto entity){
-        if (! reg.all_of<PointViewComponent>(entity)) {
+    cloud_modified.each([&reg](auto entity) {
+        if (!reg.all_of<PointViewComponent>(entity)) {
             reg.emplace<PointViewComponent>(entity);
         }
         update_cloud_view(reg, entity);
     });
 
-    normals_modified.each([&reg](auto entity){
+    normals_modified.each([&reg](auto entity) {
         create_normal_view(reg, entity);
     });
 
@@ -404,11 +380,11 @@ void run(entt::registry& reg)
         .with_camera(*view_data.camera)
         .for_each(point_views.begin(), point_views.end(), [](auto& pipe, auto&& entity) {
             auto [_, view] = entity;
-            if (view.cloud_has_colors && ! view.uniform_color) {
+            if (view.cloud_has_colors && !view.uniform_color) {
                 pipe
                     .bind(view.size)
                     .draw(view.vao_colors);
-            } 
+            }
         })
         .set_pipeline(system_data.pipeline_vectors)
         .with_camera(*view_data.camera)

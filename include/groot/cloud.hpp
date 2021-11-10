@@ -46,18 +46,18 @@ void recenter_cloud(Point_3* cloud, size_t count)
     }
 }
 
-inline Point_3 bounding_box_center(Point_3* first, Point_3* last)
+inline Point_3 bounding_box_center(const Point_3* first, const Point_3* last)
 {
     Bbox_3 box = CGAL::bbox_3(first, last);
     return Point_3((box.xmin() + box.xmax()) * 0.5, (box.ymin() + box.ymax()) * 0.5, (box.zmin() + box.zmax()) * 0.5);
 }
 
-inline Point_3 centroid(Point_3* first, Point_3* last)
+inline Point_3 centroid(const Point_3* first, const Point_3* last)
 {
     Vector_3 centroid(0.0, 0.0, 0.0);
     size_t count = 0;
 
-    for (Point_3* i = first; i != last; i++) {
+    for (const Point_3* i = first; i != last; i++) {
         centroid += Vector_3(CGAL::ORIGIN, *i);
         count++;
     }
@@ -68,7 +68,7 @@ inline Point_3 centroid(Point_3* first, Point_3* last)
 
 void normal_filter(Point_3* cloud, Vector_3* normals, size_t count, float radius, float cos_threshold, float percent_threshold);
 
-VoxelGrid voxel_grid(Point_3* cloud, size_t count, float size);
+VoxelGrid voxel_grid(const Point_3* cloud, size_t count, float size);
 
 constexpr void (*recenter_cloud_bounding_box)(Point_3*, size_t) = &recenter_cloud<&bounding_box_center>;
 constexpr void (*recenter_cloud_centroid)(Point_3*, size_t) = &recenter_cloud<&centroid>;

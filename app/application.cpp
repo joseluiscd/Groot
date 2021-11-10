@@ -30,7 +30,6 @@ Application::Application(entt::registry& _reg)
     , systems(bait::make_dynamic_system_collection(
         ComputeNormals{}
     ))
-    , sync_scheduler()
 {
     registry.set<EntityEditor>();
 

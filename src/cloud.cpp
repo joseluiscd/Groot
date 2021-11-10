@@ -7,7 +7,7 @@ void normal_filter(Point_3* cloud, Vector_3* normals, size_t count, float radius
 
 }
 
-VoxelGrid voxel_grid(Point_3* cloud, size_t count, float size)
+VoxelGrid voxel_grid(const Point_3* cloud, size_t count, float size)
 {
     cgal::Bbox_3 box = CGAL::bbox_3(cloud, cloud+count);
 

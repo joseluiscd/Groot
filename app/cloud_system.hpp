@@ -22,7 +22,7 @@ struct ComputeNormalsCmd {
 
 
 template <>
-struct bait::SystemTraits<ComputeNormals> {
+struct bait::SystemTraits<ComputeNormals> : bait::DefaultSystemTraits {
     using Cmd = ComputeNormalsCmd;
     using Get = entt::get_t<const PointCloud>;
     using Result = PointNormals;
@@ -32,7 +32,7 @@ struct bait::SystemTraits<ComputeNormals> {
 
 struct ComputeNormals : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<ComputeNormals>>> {
     static void draw_gui(Cmd& cmd);
-    static PointNormals update_async(std::tuple<const PointCloud&, const Cmd&> data);
+    static PointNormals update_async(const Cmd& cmd, const PointCloud& cloud);
     static void update_sync(entt::handle h, PointNormals&& normals);
 };
 
@@ -43,14 +43,14 @@ struct RecenterCloudCmd {
 };
 
 template <>
-struct bait::SystemTraits<RecenterCloud> {
+struct bait::SystemTraits<RecenterCloud> : bait::DefaultSystemTraits {
     using Cmd = RecenterCloudCmd;
     using Get = entt::get_t<const PointCloud>;
     using Result = PointCloud;
 };
 
 struct RecenterCloud : public bait::SystemImpl<bait::System<RecenterCloud>> {
-    static PointCloud update_async(std::tuple<const PointCloud&, const Cmd&> data);
+    static PointCloud update_async(const Cmd& cmd, const PointCloud& cloud);
     static void update_sync(entt::handle h, PointCloud&& new_cloud);
 };
 
@@ -63,47 +63,29 @@ struct SplitCloudCmd {
 
 struct SplitCloudResult {
     std::vector<PointCloud> clouds;
-    std::optional<std::vector<PointNormals>> normals;
-    std::optional<std::vector<PointColors>> colors;
+    std::vector<PointNormals> normals;
+    std::vector<PointColors> colors;
 };
 
 template <>
-struct bait::SystemTraits<SplitCloud> {
-
+struct bait::SystemTraits<SplitCloud> : bait::DefaultSystemTraits {
+    using Cmd = SplitCloudCmd;
+    using Get = entt::get_t<const PointCloud>;
+    using OptionalGet = entt::get_t<const PointNormals, const PointColors>;
+    using Result = SplitCloudResult;
 };
 
 struct SplitCloud : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<SplitCloud>>> {
-public:
-    GuiState draw_gui() override;
-    CommandState execute() override;
-    void on_finish() override;
-
-private:
-    entt::registry& reg;
-    PointCloud* cloud;
-    std::optional<PointNormals*> normals;
-    std::optional<PointColors*> colors;
-
-    entt::entity target;
-
-    groot::VoxelGrid grid;
-
-    std::vector<PointCloud> result_clouds;
-    std::vector<PointNormals> result_normals;
-    std::vector<PointColors> result_colors;
-
-public:
-    // Parameters
-    float voxel_size = 1.0;
-
-    // Result
-    std::vector<entt::handle> result;
+    static void draw_gui(Cmd& cmd);
+    static SplitCloudResult update_async(const Cmd& cmd, const PointCloud& cloud, const PointNormals* normals, const PointColors* colors);
+    static void update_sync(entt::handle h, SplitCloudResult&& split);
 };
 
-namespace cloud_view_system {
+// Cloud view system
+// ------------------
 
-void init(entt::registry& reg);
-void deinit(entt::registry& reg);
-void run(entt::registry& reg);
-
-}
+struct CloudView : public bait::System<CloudView> {
+    void init(entt::registry& reg);
+    void clear(entt::registry& reg);
+    void upudate(entt::registry& reg);
+};
