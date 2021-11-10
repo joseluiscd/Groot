@@ -1,73 +1,64 @@
-#include "import_ply.hpp"
+#include "cloud_io_system.hpp"
 #include "components.hpp"
+#include <CGAL/IO/write_ply_points.h>
 #include <fstream>
 #include <gfx/imgui/imfilebrowser.h>
 #include <groot/cloud_load.hpp>
 #include <spdlog/spdlog.h>
-#include <CGAL/IO/write_ply_points.h>
 
 const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
 const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
 
-ImportPLY::ImportPLY(entt::registry& _registry)
-    : registry(_registry)
-    , open(open_flags)
+bait::GuiOperation ImportPLY::draw_custom_gui(Cmd& cmd, GuiState& state)
 {
-    open.SetTitle("Open PLY Cloud");
-    open.SetTypeFilters({ ".ply" });
-    open.Open();
-}
+    state.open.Display();
 
-GuiState ImportPLY::draw_gui()
-{
-    open.Display();
-
-    if (open.HasSelected()) {
-        input_file = open.GetSelected().string();
-        open.ClearSelected();
-        return GuiState::RunAsync;
-    } else if (! open.IsOpened()) {
-        return GuiState::Close;
+    if (state.open.HasSelected()) {
+        cmd.input_file = state.open.GetSelected().string();
+        state.open.ClearSelected();
+        return bait::GuiOperation::Run;
+    } else if (!state.open.IsOpened()) {
+        return bait::GuiOperation::Close;
     } else {
-        return GuiState::Editing;
+        return bait::GuiOperation::Nop;
     }
 }
 
-CommandState ImportPLY::execute()
+ImportPLYResult ImportPLY::update_async(const Cmd& cmd)
 {
     spdlog::info("Loading PLY file...");
 
-    if (input_file.empty()) {
-        error_string = "Cannot open file";
-        return CommandState::Error;
+    if (cmd.input_file.empty()) {
+        return Result {};
     }
 
-    auto&& data = groot::load_PLY(input_file.c_str());
+    auto&& data = groot::load_PLY(cmd.input_file.c_str());
 
-    cloud = std::move(data.points);
-    normals = std::move(data.normals);
-    colors = std::move(data.colors);
-
-    spdlog::info("Loaded PLY file with {} points!", cloud.size());
-    return CommandState::Ok;
+    spdlog::info("Loaded PLY file with {} points!", data.points.size());
+    return Result { std::move(cmd.input_file), std::move(data.points), std::move(data.normals), std::move(data.colors) };
 }
 
-void ImportPLY::on_finish()
+void ImportPLY::update_sync(entt::handle h, Result&& cloud)
 {
-    auto entity = registry.create();
-    registry.emplace<PointCloud>(entity, std::move(cloud));
-    registry.emplace<Name>(entity, this->input_file);
-
-    if (normals) {
-        registry.emplace<PointNormals>(entity, std::move(*normals));
-    }
-    if (colors) {
-        registry.emplace<PointColors>(entity, std::move(*colors));
+    entt::registry& registry = *h.registry();
+    
+    if (cloud.cloud.empty()) {
+        return;
     }
 
-    result = entity;
+    entt::entity entity = registry.create();
+    registry.emplace<PointCloud>(entity, std::move(cloud.cloud));
+    registry.emplace<Name>(entity, cloud.name);
+
+    if (cloud.normals) {
+        registry.emplace<PointNormals>(entity, std::move(*cloud.normals));
+    }
+    if (cloud.colors) {
+        registry.emplace<PointColors>(entity, std::move(*cloud.colors));
+    }
 }
 
+/*
 ExportPLY::ExportPLY(entt::handle&& handle)
     : registry(*handle.registry())
     , save(save_flags)
@@ -96,7 +87,7 @@ GuiState ExportPLY::draw_gui()
         output_file = save.GetSelected().string();
         save.ClearSelected();
         return GuiState::RunAsync;
-    } else if (! save.IsOpened()) {
+    } else if (!save.IsOpened()) {
         return GuiState::Close;
     } else {
         return GuiState::Editing;
@@ -112,4 +103,4 @@ CommandState ExportPLY::execute()
     }
     return CommandState::Ok;
 }
-
+*/

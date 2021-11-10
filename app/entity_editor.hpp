@@ -30,7 +30,8 @@ inline void EntityWidget(EntityType& e, entt::basic_registry<EntityType>& reg, b
     if (reg.valid(e)) {
 		const char * name;
 		char namebuff[32];
-		auto& selected = reg.template ctx<SelectedEntity>().selected;
+
+        bool selected = reg.template all_of<Selected>(e);
         bool visible = reg.template all_of<Visible>(e);
 
         if (reg.template all_of<Name>(e)) {
@@ -53,9 +54,14 @@ inline void EntityWidget(EntityType& e, entt::basic_registry<EntityType>& reg, b
         ImGui::PopID();
 
         ImGui::SameLine();
-		if (ImGui::Selectable(name, selected == e)){
-			selected = e;
+		if (ImGui::Selectable(name, selected)){
+            if (selected) {
+                reg.template erase<Selected>(e);
+            } else {
+                reg.template emplace<Selected>(e);
+            }
 		}
+        ImGui::Text(name);
 
     } else {
         ImGui::Text("Invalid Entity");

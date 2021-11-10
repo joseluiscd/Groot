@@ -6,15 +6,40 @@
 #include <gfx/imgui/imgui.h>
 #include "render.hpp"
 
-namespace viewer_system {
 
-void run(entt::registry& registry)
+void ViewerSystem::init(entt::registry& registry)
+{
+    auto lens = std::make_unique<gfx::PerspectiveCameraLens>(70.0, 1.0, 0.2, 100.2);
+    auto camera = std::make_unique<gfx::CameraRig>(*lens);
+
+    RenderData data {
+        gfx::Framebuffer(),
+        std::move(camera),
+        std::move(lens),
+        glm::ivec2(0, 0)
+    };
+
+    data.framebuffer
+        .add_color_buffer(glm::ivec2(2048, 2048), gfx::TextureType::Rgba, 4)
+        .set_depth_buffer(glm::ivec2(2048, 2048), 4);
+
+    data.camera
+        ->with_position({ 0.0, 0.0, 20.0 })
+        .look_at({ 0.0, 0.0, 0.0 })
+        .with_up_vector({ 0.0, 1.0, 0.0 });
+
+    registry.set<RenderData>(std::move(data));
+
+    registry.ctx<EntityEditor>().registerComponent<Visible>("Visible");
+}
+
+void ViewerSystem::update(entt::registry& registry)
 {
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
 
     RenderData& data = registry.ctx<RenderData>();
 
-    ImGui::BeginFramebuffer("3D Viewer", data.framebuffer);
+    ImGui::BeginFramebuffer("3D Viewer", data.framebuffer, nullptr, ImGuiWindowFlags_NoCollapse);
     glm::ivec2 current_size = ImGui::GetWindowContentSize();
     if (current_size != data.size) {
         data.size = current_size;
@@ -41,35 +66,8 @@ void run(entt::registry& registry)
     ImGui::EndFramebuffer();
 }
 
-void init(entt::registry& registry)
-{
-    auto lens = std::make_unique<gfx::PerspectiveCameraLens>(70.0, 1.0, 0.2, 100.2);
-    auto camera = std::make_unique<gfx::CameraRig>(*lens);
 
-    RenderData data {
-        gfx::Framebuffer(),
-        std::move(camera),
-        std::move(lens),
-        glm::ivec2(0, 0)
-    };
-
-    data.framebuffer
-        .add_color_buffer(glm::ivec2(2048, 2048), gfx::TextureType::Rgba, 4)
-        .set_depth_buffer(glm::ivec2(2048, 2048), 4);
-
-    data.camera
-        ->with_position({ 0.0, 0.0, 20.0 })
-        .look_at({ 0.0, 0.0, 0.0 })
-        .with_up_vector({ 0.0, 1.0, 0.0 });
-
-    registry.set<RenderData>(std::move(data));
-
-    registry.ctx<EntityEditor>().registerComponent<Visible>("Visible");
-}
-
-void deinit(entt::registry &registry)
+void ViewerSystem::clear(entt::registry &registry)
 {
     registry.unset<RenderData>();
-}
-
 }

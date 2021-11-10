@@ -23,8 +23,6 @@ public:
     ~Application();
 
     void draw_gui();
-    void draw_command_gui();
-    void draw_background_tasks();
 
     void main_loop();
 
@@ -35,5 +33,6 @@ private:
 
     bait::AbstractSystem::Ptr systems;
 
+    entt::entity global;
     Windows windows;
 };

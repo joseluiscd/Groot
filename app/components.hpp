@@ -42,13 +42,10 @@ struct AABB {
     groot::cgal::Bbox_3 box;
 };
 
+struct Selected {};
+
 void init_components(entt::registry& reg);
 
-// Resources
-
-struct SelectedEntity {
-    entt::entity selected;
-};
 
 template <typename Component, typename... Components>
 std::string get_component_name_list()

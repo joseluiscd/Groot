@@ -7,8 +7,11 @@
 #include "render.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/font_awesome.hpp>
-#include "cloud_system.hpp"
 #include <boost/stacktrace.hpp>
+#include <type_traits>
+#include "cloud_system.hpp"
+#include "cloud_io_system.hpp"
+#include "viewer_system.hpp"
 
 void ui_wait_handler(async::task_wait_handle h)
 {
@@ -27,14 +30,18 @@ Application::Application(entt::registry& _reg)
         .debug_draw = true,
         .debug_context = true,
     })
-    , systems(bait::make_dynamic_system_collection(
-        ComputeNormals{}
-    ))
+    , systems(bait::make_dynamic_system_collection<
+        CloudSystem,
+        CloudIOSystem,
+        ViewerSystem>())
+    , global(registry.create())
 {
     registry.set<EntityEditor>();
 
     init_components(registry);
     ShaderCollection::init(registry);
+
+    systems->init(registry);
 
     async::set_thread_wait_handler(ui_wait_handler);
 }
@@ -42,6 +49,7 @@ Application::Application(entt::registry& _reg)
 Application::~Application()
 {
     ShaderCollection::deinit(registry);
+    systems->clear(registry);
 }
 
 void Application::draw_gui()
@@ -49,6 +57,7 @@ void Application::draw_gui()
     ImGui::BeginMainWindow();
 
     if (ImGui::BeginMenuBar()) {
+        /*
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Workspace")) {
                 open_new_window<OpenWorkspace>(registry);
@@ -81,29 +90,29 @@ void Application::draw_gui()
             }
             ImGui::EndMenu();
         }
-
+        */
         if (ImGui::BeginMenu("Point Cloud")) {
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PLY")) {
-                open_new_window<ImportPLY>(registry);
+                registry.emplace<bait::GuiTarget<ImportPLY>>(global);
             }
 
+            /*
             if (ImGui::MenuItem(ICON_FA_FILE_EXPORT "\tExport PLY")) {
                 open_new_window<ExportPLY>(registry);
             }
 
             ImGui::Separator();
-
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
                 open_new_window<ComputeNormals>(registry);
             }
 
             if (ImGui::MenuItem(ICON_FA_CUBES "\tSplit Voxels...")) {
                 open_new_window<SplitCloud>(registry);
-            }
+            }*/
 
             ImGui::EndMenu();
         }
-
+        /*
         if (ImGui::BeginMenu("Plant Graph")) {
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCreate Graph from cloud...")) {
                 open_new_window<CreateGraph>(registry);
@@ -143,9 +152,9 @@ void Application::draw_gui()
             }
             ImGui::EndMenu();
         }
+        */
         ImGui::EndMenuBar();
     }
-
     {
         auto& fbo = registry.ctx<RenderData>().framebuffer;
         gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 1.0, 1.0, 1.0, 0.0 }));
@@ -160,15 +169,13 @@ void Application::draw_gui()
     }
     ImGui::End();
 
-    auto selected = registry.ctx<SelectedEntity>().selected;
+    /*auto selected = registry.ctx<SelectedEntity>().selected;
 
     if (ImGui::Begin("Entity properties")) {
         entity_editor.renderEditor(registry, selected);
     }
     ImGui::End();
-
-    draw_command_gui();
-    draw_background_tasks();
+    */
 
     if (windows.demo_window)
         ImGui::ShowDemoWindow(&windows.demo_window);
@@ -180,12 +187,7 @@ void Application::draw_gui()
 void Application::main_loop()
 {
     gui_app.main_loop([&]() {
-        while (!remove_background_tasks.empty()) {
-            remove_background_tasks.front()->command->on_finish();
-            remove_background_tasks.pop();
-        }
-
+        systems->update(registry);
         draw_gui();
-        sync_scheduler.run_all_tasks();
     });
 }

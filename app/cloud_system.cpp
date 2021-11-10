@@ -1,5 +1,6 @@
 #include "cloud_system.hpp"
 #include "components.hpp"
+#include "entt/entity/fwd.hpp"
 #include "render.hpp"
 #include "resources.hpp"
 #include "viewer_system.hpp"
@@ -31,7 +32,6 @@ void ComputeNormals::draw_gui(Cmd& cmd)
     }
 }
 
-
 PointNormals ComputeNormals::update_async(const Cmd& cmd, const PointCloud& cloud)
 {
     return PointNormals { groot::compute_normals(cloud.cloud.data(), cloud.cloud.size(), cmd.k, cmd.radius) };
@@ -42,6 +42,12 @@ void ComputeNormals::update_sync(entt::handle h, PointNormals&& normals)
     h.emplace_or_replace<PointNormals>(std::move(normals));
 }
 
+void RecenterCloud::draw_gui(Cmd& cmd)
+{
+    if (ImGui::RadioButton("Centroid", cmd.mode == RecenterCloudCmd::Centroid)) cmd.mode = RecenterCloudCmd::Centroid;
+    if (ImGui::RadioButton("Bounding Box Center", cmd.mode == RecenterCloudCmd::BoundCenter)) cmd.mode = RecenterCloudCmd::BoundCenter;
+}
+
 PointCloud RecenterCloud::update_async(const Cmd& cmd, const PointCloud& cloud)
 {
     PointCloud new_cloud(cloud);
@@ -49,7 +55,7 @@ PointCloud RecenterCloud::update_async(const Cmd& cmd, const PointCloud& cloud)
     return new_cloud;
 }
 
-void RecenterCloud::update_sync(entt::handle h, PointCloud &&new_cloud)
+void RecenterCloud::update_sync(entt::handle h, PointCloud&& new_cloud)
 {
     h.emplace_or_replace<PointCloud>(std::move(new_cloud));
 }
@@ -65,7 +71,7 @@ void SplitCloud::draw_gui(Cmd& cmd)
 SplitCloudResult SplitCloud::update_async(const Cmd& cmd, const PointCloud& cloud, const PointNormals* normals, const PointColors* colors)
 {
     groot::VoxelGrid grid = groot::voxel_grid(cloud.cloud.data(), cloud.cloud.size(), cmd.voxel_size);
-    
+
     SplitCloudResult result;
 
     for (size_t i = 0; i < grid.voxels.size(); i++) {
@@ -94,27 +100,32 @@ SplitCloudResult SplitCloud::update_async(const Cmd& cmd, const PointCloud& clou
     return result;
 }
 
-void SplitCloud::update_sync(entt::handle h, SplitCloudResult &&split)
+void SplitCloud::update_sync(entt::handle h, SplitCloudResult&& split)
 {
+    entt::registry& reg = *h.registry();
+
     for (size_t i = 0; i < split.clouds.size(); i++) {
         entt::entity entity = reg.create();
-        reg.emplace<PointCloud>(entity, std::move(result_clouds[i]));
-        if (normals) {
-            reg.emplace<PointNormals>(entity, std::move(result_normals[i]));
+
+        reg.emplace<PointCloud>(entity, std::move(split.clouds[i]));
+
+        if (!split.normals.empty()) {
+            reg.emplace<PointNormals>(entity, std::move(split.normals[i]));
         }
 
-        if (colors) {
-            reg.emplace<PointColors>(entity, std::move(result_colors[i]));
+        if (!split.colors.empty()) {
+            reg.emplace<PointColors>(entity, std::move(split.colors[i]));
         }
-
-        result.emplace_back(reg, entity);
     }
 }
 
-namespace cloud_view_system {
+// Cloud viewer
+// ---------------
 
-entt::observer cloud_modified;
-entt::observer normals_modified;
+struct CloudViewer::Impl {
+    entt::observer cloud_modified;
+    entt::observer normals_modified;
+};
 
 struct PointViewComponent {
     PointViewComponent();
@@ -274,7 +285,16 @@ void create_curvature_view(entt::registry& reg, entt::entity entity)
     view_data.vao.set_element_count(edit_curvature.vector().size());
 }
 
-void init(entt::registry& reg)
+CloudViewer::CloudViewer()
+    : _impl(new Impl)
+{
+}
+
+CloudViewer::~CloudViewer()
+{
+}
+
+void CloudViewer::init(entt::registry& reg)
 {
     auto& shaders = reg.ctx<ShaderCollection>();
     auto& system_data = reg.set<SystemData>(SystemData {
@@ -304,13 +324,13 @@ void init(entt::registry& reg)
             reg.on_destroy<PointCloud>().connect<&entt::registry::remove<PointNormals>>(),
         } });
 
-    cloud_modified.connect(reg,
+    _impl->cloud_modified.connect(reg,
         entt::collector
             .group<PointCloud>()
             .update<PointCloud>()
             .update<PointColors>());
 
-    normals_modified.connect(reg,
+    _impl->normals_modified.connect(reg,
         entt::collector
             .group<PointNormals>()
             .update<PointNormals>());
@@ -329,7 +349,7 @@ void init(entt::registry& reg)
     });
 }
 
-void deinit(entt::registry& reg)
+void CloudViewer::clear(entt::registry& reg)
 {
     reg.clear<PointViewComponent>();
     reg.clear<NormalViewComponent>();
@@ -343,7 +363,7 @@ void deinit(entt::registry& reg)
     reg.unset<SystemData>();
 }
 
-void run(entt::registry& reg)
+void CloudViewer::update(entt::registry& reg)
 {
     auto& view_data = reg.ctx<RenderData>();
     auto& system_data = reg.ctx<SystemData>();
@@ -351,14 +371,14 @@ void run(entt::registry& reg)
     auto point_views = reg.view<PointViewComponent, Visible>().each();
     auto normal_views = reg.view<NormalViewComponent, Visible>().each();
 
-    cloud_modified.each([&reg](auto entity) {
+    _impl->cloud_modified.each([&reg](auto entity) {
         if (!reg.all_of<PointViewComponent>(entity)) {
             reg.emplace<PointViewComponent>(entity);
         }
         update_cloud_view(reg, entity);
     });
 
-    normals_modified.each([&reg](auto entity) {
+    _impl->normals_modified.each([&reg](auto entity) {
         create_normal_view(reg, entity);
     });
 
@@ -398,14 +418,12 @@ void run(entt::registry& reg)
         .end_pipeline();
 }
 
-}
-
 namespace MM {
 
 template <>
-void ComponentEditorWidget<cloud_view_system::PointViewComponent>(entt::registry& reg, entt::registry::entity_type e)
+void ComponentEditorWidget<PointViewComponent>(entt::registry& reg, entt::registry::entity_type e)
 {
-    auto& t = reg.get<cloud_view_system::PointViewComponent>(e);
+    auto& t = reg.get<PointViewComponent>(e);
 
     ImGui::DragFloat("Point size", &*t.size, 0.05, 0.0, INFINITY);
 
@@ -420,28 +438,28 @@ void ComponentEditorWidget<cloud_view_system::PointViewComponent>(entt::registry
 }
 
 template <>
-void ComponentEditorWidget<cloud_view_system::NormalViewComponent>(entt::registry& reg, entt::registry::entity_type e)
+void ComponentEditorWidget<NormalViewComponent>(entt::registry& reg, entt::registry::entity_type e)
 {
-    auto& t = reg.get<cloud_view_system::NormalViewComponent>(e);
+    auto& t = reg.get<NormalViewComponent>(e);
 
     ImGui::ColorEdit3("Line color", glm::value_ptr(*t.color));
     ImGui::DragFloat("Line size", &*t.vector_size, 0.01, 0.0, INFINITY);
 }
 
 template <>
-void ComponentAddAction<cloud_view_system::PointViewComponent>(entt::registry& reg, entt::entity entity)
+void ComponentAddAction<PointViewComponent>(entt::registry& reg, entt::entity entity)
 {
     if (reg.all_of<PointCloud>(entity)) {
-        reg.emplace<cloud_view_system::PointViewComponent>(entity);
-        cloud_view_system::update_cloud_view(reg, entity);
+        reg.emplace<PointViewComponent>(entity);
+        update_cloud_view(reg, entity);
     }
 }
 
 template <>
-void ComponentAddAction<cloud_view_system::NormalViewComponent>(entt::registry& reg, entt::entity entity)
+void ComponentAddAction<NormalViewComponent>(entt::registry& reg, entt::entity entity)
 {
-    if (reg.all_of<PointNormals, cloud_view_system::PointViewComponent>(entity)) {
-        cloud_view_system::create_normal_view(reg, entity);
+    if (reg.all_of<PointNormals, PointViewComponent>(entity)) {
+        create_normal_view(reg, entity);
     }
 }
 

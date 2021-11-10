@@ -1,9 +1,10 @@
 #include "application.hpp"
 #include <doctest/doctest.h>
+#include <bait/bait.hpp>
 
 int main(int argc, const char** argv)
 {
-    doctest::Context context;
+    /*doctest::Context context;
 
     context.applyCommandLine(argc, argv);
 
@@ -13,5 +14,12 @@ int main(int argc, const char** argv)
         exit(res);
 
     return res;
+    */
+
+    bait::create_app<Application>([](Application& app){
+        app.main_loop();
+    });
+    return 0;
+
 }
 

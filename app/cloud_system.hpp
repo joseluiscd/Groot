@@ -40,6 +40,10 @@ struct ComputeNormals : public bait::GuiSystemImpl<bait::SystemImpl<bait::System
 // ------------------
 
 struct RecenterCloudCmd {
+    enum : int {
+        Centroid = 0,
+        BoundCenter
+    } mode = Centroid;
 };
 
 template <>
@@ -47,11 +51,14 @@ struct bait::SystemTraits<RecenterCloud> : bait::DefaultSystemTraits {
     using Cmd = RecenterCloudCmd;
     using Get = entt::get_t<const PointCloud>;
     using Result = PointCloud;
+
+    static constexpr const std::string_view name = "Recenter cloud";
 };
 
-struct RecenterCloud : public bait::SystemImpl<bait::System<RecenterCloud>> {
+struct RecenterCloud : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<RecenterCloud>>> {
     static PointCloud update_async(const Cmd& cmd, const PointCloud& cloud);
     static void update_sync(entt::handle h, PointCloud&& new_cloud);
+    static void draw_gui(Cmd& cmd);
 };
 
 // Split cloud
@@ -73,6 +80,8 @@ struct bait::SystemTraits<SplitCloud> : bait::DefaultSystemTraits {
     using Get = entt::get_t<const PointCloud>;
     using OptionalGet = entt::get_t<const PointNormals, const PointColors>;
     using Result = SplitCloudResult;
+
+    static constexpr const std::string_view name = "Split Cloud in Voxels";
 };
 
 struct SplitCloud : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<SplitCloud>>> {
@@ -84,8 +93,21 @@ struct SplitCloud : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<Spl
 // Cloud view system
 // ------------------
 
-struct CloudView : public bait::System<CloudView> {
+struct CloudViewer : public bait::System<CloudViewer> {
+    CloudViewer();
+    ~CloudViewer();
+
     void init(entt::registry& reg);
     void clear(entt::registry& reg);
-    void upudate(entt::registry& reg);
+    void update(entt::registry& reg);
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> _impl;
 };
+
+using CloudSystem = bait::SystemCollection<ComputeNormals, RecenterCloud, SplitCloud, CloudViewer>;
+
+inline CloudSystem c() {
+    return CloudSystem { };
+}

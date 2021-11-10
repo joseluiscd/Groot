@@ -14,44 +14,17 @@ add_library(groot
 
     entity_editor.hpp
 
-    import_ply.hpp
-    import_ply.cpp
-
-    serde.hpp
-
-    create_graph.hpp
-    create_graph.cpp
-    graph_cluster.hpp
-    graph_cluster.cpp
-
-    open_workspace.hpp
-    open_workspace.cpp
-    save_workspace.hpp
-    save_workspace.cpp
-
-    command_gui.hpp
-    command_gui.cpp
-
     render.hpp
     render.cpp
 
-    python.hpp
-    python.cpp
+    viewer_system.hpp
+    viewer_system.cpp
 
     cloud_system.hpp
     cloud_system.cpp
 
-    cylinder_marching.hpp
-    cylinder_marching.cpp
-    
-    cylinder_connect.hpp
-    cylinder_connect.cpp
-
-    viewer_system.cpp
-    viewer_system.hpp
-
-    graph_viewer_system.cpp
-    graph_viewer_system.hpp
+    cloud_io_system.hpp
+    cloud_io_system.cpp
 
     testing.cpp
 )

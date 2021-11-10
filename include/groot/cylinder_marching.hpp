@@ -23,9 +23,7 @@ using FuzzySphere = CGAL::Fuzzy_sphere<SearchTraits>;
 using PointMap = boost::iterator_property_map<Point_3*, boost::identity_property_map>;
 using NormalMap = boost::iterator_property_map<Vector_3*, boost::identity_property_map>;
 
-class RansacTraits : public CGAL::Shape_detection::Efficient_RANSAC_traits<Kernel, std::vector<size_t>, PointMap, NormalMap>{
-
-};
+using RansacTraits = CGAL::Shape_detection::Efficient_RANSAC_traits<Kernel, std::vector<size_t>, PointMap, NormalMap>;
 
 using Ransac = CGAL::Shape_detection::Efficient_RANSAC<RansacTraits>;
 
