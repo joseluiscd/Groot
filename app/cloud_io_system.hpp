@@ -44,7 +44,7 @@ struct bait::SystemTraits<ImportPLY> : bait::DefaultSystemTraits {
 };
 
 struct ImportPLY : public bait::CustomGuiSystemImpl<bait::SystemImpl<bait::System<ImportPLY>>> {
-    static Result update_async(const Cmd& cmd);
+    static Result update_async(Cmd&& cmd);
     static void update_sync(entt::handle h, Result&& cloud);
     static bait::GuiOperation draw_custom_gui(Cmd& cmd, GuiState& state);
 };

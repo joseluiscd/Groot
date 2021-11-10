@@ -13,6 +13,7 @@ void check_normals_cloud(entt::registry& reg, entt::entity entity)
 void init_components(entt::registry& reg)
 {
     auto& entity_editor = reg.ctx<EntityEditor>();
+    reg.set<SelectedEditEntity>(entt::null);
 
     entity_editor.registerComponent<Name>("Name");
     entity_editor.registerComponent<PointCloud>("Point Cloud");

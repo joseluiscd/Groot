@@ -32,7 +32,7 @@ struct bait::SystemTraits<ComputeNormals> : bait::DefaultSystemTraits {
 
 struct ComputeNormals : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<ComputeNormals>>> {
     static void draw_gui(Cmd& cmd);
-    static PointNormals update_async(const Cmd& cmd, const PointCloud& cloud);
+    static PointNormals update_async(Cmd&& cmd, const PointCloud& cloud);
     static void update_sync(entt::handle h, PointNormals&& normals);
 };
 
@@ -56,7 +56,7 @@ struct bait::SystemTraits<RecenterCloud> : bait::DefaultSystemTraits {
 };
 
 struct RecenterCloud : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<RecenterCloud>>> {
-    static PointCloud update_async(const Cmd& cmd, const PointCloud& cloud);
+    static PointCloud update_async(Cmd&& cmd, const PointCloud& cloud);
     static void update_sync(entt::handle h, PointCloud&& new_cloud);
     static void draw_gui(Cmd& cmd);
 };
@@ -86,7 +86,7 @@ struct bait::SystemTraits<SplitCloud> : bait::DefaultSystemTraits {
 
 struct SplitCloud : public bait::GuiSystemImpl<bait::SystemImpl<bait::System<SplitCloud>>> {
     static void draw_gui(Cmd& cmd);
-    static SplitCloudResult update_async(const Cmd& cmd, const PointCloud& cloud, const PointNormals* normals, const PointColors* colors);
+    static SplitCloudResult update_async(Cmd&& cmd, const PointCloud& cloud, const PointNormals* normals, const PointColors* colors);
     static void update_sync(entt::handle h, SplitCloudResult&& split);
 };
 

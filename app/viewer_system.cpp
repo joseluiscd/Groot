@@ -5,7 +5,7 @@
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include "render.hpp"
-
+#include <gfx/glad.h>
 
 void ViewerSystem::init(entt::registry& registry)
 {
@@ -39,7 +39,7 @@ void ViewerSystem::update(entt::registry& registry)
 
     RenderData& data = registry.ctx<RenderData>();
 
-    ImGui::BeginFramebuffer("3D Viewer", data.framebuffer, nullptr, ImGuiWindowFlags_NoCollapse);
+    ImGui::BeginFramebuffer("3D Viewer", data.framebuffer);
     glm::ivec2 current_size = ImGui::GetWindowContentSize();
     if (current_size != data.size) {
         data.size = current_size;
@@ -70,4 +70,20 @@ void ViewerSystem::update(entt::registry& registry)
 void ViewerSystem::clear(entt::registry &registry)
 {
     registry.unset<RenderData>();
+}
+
+void InitFrameSystem::init(entt::registry& reg)
+{
+
+}
+
+void InitFrameSystem::clear(entt::registry& reg)
+{
+
+}
+void InitFrameSystem::update(entt::registry& reg)
+{
+    auto& fbo = reg.ctx<RenderData>().framebuffer;
+    gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
+    glEnable(GL_DEPTH_TEST);
 }

@@ -9,6 +9,7 @@
 #include "components.hpp"
 #include <entt/entt.hpp>
 #include <gfx/imgui/imgui.h>
+#include <gfx/font_awesome.hpp>
 
 #ifndef MM_IEEE_ASSERT
 #define MM_IEEE_ASSERT(x) assert(x)
@@ -34,6 +35,8 @@ inline void EntityWidget(EntityType& e, entt::basic_registry<EntityType>& reg, b
         bool selected = reg.template all_of<Selected>(e);
         bool visible = reg.template all_of<Visible>(e);
 
+        SelectedEditEntity& edit_select = reg.template ctx<SelectedEditEntity>();
+
         if (reg.template all_of<Name>(e)) {
 			name = reg.template get<Name>(e).name.c_str();
         } else {
@@ -50,6 +53,11 @@ inline void EntityWidget(EntityType& e, entt::basic_registry<EntityType>& reg, b
                 reg.template remove<Visible>(e);
             }
         }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("###RB", edit_select.selected == e)) {
+            edit_select.selected = e;
+        }
+
         ImGui::PopID();
         ImGui::PopID();
 
@@ -61,7 +69,6 @@ inline void EntityWidget(EntityType& e, entt::basic_registry<EntityType>& reg, b
                 reg.template emplace<Selected>(e);
             }
 		}
-        ImGui::Text(name);
 
     } else {
         ImGui::Text("Invalid Entity");
@@ -261,13 +268,14 @@ public:
 
         if (comp_list.empty()) {
             ImGui::Text("All entities:");
+            ImGui::Text(ICON_FA_EYE "  " ICON_FA_EDIT);
             registry.each([&registry](auto e) {
                 MM_IEEE_ENTITY_WIDGET(e, registry, false);
             });
         } else {
             auto view = registry.runtime_view(comp_list.begin(), comp_list.end());
             ImGui::Text("%lu Entities Matching:", view.size_hint());
-
+            ImGui::Text(ICON_FA_EYE " " ICON_FA_EDIT);
             if (ImGui::BeginChild("entity list")) {
                 for (auto e : view) {
                     MM_IEEE_ENTITY_WIDGET(e, registry, false);

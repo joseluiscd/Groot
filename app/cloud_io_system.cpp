@@ -24,7 +24,7 @@ bait::GuiOperation ImportPLY::draw_custom_gui(Cmd& cmd, GuiState& state)
     }
 }
 
-ImportPLYResult ImportPLY::update_async(const Cmd& cmd)
+ImportPLYResult ImportPLY::update_async(Cmd&& cmd)
 {
     spdlog::info("Loading PLY file...");
 

@@ -2,6 +2,7 @@
 
 #include <bait/bait.hpp>
 #include <bait/system.hpp>
+#include <bait/gui_system.hpp>
 #include "entity_editor.hpp"
 #include <set>
 
@@ -25,6 +26,14 @@ public:
     void draw_gui();
 
     void main_loop();
+
+    template <typename Component>
+    void open_gui_selection()
+    {
+        bait::do_with_selection(registry, [this](entt::entity e) {
+            registry.emplace<bait::GuiTarget<Component>>(e);
+        });
+    }
 
 private:
     entt::entity get_selected_entity();

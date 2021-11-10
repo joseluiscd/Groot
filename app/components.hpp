@@ -43,6 +43,9 @@ struct AABB {
 };
 
 struct Selected {};
+struct SelectedEditEntity {
+    entt::entity selected;
+};
 
 void init_components(entt::registry& reg);
 

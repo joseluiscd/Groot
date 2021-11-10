@@ -10,3 +10,9 @@ struct ViewerSystem : public bait::System<ViewerSystem> {
     void clear(entt::registry& registry);
     void update(entt::registry& registry);
 };
+
+struct InitFrameSystem : public bait::System<InitFrameSystem> {
+    void init(entt::registry& registry);
+    void clear(entt::registry& registry);
+    void update(entt::registry& registry);
+};

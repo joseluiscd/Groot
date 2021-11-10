@@ -32,7 +32,7 @@ void ComputeNormals::draw_gui(Cmd& cmd)
     }
 }
 
-PointNormals ComputeNormals::update_async(const Cmd& cmd, const PointCloud& cloud)
+PointNormals ComputeNormals::update_async(Cmd&& cmd, const PointCloud& cloud)
 {
     return PointNormals { groot::compute_normals(cloud.cloud.data(), cloud.cloud.size(), cmd.k, cmd.radius) };
 }
@@ -48,7 +48,7 @@ void RecenterCloud::draw_gui(Cmd& cmd)
     if (ImGui::RadioButton("Bounding Box Center", cmd.mode == RecenterCloudCmd::BoundCenter)) cmd.mode = RecenterCloudCmd::BoundCenter;
 }
 
-PointCloud RecenterCloud::update_async(const Cmd& cmd, const PointCloud& cloud)
+PointCloud RecenterCloud::update_async(Cmd&& cmd, const PointCloud& cloud)
 {
     PointCloud new_cloud(cloud);
     groot::recenter_cloud_centroid(new_cloud.cloud.data(), new_cloud.cloud.size());
@@ -68,7 +68,7 @@ void SplitCloud::draw_gui(Cmd& cmd)
     ImGui::InputFloat("Voxel size", &cmd.voxel_size, 0.5, 0.1);
 }
 
-SplitCloudResult SplitCloud::update_async(const Cmd& cmd, const PointCloud& cloud, const PointNormals* normals, const PointColors* colors)
+SplitCloudResult SplitCloud::update_async(Cmd&& cmd, const PointCloud& cloud, const PointNormals* normals, const PointColors* colors)
 {
     groot::VoxelGrid grid = groot::voxel_grid(cloud.cloud.data(), cloud.cloud.size(), cmd.voxel_size);
 

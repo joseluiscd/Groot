@@ -31,6 +31,7 @@ Application::Application(entt::registry& _reg)
         .debug_context = true,
     })
     , systems(bait::make_dynamic_system_collection<
+        InitFrameSystem,
         CloudSystem,
         CloudIOSystem,
         ViewerSystem>())
@@ -99,16 +100,16 @@ void Application::draw_gui()
             /*
             if (ImGui::MenuItem(ICON_FA_FILE_EXPORT "\tExport PLY")) {
                 open_new_window<ExportPLY>(registry);
-            }
+            }*/
 
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
-                open_new_window<ComputeNormals>(registry);
+                open_gui_selection<ComputeNormals>();
             }
 
             if (ImGui::MenuItem(ICON_FA_CUBES "\tSplit Voxels...")) {
-                open_new_window<SplitCloud>(registry);
-            }*/
+                open_gui_selection<SplitCloud>();
+            }
 
             ImGui::EndMenu();
         }
@@ -155,13 +156,6 @@ void Application::draw_gui()
         */
         ImGui::EndMenuBar();
     }
-    {
-        auto& fbo = registry.ctx<RenderData>().framebuffer;
-        gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 1.0, 1.0, 1.0, 0.0 }));
-        //gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
-        glEnable(GL_DEPTH_TEST);
-    }
-
 
     auto& entity_editor = registry.ctx<EntityEditor>();
     if (ImGui::Begin("Entity List")) {
@@ -169,13 +163,12 @@ void Application::draw_gui()
     }
     ImGui::End();
 
-    /*auto selected = registry.ctx<SelectedEntity>().selected;
+    auto selected = registry.ctx<SelectedEditEntity>().selected;
 
     if (ImGui::Begin("Entity properties")) {
         entity_editor.renderEditor(registry, selected);
     }
     ImGui::End();
-    */
 
     if (windows.demo_window)
         ImGui::ShowDemoWindow(&windows.demo_window);
