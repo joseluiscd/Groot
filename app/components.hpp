@@ -4,6 +4,7 @@
 #include <fmt/format.h>
 #include <groot/cgal.hpp>
 #include <groot/cylinder_marching.hpp>
+#include <bait/bait.hpp>
 #include <string>
 
 struct Name {
@@ -42,10 +43,11 @@ struct AABB {
     groot::cgal::Bbox_3 box;
 };
 
-struct Selected {};
 struct SelectedEditEntity {
     entt::entity selected;
 };
+
+using Selected = bait::Selected;
 
 void init_components(entt::registry& reg);
 
