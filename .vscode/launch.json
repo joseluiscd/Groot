@@ -20,5 +20,13 @@
             "args": ["scripts/viewer.py", "--debug"],
             "cwd": "${workspaceFolder}",
         },
+        {
+            "name": "C++ Viewer",
+            "type": "lldb",
+            "request": "launch",
+            "program": "build/app/groot_exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+        },
     ]
 }
