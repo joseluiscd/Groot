@@ -177,6 +177,20 @@ void Application::draw_gui()
 
     if (windows.demo_window)
         ImGui::ShowDemoWindow(&windows.demo_window);
+    if (windows.about) {
+        ImGui::Begin("About", &windows.about);
+        ImGui::Text(
+            R"(
+            GROOT: General ReconstructiOn Of Trees
+
+            Author: José Luis Cárdenas Donoso.
+            Afljksadfljk
+            )"
+        );
+
+        ImGui::End();
+    }
+
 }
 
 void Application::step()

@@ -1,21 +1,12 @@
-[submodule "util/cfglib"]
-	path = util/cfglib
-	url = https://github.com/joseluiscd/cfglib.git
-[submodule "3rdparty/jet-live"]
-	path = 3rdparty/jet-live
-	url = https://github.com/ddovod/jet-live.git
-[submodule "3rdparty/zep"]
-	path = 3rdparty/zep
-	url = https://github.com/Rezonality/zep.git
 [submodule "3rdparty/doctest"]
 	path = 3rdparty/doctest
 	url = https://github.com/onqtam/doctest
-[submodule "3rdparty/gfx"]
-	path = 3rdparty/gfx
-	url = git@github.com:joseluiscd/gfx.git
 [submodule "3rdparty/entt"]
 	path = 3rdparty/entt
 	url = https://github.com/skypjack/entt.git
 [submodule "3rdparty/glfw"]
 	path = 3rdparty/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "3rdparty/bait"]
+	path = 3rdparty/bait
+	url = https://github.com/joseluiscd/bait.git

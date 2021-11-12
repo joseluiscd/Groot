@@ -14,7 +14,7 @@ set(CMAKE_MODULE_PATH
     )
 
 
-find_package(Boost 1.69 REQUIRED COMPONENTS graph serialization python39 numpy39)
+find_package(Boost 1.69 REQUIRED COMPONENTS graph serialization)
 find_package(CGAL 5 REQUIRED)
 find_package(TBB REQUIRED)
 find_package(glm REQUIRED)
@@ -49,8 +49,6 @@ target_link_libraries(groot_base
     spdlog::spdlog
     Boost::boost
     Boost::serialization
-    Boost::python39
-    Boost::numpy39
     EnTT::EnTT
     doctest
     gfx
