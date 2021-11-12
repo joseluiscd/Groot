@@ -13,6 +13,7 @@ struct Windows {
     bool main_viewer = true;
     bool console_log = true;
     bool demo_window = false;
+    bool about = false;
 };
 
 class Application : public bait::Application {
@@ -25,7 +26,7 @@ public:
 
     void draw_gui();
 
-    void main_loop();
+    void step();
 
     template <typename Component>
     void open_gui_selection()

@@ -39,31 +39,33 @@ void ViewerSystem::update(entt::registry& registry)
 
     RenderData& data = registry.ctx<RenderData>();
 
-    ImGui::BeginFramebuffer("3D Viewer", data.framebuffer);
-    glm::ivec2 current_size = ImGui::GetWindowContentSize();
-    if (current_size != data.size) {
-        data.size = current_size;
-        data.camera->lens().resize_event(current_size);
+
+    if (ImGui::BeginFramebuffer("3D Viewer", data.framebuffer, nullptr, ImGuiWindowFlags_DockNodeHost)) {
+        glm::ivec2 current_size = ImGui::GetWindowContentSize();
+        if (current_size != data.size) {
+            data.size = current_size;
+            data.camera->lens().resize_event(current_size);
+        }
+
+        if (ImGui::IsItemActive()) {
+            glm::vec2 drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.0);
+            data.camera->orbit(drag.x * 0.01);
+            data.camera->orbit_vertical(drag.y * 0.01);
+            ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+
+            drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0.0);
+            data.camera->truck(-drag.x * 0.01);
+            data.camera->vertical(drag.y * 0.01);
+            ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
+        }
+
+        if (ImGui::IsItemHovered()) {
+            data.camera->advance(ImGui::GetIO().MouseWheel * 0.2);
+            //data.lens->zoom(1.0 + ImGui::GetIO().MouseWheel * 0.001);
+        }
+
+        ImGui::EndFramebuffer();
     }
-
-    if (ImGui::IsItemActive()) {
-        glm::vec2 drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.0);
-        data.camera->orbit(drag.x * 0.01);
-        data.camera->orbit_vertical(drag.y * 0.01);
-        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
-
-        drag = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0.0);
-        data.camera->truck(-drag.x * 0.01);
-        data.camera->vertical(drag.y * 0.01);
-        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
-    }
-
-    if (ImGui::IsItemHovered()) {
-        data.camera->advance(ImGui::GetIO().MouseWheel * 0.2);
-        //data.lens->zoom(1.0 + ImGui::GetIO().MouseWheel * 0.001);
-    }
-
-    ImGui::EndFramebuffer();
 }
 
 

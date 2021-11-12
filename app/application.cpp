@@ -12,6 +12,8 @@
 #include "cloud_system.hpp"
 #include "cloud_io_system.hpp"
 #include "viewer_system.hpp"
+#include <bait/cr.h>
+#include <bait/guest.hpp>
 
 void ui_wait_handler(async::task_wait_handle h)
 {
@@ -55,7 +57,6 @@ Application::~Application()
 
 void Application::draw_gui()
 {
-    ImGui::BeginMainWindow();
 
     if (ImGui::BeginMenuBar()) {
         /*
@@ -146,14 +147,18 @@ void Application::draw_gui()
             }
             ImGui::EndMenu();
         }
-
+        */
         if (ImGui::BeginMenu("Help")) {
-            if (ImGui::MenuItem(ICON_FA_BUG "\tDemo window")) {
+            if (ImGui::MenuItem(ICON_FA_BUG "\tImGui demo window")) {
                 windows.demo_window = true;
+            }
+
+            if (ImGui::MenuItem(ICON_FA_INFO "\tAbout...")) {
+                windows.about = true;
             }
             ImGui::EndMenu();
         }
-        */
+
         ImGui::EndMenuBar();
     }
 
@@ -172,15 +177,22 @@ void Application::draw_gui()
 
     if (windows.demo_window)
         ImGui::ShowDemoWindow(&windows.demo_window);
-
-    ImGui::EndMainWindow();
-    gui_app.draw_gui();
 }
 
-void Application::main_loop()
+void Application::step()
 {
-    gui_app.main_loop([&]() {
+    gui_app.step([this]() {
+        ImGui::BeginMainWindow();
         systems->update(registry);
         draw_gui();
+
+        ImGui::EndMainWindow();
+        gui_app.draw_gui();
     });
+}
+
+CR_EXPORT int cr_main(cr_plugin* ctx, cr_op operation)
+{
+    bait::step_app<Application>(ctx, operation);
+    return 0;
 }
