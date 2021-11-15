@@ -1,23 +1,25 @@
 #include "application.hpp"
 #include "cloud_system.hpp"
+#include "command.hpp"
 #include "components.hpp"
 #include "create_graph.hpp"
-#include "graph_cluster.hpp"
-#include "cylinder_marching.hpp"
 #include "cylinder_connect.hpp"
+#include "cylinder_marching.hpp"
 #include "entt/entity/fwd.hpp"
 #include "gfx/font_awesome.hpp"
+#include "graph_cluster.hpp"
 #include "graph_viewer_system.hpp"
 #include "import_ply.hpp"
 #include "open_workspace.hpp"
 #include "render.hpp"
 #include "save_workspace.hpp"
 #include "viewer_system.hpp"
+#include <gfx/glad.h>
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <spdlog/spdlog.h>
-#include <gfx/glad.h>
+#include "app_log.hpp"
 
 Application::Application(entt::registry& _reg)
     : gui_app(gfx::InitOptions {
@@ -29,6 +31,7 @@ Application::Application(entt::registry& _reg)
         .debug_context = true,
     })
     , registry(_reg)
+    , app_log(new AppLog)
 {
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();
@@ -39,6 +42,8 @@ Application::Application(entt::registry& _reg)
     graph_viewer_system::init(registry);
     cloud_view_system::init(registry);
     cylinder_view_system::init(registry);
+
+    spdlog::default_logger()->sinks().push_back(app_log);
 }
 
 Application::~Application()
@@ -60,11 +65,10 @@ BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>
     }
 
     (*it)->command = std::move(command);
-    (*it)->task = async::spawn([=](){
-        CommandState result = (*it)->command->execute();
-        this->notify_task_finished(it, result);
+    (*it)->task = async::spawn([=]() {
+        return (*it)->command->execute();
     });
-    
+
     return it;
 }
 
@@ -85,16 +89,6 @@ void Application::execute_command(Command* command)
     }
 }
 
-void Application::notify_task_finished(BackgroundTaskHandle task, CommandState result)
-{
-    std::unique_lock _lock(background_task_lock);
-    if (result == CommandState::Error) {
-        this->show_error((*task)->command->error_string);
-    }
-    remove_background_tasks.push(*task);
-    background_tasks.erase(task);
-}
-
 void Application::open_window(CommandGui* gui)
 {
     std::unique_lock _lock(command_gui_lock);
@@ -107,18 +101,34 @@ void Application::show_error(const std::string& error)
     spdlog::error("{}", error);
 }
 
-
 void Application::draw_background_tasks()
 {
-    if (ImGui::Begin("Background tasks", &windows.background_tasks)) {
-        std::shared_lock _lock(background_task_lock);
-        for (auto it = background_tasks.begin(); it != background_tasks.end(); ++it) {
-            ImGui::Spinner("##spinner", 10.0f);
-            ImGui::SameLine();
-            ImGui::Text("Background task 0x%zx", (size_t)it->get());
+    auto it = background_tasks.begin();
+    while (it != background_tasks.end()) {
+        if ((*it)->task.ready()) {
+            CommandState result = (*it)->task.get();
+            if (result == CommandState::Ok) {
+                (*it)->command->on_finish();
+                background_tasks.erase(it++);
+            } else {
+                this->show_error((*it)->command->error_string);
+            }
+        } else {
+            it++;
         }
     }
-    ImGui::End();
+
+    if (windows.background_tasks) {
+        if (ImGui::Begin("Background tasks", &windows.background_tasks)) {
+            std::shared_lock _lock(background_task_lock);
+            for (auto it = background_tasks.begin(); it != background_tasks.end(); ++it) {
+                ImGui::Spinner("##spinner", 10.0f, 5.0f);
+                ImGui::SameLine();
+                ImGui::Text((*it)->command->name().data(), (size_t)it->get());
+            }
+        }
+        ImGui::End();
+    }
 }
 
 void Application::draw_command_gui()
@@ -169,8 +179,8 @@ void Application::draw_gui()
             ImGui::Separator();
 
             if (ImGui::MenuItem(ICON_FA_TRASH "\tClear Invisible")) {
-                registry.each([&](entt::entity e){
-                    if (! registry.all_of<Visible>(e)) {
+                registry.each([&](entt::entity e) {
+                    if (!registry.all_of<Visible>(e)) {
                         registry.destroy(e);
                     }
                 });
@@ -245,6 +255,14 @@ void Application::draw_gui()
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Window")) {
+            ImGui::MenuItem("Background tasks", nullptr, &windows.background_tasks);
+            ImGui::MenuItem("Demo window", nullptr, &windows.demo_window);
+            ImGui::MenuItem("Logger", nullptr, &windows.console_log);
+
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem(ICON_FA_BUG "\tDemo window")) {
                 windows.demo_window = true;
@@ -280,6 +298,7 @@ void Application::draw_gui()
 
     draw_command_gui();
     draw_background_tasks();
+    draw_console_log();
 
     if (windows.demo_window)
         ImGui::ShowDemoWindow(&windows.demo_window);
@@ -288,14 +307,16 @@ void Application::draw_gui()
     gui_app.draw_gui();
 }
 
+void Application::draw_console_log()
+{
+    if (windows.console_log) {
+        app_log->Draw("Log", &windows.console_log);
+    }
+}
+
 void Application::main_loop()
 {
     gui_app.main_loop([&]() {
-        while (!remove_background_tasks.empty()) {
-            remove_background_tasks.front()->command->on_finish();
-            remove_background_tasks.pop();
-        }
-
         draw_gui();
     });
 }

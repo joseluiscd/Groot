@@ -9,12 +9,13 @@
 #include <queue>
 #include <shared_mutex>
 #include <async++.h>
+#include "app_log.hpp"
 
 class Application;
 
 
 struct BackgroundTask {
-     async::task<void> task;
+    async::task<CommandState> task;
     std::unique_ptr<Command> command;
 };
 
@@ -54,13 +55,12 @@ public:
         }
     }
 
-    void notify_task_finished(BackgroundTaskHandle task, CommandState result);
-
     void show_error(const std::string& error);
 
     void draw_gui();
     void draw_command_gui();
     void draw_background_tasks();
+    void draw_console_log();
 
     void main_loop();
 
@@ -81,4 +81,6 @@ private:
     std::shared_mutex command_gui_lock;
 
     Windows windows;
+
+    std::shared_ptr<AppLog> app_log;
 };

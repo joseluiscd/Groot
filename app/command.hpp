@@ -23,6 +23,10 @@ public:
         return CommandState::Error;
     }
 
+    virtual const std::string_view name() {
+        return "Generic command name";
+    }
+
     std::string error_string = "";
 };
 
