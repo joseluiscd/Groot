@@ -5,7 +5,7 @@
 
 void check_normals_cloud(entt::registry& reg, entt::entity entity)
 {
-    if (!reg.all_of<PointCloud>(entity) && reg.get<PointCloud>(entity).cloud.size() != reg.get<PointNormals>(entity).normals.size()) {
+    if (!reg.all_of<PointCloud>(entity) || reg.get<PointCloud>(entity).cloud.size() != reg.get<PointNormals>(entity).normals.size()) {
         reg.remove<PointNormals>(entity);
     }
 }
@@ -89,4 +89,11 @@ void ComponentEditorWidget<Cylinders>(entt::registry& reg, entt::registry::entit
     }
 }
 
+template <>
+void ComponentAddAction<PointNormals>(entt::registry& reg, entt::entity entity)
+{
+    if (reg.all_of<PointCloud>(entity)) {
+        reg.emplace<PointNormals>(entity);
+    }
+}
 }

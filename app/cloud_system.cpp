@@ -330,6 +330,10 @@ void update_cloud_view(entt::registry& registry, entt::entity entity)
 
 void create_normal_view(entt::registry& reg, entt::entity entity)
 {
+    if (! reg.all_of<PointViewComponent, PointNormals>(entity)) {
+        return;
+    }
+
     auto& cloud_view = reg.get<PointViewComponent>(entity);
     reg.emplace_or_replace<NormalViewComponent>(entity, cloud_view);
 
