@@ -58,7 +58,11 @@ target_link_libraries(groot
     gfx
     EnTT::EnTT
     Python3::Python
+    Async++
 )
 
-add_executable(groot_exe main.cpp)
-target_link_libraries(groot_exe groot)
+add_executable(groot_test main_test.cpp)
+target_link_libraries(groot_test groot)
+
+add_executable(groot_run main.cpp)
+target_link_libraries(groot_run groot)

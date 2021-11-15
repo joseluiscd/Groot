@@ -1,17 +1,10 @@
 #include "application.hpp"
-#include <doctest/doctest.h>
+#include "entt/entity/fwd.hpp"
 
-int main(int argc, const char** argv)
-{
-    doctest::Context context;
+int main() {
+    entt::registry reg;
 
-    context.applyCommandLine(argc, argv);
-
-    int res = context.run(); // run
-
-    if(context.shouldExit()) // important - query flags (and --exit) rely on the user doing this
-        exit(res);
-
-    return res;
+    Application app(reg);
+    app.main_loop();
+    return 0;
 }
-

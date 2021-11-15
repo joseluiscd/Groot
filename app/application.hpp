@@ -8,13 +8,13 @@
 #include <list>
 #include <queue>
 #include <shared_mutex>
+#include <async++.h>
 
 class Application;
 
-struct BackgroundTask {
-    std::shared_mutex lock;
 
-    std::future<void> task;
+struct BackgroundTask {
+     async::task<void> task;
     std::unique_ptr<Command> command;
 };
 

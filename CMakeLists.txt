@@ -15,15 +15,13 @@ set(CMAKE_MODULE_PATH
 
 
 find_package(Boost 1.69 REQUIRED COMPONENTS graph serialization python39 numpy39)
-find_package(CGAL 5 REQUIRED)
 find_package(TBB REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.5 REQUIRED)
 find_package(Eigen3 REQUIRED 3.3)
 find_package(Python3 REQUIRED COMPONENTS Development)
+find_package(CGAL 5.3 REQUIRED)
 
-include(CGAL_TBB_support)
-include(CGAL_Eigen_support)
 
 set(GFX_BUILD_EXAMPLES OFF)
 set(BUILD_DEMOS OFF CACHE BOOL "enable Zep demos")
@@ -34,6 +32,11 @@ add_subdirectory(3rdparty/glfw)
 add_subdirectory(3rdparty/gfx)
 add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/entt)
+add_subdirectory(3rdparty/asyncplusplus)
+
+
+include(CGAL_TBB_support)
+include(CGAL_Eigen_support)
 
 file(GLOB SOURCES 
     include/groot/*.hpp

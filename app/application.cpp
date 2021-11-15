@@ -60,13 +60,11 @@ BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>
     }
 
     (*it)->command = std::move(command);
-    (*it)->task = std::async([=]() {
-        std::shared_lock _lock((*it)->lock);
-
+    (*it)->task = async::spawn([=](){
         CommandState result = (*it)->command->execute();
         this->notify_task_finished(it, result);
     });
-
+    
     return it;
 }
 
