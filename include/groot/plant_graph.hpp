@@ -42,7 +42,6 @@ void reindex_edges(PlantGraph& graph);
 
 struct VertexProperties {
     cgal::Point_3 position = cgal::Point_3(0, 0, 0);
-    float radius = 0.0;
     float root_distance = 0.0;
 };
 
@@ -176,7 +175,7 @@ namespace serialization {
     template <class Archive>
     void serialize(Archive& ar, groot::VertexProperties& props, unsigned /*version*/)
     {
-        ar& props.position& props.root_distance& props.radius;
+        ar& props.position& props.root_distance;
     }
 
     template <class Archive>

@@ -4,9 +4,9 @@
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
 
-
 struct AppLog : public spdlog::sinks::base_sink<std::mutex> {
-    AppLog() {
+    AppLog()
+    {
     }
 
     ImGuiTextBuffer Buf;
@@ -22,11 +22,23 @@ struct AppLog : public spdlog::sinks::base_sink<std::mutex> {
 
     void Draw(const char* title, bool* p_opened = NULL)
     {
+        ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
         ImGui::Begin(title, p_opened);
+        if (ImGui::Button("Clear"))
+            Clear();
+        ImGui::SameLine();
+        bool copy = ImGui::Button("Copy");
+        ImGui::Separator();
+        ImGui::BeginChild("scrolling");
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 1));
+        if (copy)
+            ImGui::LogToClipboard();
         ImGui::TextUnformatted(Buf.begin());
         if (ScrollToBottom)
             ImGui::SetScrollHereY(1.0f);
         ScrollToBottom = false;
+        ImGui::PopStyleVar();
+        ImGui::EndChild();
         ImGui::End();
     }
 
