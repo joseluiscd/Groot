@@ -31,7 +31,7 @@ CloudData load_PLY(const char* filename)
 
     if (normals_data != nullptr && normals_data->t == tinyply::Type::FLOAT32) {
         normals.resize(normals_data->count);
-        std::copy_n((cgal::Vector_3*)normals_data->buffer.get(), normals_data->count, normals.end());
+        std::copy_n((cgal::Vector_3*)normals_data->buffer.get(), normals_data->count, normals.begin());
     }
 
     if (color_data == nullptr) {

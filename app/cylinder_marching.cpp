@@ -12,10 +12,9 @@
 #include <queue>
 
 CylinderMarching::CylinderMarching(entt::registry& _reg)
-    : CylinderMarching(entt::handle{
+    : CylinderMarching(entt::handle {
         _reg,
-        _reg.ctx<SelectedEntity>().selected
-    })
+        _reg.ctx<SelectedEntity>().selected })
 {
 }
 
@@ -75,16 +74,15 @@ CommandState CylinderMarching::execute()
     return CommandState::Ok;
 }
 
-void CylinderMarching::on_finish()
+void CylinderMarching::on_finish(entt::registry& reg)
 {
     reg.emplace_or_replace<Cylinders>(target, std::move(result));
 }
 
 CylinderFilter::CylinderFilter(entt::registry& _reg)
-    : CylinderFilter(entt::handle{
+    : CylinderFilter(entt::handle {
         _reg,
-        _reg.ctx<SelectedEntity>().selected
-    })
+        _reg.ctx<SelectedEntity>().selected })
 {
 }
 
@@ -92,10 +90,7 @@ CylinderFilter::CylinderFilter(entt::handle&& handle)
     : reg(*handle.registry())
 {
     target = handle.entity();
-    if (reg.valid(target) && reg.all_of<Cylinders>(target)) {
-    } else {
-        throw std::runtime_error("Selected entity must have Cylinders component");
-    }
+    cylinders = require_components<Cylinders>(handle);
 }
 GuiState CylinderFilter::draw_gui()
 {
@@ -123,7 +118,7 @@ GuiState CylinderFilter::draw_gui()
 
         if (ImGui::Button("Run")) {
             ImGui::EndPopup();
-            return GuiState::RunSync;
+            return GuiState::RunAsync;
         }
 
         ImGui::EndPopup();
@@ -134,9 +129,7 @@ GuiState CylinderFilter::draw_gui()
 
 CommandState CylinderFilter::execute()
 {
-    reg.patch<Cylinders>(target, [&](Cylinders& cylinders) {
-        std::vector<groot::CylinderWithPoints> new_cylinders;
-        for (auto it = cylinders.cylinders.begin(); it != cylinders.cylinders.end(); ++it) {
+        for (auto it = cylinders->cylinders.begin(); it != cylinders->cylinders.end(); ++it) {
             const float radius = it->cylinder.radius;
             const float length = it->cylinder.middle_height * 2;
 
@@ -144,14 +137,16 @@ CommandState CylinderFilter::execute()
                     || (radius_range[0] < radius && radius < radius_range[1]))
                 && (!filter_length
                     || (length_range[0] < length && length < length_range[1]))) {
-            
+
                 new_cylinders.push_back(*it);
             }
         }
-
-        cylinders.cylinders.swap(new_cylinders);
-    });
     return CommandState::Ok;
+}
+
+void CylinderFilter::on_finish(entt::registry& reg)
+{
+    reg.emplace_or_replace<Cylinders>(target, std::move(new_cylinders));
 }
 
 CylinderPointFilter::CylinderPointFilter(entt::handle&& handle)
@@ -175,7 +170,7 @@ CommandState CylinderPointFilter::execute()
     return CommandState::Ok;
 }
 
-void CylinderPointFilter::on_finish()
+void CylinderPointFilter::on_finish(entt::registry& reg)
 {
     reg.emplace_or_replace<PointCloud>(target, std::move(cloud));
 }
@@ -213,7 +208,7 @@ void update_cylinder_view(entt::registry& reg, entt::entity entity)
 
     edit.vector().clear();
 
-    for (groot::CylinderWithPoints& c: cylinders.cylinders) {
+    for (groot::CylinderWithPoints& c : cylinders.cylinders) {
         edit.vector().push_back(c.cylinder);
     }
 
@@ -238,12 +233,12 @@ void init(entt::registry& reg)
     auto& entity_editor = reg.ctx<EntityEditor>();
     entity_editor.registerComponent<CylinderViewComponent>("Cylinder View", true);
 
-    reg.view<Cylinders>().each([&](entt::entity e, const auto& _){
+    reg.view<Cylinders>().each([&](entt::entity e, const auto& _) {
         update_cylinder_view(reg, e);
     });
 }
 
-void deinit(entt::registry &reg)
+void deinit(entt::registry& reg)
 {
     reg.on_destroy<Cylinders>().disconnect<&entt::registry::remove<CylinderViewComponent>>();
     reg.on_construct<Cylinders>().disconnect<&entt::registry::emplace_or_replace<CylinderViewComponent>>();

@@ -171,7 +171,7 @@ GuiState GraphCluster::draw_gui()
     return show ? GuiState::Editing : GuiState::Close;
 }
 
-void GraphCluster::on_finish()
+void GraphCluster::on_finish(entt::registry& reg)
 {
     reg.emplace_or_replace<groot::PlantGraph>(target, std::move(result));
 }

@@ -131,7 +131,7 @@ public:
         return registerComponent<Component>(name, ComponentEditorWidget<Component, EntityType>, alt_color);
     }
 
-    void renderEditor(Registry& registry, EntityType& e)
+    void renderEditor(Registry& registry, EntityType& e, bool disable_delete = false)
     {
         ImGui::TextUnformatted("Editing:");
         ImGui::SameLine();
@@ -157,7 +157,7 @@ public:
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.65f, 0.15f, 0.15f, 1.f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.3f, 0.3f, 1.f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.f, 0.2f, 0.2f, 1.f));
-            if (ImGui::Button("Destroy")) {
+            if (!disable_delete && ImGui::Button("Destroy")) {
                 registry.destroy(e);
                 e = entt::null;
             }
@@ -174,11 +174,11 @@ public:
             for (auto& [component_type_id, ci] : component_infos) {
                 if (entityHasComponent(registry, e, component_type_id)) {
                     ImGui::PushID(component_type_id);
-                    if (ImGui::Button("-")) {
+                    if (!disable_delete && ImGui::Button("-")) {
                         ci.destroy(registry, e);
                         ImGui::PopID();
                         continue; // early out to prevent access to deleted data
-                    } else {
+                    } else if (!disable_delete){
                         ImGui::SameLine();
                     }
 

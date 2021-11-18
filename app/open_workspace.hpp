@@ -7,9 +7,10 @@
 
 class OpenWorkspace : public CommandGui {
 public:
-    OpenWorkspace(entt::registry& registry);
+    OpenWorkspace();
     CommandState execute() override;
     GuiState draw_gui() override;
+    void on_finish(entt::registry& reg) override;
 
     OpenWorkspace& set_file(const std::filesystem::path& path)
     {
@@ -21,6 +22,4 @@ public:
 private:
     ImGui::FileBrowser file_dialog;
     std::filesystem::path selected_file;
-
-    entt::registry& reg;
 };

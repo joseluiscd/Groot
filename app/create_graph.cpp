@@ -150,7 +150,7 @@ CommandState CreateGraph::execute()
     return CommandState::Ok;
 }
 
-void CreateGraph::on_finish()
+void CreateGraph::on_finish(entt::registry& reg)
 {
     if (this->result) {
         registry.emplace_or_replace<groot::PlantGraph>(target, std::move(*this->result));

@@ -77,23 +77,10 @@ BackgroundTaskHandle Application::execute_command_async(Command* command)
     return execute_command_async(std::unique_ptr<Command>(command));
 }
 
-void Application::execute_command(Command* command)
+
+void Application::open_window(Gui* gui)
 {
-    switch (command->execute()) {
-    case CommandState::Error:
-        this->show_error(command->error_string);
-        break;
-
-    default:
-        break;
-    }
-}
-
-void Application::open_window(CommandGui* gui)
-{
-    std::unique_lock _lock(command_gui_lock);
-
-    command_guis.emplace_back(gui);
+    guis.emplace_back(gui);
 }
 
 void Application::show_error(const std::string& error)
@@ -108,7 +95,7 @@ void Application::draw_background_tasks()
         if ((*it)->task.ready()) {
             CommandState result = (*it)->task.get();
             if (result == CommandState::Ok) {
-                (*it)->command->on_finish();
+                (*it)->command->on_finish(registry);
                 background_tasks.erase(it++);
             } else {
                 this->show_error((*it)->command->error_string);
@@ -133,30 +120,27 @@ void Application::draw_background_tasks()
 
 void Application::draw_command_gui()
 {
-    std::unique_lock _lock(command_gui_lock);
+    std::vector<Command*> commands;
+    bool erase = false;
 
-    auto it = command_guis.begin();
-    while (it != command_guis.end()) {
+    auto it = guis.begin();
+    while (it != guis.end()) {
         switch ((*it)->draw_gui()) {
-        case GuiState::Close:
-            command_guis.erase(it++);
+        case GuiResult::Close:
+            guis.erase(it++);
             break;
 
-        case GuiState::Editing:
+        case GuiResult::KeepOpen:
             ++it;
             break;
 
-        case GuiState::RunSync:
-            this->execute_command(it->get());
-            command_guis.erase(it++);
-            break;
-        case GuiState::RunAsync:
-            this->execute_command_async(std::move(*it));
-            command_guis.erase(it++);
-            break;
-        case GuiState::RunAsyncUpdate:
-            this->execute_command_async(std::move(*it));
-            ++it;
+        case GuiResult::RunAndClose: erase = true; [[fallthrough]];
+        case GuiResult::RunAndKeepOpen:
+            commands = (*it)->get_commands();
+            for (auto command : commands) {
+                this->execute_command_async(command);
+            }
+            if (erase) guis.erase(it++);
             break;
         }
     }
@@ -169,11 +153,11 @@ void Application::draw_gui()
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Workspace")) {
-                open_new_window<OpenWorkspace>(registry);
+                open_new_window_adaptor<OpenWorkspace>();
             }
 
             if (ImGui::MenuItem(ICON_FA_SAVE "\tSave Workspace")) {
-                open_new_window<SaveWorkspace>(registry);
+                open_new_window_adaptor<SaveWorkspace>(registry);
             }
 
             ImGui::Separator();
@@ -202,21 +186,21 @@ void Application::draw_gui()
 
         if (ImGui::BeginMenu("Point Cloud")) {
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PLY")) {
-                open_new_window<ImportPLY>(registry);
+                open_new_window_adaptor<ImportPLY>(registry);
             }
 
             if (ImGui::MenuItem(ICON_FA_FILE_EXPORT "\tExport PLY")) {
-                open_new_window<ExportPLY>(registry);
+                open_new_window_adaptor<ExportPLY>(registry);
             }
 
             ImGui::Separator();
 
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
-                open_new_window<ComputeNormals>(registry);
+                open_new_window_adaptor<ComputeNormals>(registry);
             }
 
             if (ImGui::MenuItem(ICON_FA_CUBES "\tSplit Voxels...")) {
-                open_new_window<SplitCloud>(registry);
+                open_new_window_adaptor<SplitCloud>(registry);
             }
 
             ImGui::EndMenu();
@@ -224,33 +208,36 @@ void Application::draw_gui()
 
         if (ImGui::BeginMenu("Plant Graph")) {
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCreate Graph from cloud...")) {
-                open_new_window<CreateGraph>(registry);
+                open_new_window_adaptor<CreateGraph>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
-                open_new_window<GraphCluster>(registry);
+                open_new_window_adaptor<GraphCluster>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute from cylinders")) {
-                open_new_window<CylinderConnection>(registry);
+                open_new_window_adaptor<CylinderConnection>(registry);
             }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tGeodesic graph")) {
-                open_new_window<GeodesicGraphCommand>(registry);
+                open_new_window_adaptor<GeodesicGraphCommand>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tMinimum Spanning Tree")) {
-                open_new_window<MSTGraphCommand>(registry);
+                open_new_window_adaptor<MSTGraphCommand>(registry);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tResample Graph")) {
             }
             ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Cylinders")) {
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCylinders...")) {
-                open_new_window<CylinderMarching>(registry);
+                open_new_window_adaptor<CylinderMarching>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_FILTER "\tFilter Cylinders...")) {
-                open_new_window<CylinderFilter>(registry);
+                open_new_window_adaptor<CylinderFilter>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_CUBE "\tBuild cloud from cylinders")) {
-                open_new_window<CylinderPointFilter>(registry);
+                open_new_window_adaptor<CylinderPointFilter>(registry);
             }
             ImGui::EndMenu();
         }
@@ -274,7 +261,7 @@ void Application::draw_gui()
 
     {
         auto& fbo = registry.ctx<RenderData>().framebuffer;
-        gfx::RenderPass(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
+        gfx::RenderPass _(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
         glEnable(GL_DEPTH_TEST);
     }
 
@@ -292,7 +279,7 @@ void Application::draw_gui()
     auto selected = registry.ctx<SelectedEntity>().selected;
 
     if (ImGui::Begin("Entity properties")) {
-        entity_editor.renderEditor(registry, selected);
+        entity_editor.renderEditor(registry, selected, !background_tasks.empty());
     }
     ImGui::End();
 

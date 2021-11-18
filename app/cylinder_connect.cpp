@@ -18,7 +18,7 @@ CommandState CylinderConnection::execute()
     return CommandState::Ok;
 }
 
-void CylinderConnection::on_finish()
+void CylinderConnection::on_finish(entt::registry& reg)
 {
     reg.emplace_or_replace<groot::PlantGraph>(target, std::move(*result));
 }

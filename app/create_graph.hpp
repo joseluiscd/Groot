@@ -64,7 +64,7 @@ struct CreateGraph : public CommandGui {
 
     GuiState draw_gui() override;
     CommandState execute() override;
-    void on_finish() override;
+    void on_finish(entt::registry& reg) override;
 
     static constexpr const char* root_find_labels[RootFindMethod::kRootFindMethod_COUNT] = {
         "Z min",
@@ -111,7 +111,7 @@ struct SimpleGraphCommand : public CommandGui {
         return CommandState::Ok;
     }
 
-    void on_finish() override
+    void on_finish(entt::registry& reg) override
     {
         if (this->result) {
             registry.replace<groot::PlantGraph>(target, std::move(*this->result));

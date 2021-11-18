@@ -1,12 +1,11 @@
 #include "open_workspace.hpp"
-#include <fstream>
 #include "serde.hpp"
+#include <fstream>
 #include <groot/plant_graph.hpp>
 #include <spdlog/spdlog.h>
 
-OpenWorkspace::OpenWorkspace(entt::registry& _reg)
-    : reg(_reg)
-    , file_dialog()
+OpenWorkspace::OpenWorkspace()
+    : file_dialog()
 {
     file_dialog.SetTitle("Graph Open");
     file_dialog.SetTypeFilters({ ".ggf" });
@@ -20,13 +19,18 @@ GuiState OpenWorkspace::draw_gui()
     if (file_dialog.HasSelected()) {
         selected_file = file_dialog.GetSelected();
         file_dialog.ClearSelected();
-        return GuiState::RunSync;
+        return GuiState::RunAsync;
     }
 
     return GuiState::Editing;
 }
 
 CommandState OpenWorkspace::execute()
+{
+    return CommandState::Ok;
+}
+
+void OpenWorkspace::on_finish(entt::registry& reg)
 {
     std::ifstream file(selected_file, std::ios::binary);
     Deserializer in_archive(file);
@@ -41,7 +45,4 @@ CommandState OpenWorkspace::execute()
             PointNormals,
             Cylinders,
             groot::PlantGraph>(in_archive);
-            
-
-    return CommandState::Ok;
 }

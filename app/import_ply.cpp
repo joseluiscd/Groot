@@ -52,7 +52,7 @@ CommandState ImportPLY::execute()
     return CommandState::Ok;
 }
 
-void ImportPLY::on_finish()
+void ImportPLY::on_finish(entt::registry& reg)
 {
     auto entity = registry.create();
     registry.emplace<PointCloud>(entity, std::move(cloud));

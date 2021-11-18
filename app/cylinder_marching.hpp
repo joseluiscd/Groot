@@ -12,7 +12,7 @@ public:
 
     GuiState draw_gui() override;
     CommandState execute() override;
-    void on_finish() override;
+    void on_finish(entt::registry& reg) override;
 
 private:
     entt::registry& reg;
@@ -38,10 +38,15 @@ public:
 
     GuiState draw_gui() override;
     CommandState execute() override;
+    void on_finish(entt::registry& reg) override;
 
 private:
     entt::registry& reg;
     entt::entity target;
+
+    Cylinders* cylinders;
+
+    std::vector<groot::CylinderWithPoints> new_cylinders;
 
 public:
     // Params
@@ -68,7 +73,7 @@ public:
     }
 
     CommandState execute() override;
-    void on_finish() override;
+    void on_finish(entt::registry& reg) override;
 
 private:
     entt::registry& reg;

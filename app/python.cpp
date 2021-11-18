@@ -76,7 +76,7 @@ public:
         cmd.k = k; 
         cmd.radius = radius;
 
-        cmd.run();
+        cmd.run(*e.registry());
     }
 
     void cylinder_marching(
@@ -95,7 +95,7 @@ public:
         cmd.normal_deviation = normal_deviation;
         cmd.overlook_probability = overlook_probability;
         cmd.voxel_size = voxel_size;
-        cmd.run();
+        cmd.run(*e.registry());
     }
 
     void cylinder_filter(
@@ -112,7 +112,7 @@ public:
         cmd.filter_length = true;
         cmd.length_range[0] = length_min;
         cmd.length_range[1] = length_max;
-        cmd.run();
+        cmd.run(*e.registry());
     }
 
     boost::python::list split_cloud(float voxel_size)
@@ -121,7 +121,7 @@ public:
 
         SplitCloud cmd{entt::handle(e)};
         cmd.voxel_size = voxel_size;
-        cmd.run();
+        cmd.run(*e.registry());
 
         for (auto i : cmd.result) {
             result.append(Entity(i));
@@ -132,20 +132,20 @@ public:
     void rebuild_cloud_from_cylinders()
     {
         CylinderPointFilter cmd{entt::handle(e)};
-        cmd.run();
+        cmd.run(*e.registry());
     }
 
     void build_graph_from_cylinders()
     {
         CylinderConnection cmd{entt::handle(e)};
-        cmd.run();
+        cmd.run(*e.registry());
     }
     
     void graph_cluster(int intervals)
     {
         GraphCluster cmd{entt::handle(e)};
         cmd.interval_count = intervals;
-        cmd.run();
+        cmd.run(*e.registry());
     }
 
     void graph_from_cloud_knn(int k)
@@ -153,7 +153,15 @@ public:
         CreateGraph cmd{entt::handle(e)};
         cmd.selected_method = CreateGraph::Method::kKnn;
         cmd.k = k;
-        cmd.run();
+        cmd.run(*e.registry());
+    }
+
+    void graph_from_alpha_shape(float k)
+    {
+        CreateGraph cmd{entt::handle(e)};
+        cmd.selected_method = CreateGraph::Method::kAlphaShape;
+        cmd.alpha = k;
+        cmd.run(*e.registry());
     }
 
 private:
@@ -184,23 +192,23 @@ public:
 
     void load(const std::string& filename)
     {
-        OpenWorkspace cmd{ reg };
+        OpenWorkspace cmd;
         cmd.set_file(filename);
-        cmd.run();
+        cmd.run(reg);
     }
     
     void save(const std::string& filename)
     {
         SaveWorkspace cmd{ reg };
         cmd.set_file(filename);
-        cmd.run(); 
+        cmd.run(reg);
     }
 
     Entity load_ply(const std::string& filename)
     {
         ImportPLY cmd(reg);
         cmd.input_file = filename;
-        cmd.run();
+        cmd.run(reg);
         return Entity(reg, cmd.result);
     }
 

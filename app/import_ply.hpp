@@ -15,7 +15,7 @@ public:
 
     GuiState draw_gui() override;
     CommandState execute() override;
-    void on_finish() override;
+    void on_finish(entt::registry& reg) override;
 
     entt::entity result;
 

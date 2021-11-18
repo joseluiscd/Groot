@@ -13,7 +13,7 @@ public:
 
     GuiState draw_gui() override;
     CommandState execute() override;
-    void on_finish() override;
+    void on_finish(entt::registry& reg) override;
 
 private:
     entt::registry& registry;
@@ -36,11 +36,14 @@ public:
 
     GuiState draw_gui() override;
     CommandState execute() override;
+    void on_finish(entt::registry& reg) override;
 
 private:
     entt::registry& reg;
     PointCloud* cloud;
     entt::entity target;
+
+    PointCloud centered;
 
     int selected;
 };
@@ -57,7 +60,7 @@ public:
 
     GuiState draw_gui() override;
     CommandState execute() override;
-    void on_finish() override;
+    void on_finish(entt::registry& reg) override;
 
 private:
     entt::registry& reg;

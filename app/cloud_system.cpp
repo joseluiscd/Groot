@@ -69,7 +69,7 @@ CommandState ComputeNormals::execute()
     return CommandState::Ok;
 }
 
-void ComputeNormals::on_finish()
+void ComputeNormals::on_finish(entt::registry& reg)
 {
     registry.emplace_or_replace<PointNormals>(target, std::move(normals));
 }
@@ -98,7 +98,7 @@ GuiState RecenterCloud::draw_gui()
 
         if (ImGui::Button("Run")) {
             ImGui::EndPopup();
-            return GuiState::RunSync;
+            return GuiState::RunAsync;
         }
 
         ImGui::EndPopup();
@@ -109,11 +109,17 @@ GuiState RecenterCloud::draw_gui()
 
 CommandState RecenterCloud::execute()
 {
-    reg.patch<PointCloud>(target, [&](auto& cloud) {
-        groot::recenter_cloud_centroid(cloud.cloud.data(), cloud.cloud.size());
-    });
+    this->centered = *this->cloud;
+    groot::recenter_cloud_centroid(centered.cloud.data(), centered.cloud.size());
     return CommandState::Ok;
 }
+
+void RecenterCloud::on_finish(entt::registry& reg)
+{
+    reg.emplace_or_replace<PointCloud>(target, std::move(centered));
+}
+
+
 
 SplitCloud::SplitCloud(entt::handle&& _handle)
     : reg(*_handle.registry())
@@ -184,7 +190,7 @@ CommandState SplitCloud::execute()
     return CommandState::Ok;
 }
 
-void SplitCloud::on_finish()
+void SplitCloud::on_finish(entt::registry& reg)
 {
     for (size_t i = 0; i < result_clouds.size(); i++) {
         entt::entity entity = reg.create();

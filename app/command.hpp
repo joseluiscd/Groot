@@ -1,7 +1,8 @@
 #pragma once
 
-#include <string>
+#include <entt/entt.hpp>
 #include <stdexcept>
+#include <string>
 
 enum class CommandState : bool {
     Ok = false,
@@ -13,17 +14,19 @@ class Command {
 public:
     virtual ~Command() { }
     virtual CommandState execute() = 0;
-    virtual void on_finish() {}
+    virtual void on_finish(entt::registry& reg) { }
 
-    CommandState run() {
+    CommandState run(entt::registry& reg)
+    {
         if (this->execute() == CommandState::Ok) {
-            this->on_finish();
+            this->on_finish(reg);
             return CommandState::Ok;
         }
         return CommandState::Error;
     }
 
-    virtual const std::string_view name() {
+    virtual const std::string_view name()
+    {
         return "Generic command name";
     }
 

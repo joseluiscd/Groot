@@ -188,12 +188,16 @@ PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const
     //std::vector<EdgeElement> elements(components * components);
 
     // Further operation
-    //PlantGraph alpha_graph = from_alpha_shape(cloud, count, 0.0, 1);
+    PlantGraph alpha_graph = from_alpha_shape(cloud, count, 0.0, 1);
+    groot::find_root(radius_graph, f);
+    alpha_graph = geodesic(alpha_graph);
     //PlantGraph alpha_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius * 2, .search = SearchType::kRadiusSearch});
     //PlantGraph alpha_graph = from_cardenas_et_al(cloud, count, radius * 2);
-    PlantGraph alpha_graph = from_delaunay(cloud, count);
-    groot::find_root(radius_graph, f);
-    alpha_graph = minimum_spanning_tree(alpha_graph);
+
+    // Este es el bueno:
+    //PlantGraph alpha_graph = from_delaunay(cloud, count);
+    //groot::find_root(radius_graph, f);
+    //alpha_graph = minimum_spanning_tree(alpha_graph);
 
     auto [edge_begin, edge_end] = boost::edges(alpha_graph);
     for (auto i = edge_begin; i != edge_end; ++i) {
