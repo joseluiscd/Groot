@@ -4,27 +4,26 @@
 #include "entt/entity/fwd.hpp"
 #include "render.hpp"
 #include "resources.hpp"
+#include <boost/graph/detail/adjacency_list.hpp>
 #include <gfx/buffer.hpp>
+#include <gfx/debug_draw.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <groot/plant_graph.hpp>
-#include <gfx/debug_draw.hpp>
 
 namespace graph_viewer_system {
 
 extern const char* vertex_shader_source;
 extern const char* fragment_shader_source;
 
-entt::observer update_graph;
-entt::observer create_graph;
-
 struct GraphViewerComponent {
     GraphViewerComponent();
 
     bool show_points = true;
     bool show_lines = true;
+    bool show_ids = false;
 
     gfx::VertexArray point_vao;
     gfx::VertexArray line_vao;
@@ -60,25 +59,20 @@ GraphViewerComponent::GraphViewerComponent()
 }
 
 struct SystemData {
+    SystemData(gfx::RenderPipeline&& p)
+        : pipeline(p)
+        , update_graph()
+        , create_graph()
+    {
+    }
     gfx::RenderPipeline pipeline;
+    entt::observer update_graph;
+    entt::observer create_graph;
 };
 
 void init(entt::registry& registry)
 {
-
-    //registry.on_construct<groot::PlantGraph>()
-    //    .connect<&entt::registry::emplace<GraphViewerComponent>>();
-    update_graph.connect(
-        registry,
-        entt::collector
-            .update<groot::PlantGraph>()
-            .where<GraphViewerComponent>());
-
-    create_graph.connect(
-        registry,
-        entt::collector.group<groot::PlantGraph>());
-
-    registry.set<SystemData>(SystemData {
+    auto& system_data = registry.set<SystemData>(std::move(
         gfx::RenderPipeline::Builder()
             .with_shader(gfx::ShaderProgram::Builder()
                              .register_uniform<Color>()
@@ -88,14 +82,23 @@ void init(entt::registry& registry)
                              .with_vertex_shader(vertex_shader_source)
                              .with_fragment_shader(fragment_shader_source)
                              .build())
-            .build() });
+            .build() ));
+
+    system_data.update_graph.connect(
+        registry,
+        entt::collector
+            .update<groot::PlantGraph>()
+            .where<GraphViewerComponent>());
+
+    system_data.create_graph.connect(
+        registry,
+        entt::collector.group<groot::PlantGraph>());
 
     auto& entity_editor = registry.ctx<EntityEditor>();
     entity_editor.registerComponent<GraphViewerComponent>("Graph View", true);
-    entity_editor.registerComponent<groot::PlantGraph>("PlantGraph");
 }
 
-void deinit(entt::registry &registry)
+void deinit(entt::registry& registry)
 {
     registry.clear<GraphViewerComponent>();
     registry.unset<SystemData>();
@@ -105,6 +108,9 @@ void run(entt::registry& registry)
 {
     auto& data = registry.ctx<SystemData>();
     auto& view_data = registry.ctx<RenderData>();
+    auto& draw_list = registry.ctx<TextRenderDrawList>();
+
+    glm::mat4 view_proj_matrix = view_data.camera->get_matrix();
 
     auto update_viewer_component = [&](entt::entity entity) {
         groot::PlantGraph& _graph = registry.get<groot::PlantGraph>(entity);
@@ -145,19 +151,19 @@ void run(entt::registry& registry)
             }
         });
     };
-    for (const auto entity : create_graph) {
+    for (const auto entity : data.create_graph) {
         registry.emplace<GraphViewerComponent>(entity);
         registry.emplace_or_replace<Visible>(entity);
 
         update_viewer_component(entity);
     }
 
-    for (const auto entity : update_graph) {
+    for (const auto entity : data.update_graph) {
         update_viewer_component(entity);
     }
 
-    create_graph.clear();
-    update_graph.clear();
+    data.create_graph.clear();
+    data.update_graph.clear();
 
     const auto view = registry.view<GraphViewerComponent, Visible>();
     for (const auto entity : view) {
@@ -186,6 +192,17 @@ void run(entt::registry& registry)
                 .draw(graph_view.line_vao);
         }
         pipe.end_pipeline();
+
+        if (graph_view.show_ids) {
+            for (size_t i = 0; i < graph_view.points.size(); i++) {
+                glm::vec4 p = view_proj_matrix * glm::vec4(graph_view.points[i], 1.0);
+                p /= p.w;
+                if (p.z > 0) {
+                    std::string t = fmt::format("{}", i);
+                    draw_list.add_text(glm::vec2(p), t.data(), t.size());
+                }
+            }
+        }
     }
 }
 
@@ -241,5 +258,7 @@ void ComponentEditorWidget<graph_viewer_system::GraphViewerComponent>(entt::regi
     if (t.show_lines) {
         ImGui::ColorEdit3("Line color", glm::value_ptr(*t.color_line));
     }
+
+    ImGui::Checkbox("Show vertex IDs", &t.show_ids);
 }
 }

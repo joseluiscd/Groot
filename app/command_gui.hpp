@@ -29,6 +29,7 @@ class Gui {
 public:
     virtual std::vector<Command*> get_commands() = 0;
     virtual GuiResult draw_gui() = 0;
+    virtual ~Gui() {}
 };
 
 class GuiAdapter : public Gui {

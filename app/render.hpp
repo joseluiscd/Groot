@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gfx/imgui/imgui.h"
+#include <entt/entt.hpp>
+#include <gfx/camera.hpp>
+#include <gfx/framebuffer.hpp>
 #include <gfx/uniform.hpp>
 #include <gfx/vertex_array.hpp>
-#include <entt/entt.hpp>
-#include <gfx/framebuffer.hpp>
-#include <gfx/camera.hpp>
 
 using namespace entt::literals;
 
@@ -38,6 +39,15 @@ struct RenderData {
     RenderData& operator=(const RenderData&) = delete;
 };
 
+struct TextRenderDrawList {
+    std::string text_buffer;
+    std::vector<glm::vec2> positions;
+    std::vector<size_t> begin;
+
+    void add_text(const glm::vec2& position, const char* text, size_t size);
+    void dump_to_draw_list(ImDrawList* list, glm::vec2 offset = { 0, 0 }, glm::vec2 size = { 1, 1 });
+};
+
 class ShaderCollection {
 public:
     ShaderCollection();
@@ -52,12 +62,11 @@ public:
         ShaderID_Count
     };
 
-    std::shared_ptr<gfx::ShaderProgram> get_shader(ShaderID id) {
+    std::shared_ptr<gfx::ShaderProgram> get_shader(ShaderID id)
+    {
         return shaders[id];
     }
 
 private:
     std::array<std::shared_ptr<gfx::ShaderProgram>, ShaderID_Count> shaders;
 };
-
-

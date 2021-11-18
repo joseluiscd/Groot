@@ -1,10 +1,10 @@
 #include "viewer_system.hpp"
-#include "entity_editor.hpp"
-#include "resources.hpp"
 #include "components.hpp"
+#include "entity_editor.hpp"
+#include "render.hpp"
+#include "resources.hpp"
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
-#include "render.hpp"
 
 namespace viewer_system {
 
@@ -13,6 +13,7 @@ void run(entt::registry& registry)
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
 
     RenderData& data = registry.ctx<RenderData>();
+    TextRenderDrawList& text = registry.ctx<TextRenderDrawList>();
 
     if (ImGui::BeginFramebuffer("3D Viewer", data.framebuffer)) {
         glm::ivec2 current_size = ImGui::GetWindowContentSize();
@@ -64,9 +65,10 @@ void init(entt::registry& registry)
         .with_up_vector({ 0.0, 1.0, 0.0 });
 
     registry.set<RenderData>(std::move(data));
+    registry.set<TextRenderDrawList>();
 }
 
-void deinit(entt::registry &registry)
+void deinit(entt::registry& registry)
 {
     registry.unset<RenderData>();
 }

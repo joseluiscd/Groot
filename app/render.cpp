@@ -244,6 +244,31 @@ void main()
 }
 )";
  
+void TextRenderDrawList::add_text(const glm::vec2 &position, const char *text, size_t size)
+{
+    positions.push_back(position);
+    begin.push_back(text_buffer.size());
+    text_buffer += std::string_view(text, size);
+}
+
+void TextRenderDrawList::dump_to_draw_list(ImDrawList* list, glm::vec2 offset, glm::vec2 max)
+{
+    //list->PushClipRect(offset, size);
+    glm::vec2 size = max -offset;
+    
+    begin.push_back(text_buffer.size());
+    for (size_t i = 0; i < begin.size()-1; i++) {
+        glm::vec2 p = (glm::vec2(1, 1) + positions[i]) * size * 0.5f;
+        p.y = size.y - p.y;
+        list->AddText(p + offset, 0xFFFFFFFF, &text_buffer[begin[i]], &text_buffer[begin[i+1]]);
+    }
+    //list->PopClipRect();
+
+    text_buffer.clear();
+    positions.clear();
+    begin.clear();
+}
+
 ShaderCollection::ShaderCollection()
     : shaders(
         { gfx::ShaderProgram::Builder("Points")
