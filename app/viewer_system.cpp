@@ -39,6 +39,7 @@ void run(entt::registry& registry)
             //data.lens->zoom(1.0 + ImGui::GetIO().MouseWheel * 0.001);
         }
 
+        text.dump_to_draw_list(ImGui::GetWindowDrawList(), ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
         ImGui::EndFramebuffer();
     }
 }
