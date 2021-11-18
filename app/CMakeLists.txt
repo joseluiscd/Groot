@@ -5,6 +5,9 @@
 add_library(groot
     SHARED
 
+    app_log.hpp
+    app_log.cpp
+
     application.hpp
     application.cpp
     

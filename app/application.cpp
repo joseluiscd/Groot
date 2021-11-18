@@ -291,7 +291,7 @@ void Application::draw_gui()
 void Application::draw_console_log()
 {
     if (windows.console_log) {
-        app_log->Draw("Log", &windows.console_log);
+        app_log->draw("Log", &windows.console_log);
     }
 }
 
