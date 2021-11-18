@@ -5,6 +5,7 @@
 #include <groot/cgal.hpp>
 #include <groot/cylinder_marching.hpp>
 #include <string>
+#include <groot/plant_graph.hpp>
 
 struct Name {
     std::string name;
@@ -40,6 +41,10 @@ struct Cylinders {
 
 struct AABB {
     groot::cgal::Bbox_3 box;
+};
+
+struct PlantGraphNodePoints {
+    groot::PropertyMap<std::vector<groot::Point_3>> points;
 };
 
 void init_components(entt::registry& reg);

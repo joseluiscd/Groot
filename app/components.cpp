@@ -1,11 +1,13 @@
 #include "components.hpp"
 #include "entity_editor.hpp"
+#include "gfx/imgui/imgui.h"
+#include "groot/cloud_load.hpp"
 #include "resources.hpp"
 #include <gfx/imgui/imgui_stdlib.h>
 
 void check_normals_cloud(entt::registry& reg, entt::entity entity)
 {
-    if (!reg.all_of<PointCloud>(entity) || reg.get<PointCloud>(entity).cloud.size() != reg.get<PointNormals>(entity).normals.size()) {
+    if (!reg.all_of<PointCloud, PointNormals>(entity) || reg.get<PointCloud>(entity).cloud.size() != reg.get<PointNormals>(entity).normals.size()) {
         reg.remove<PointNormals>(entity);
     }
 }
@@ -18,6 +20,8 @@ void init_components(entt::registry& reg)
     entity_editor.registerComponent<PointCloud>("Point Cloud");
     entity_editor.registerComponent<PointNormals>("Point Normals");
     entity_editor.registerComponent<Cylinders>("Cylinders");
+    entity_editor.registerComponent<groot::PlantGraph>("PlantGraph");
+    entity_editor.registerComponent<PlantGraphNodePoints>("PlantNodePoints");
 
     // Ensure that the normals are always "valid"
     reg.on_construct<PointNormals>().connect<&check_normals_cloud>();
@@ -96,4 +100,30 @@ void ComponentAddAction<PointNormals>(entt::registry& reg, entt::entity entity)
         reg.emplace<PointNormals>(entity);
     }
 }
+
+template <>
+void ComponentEditorWidget<PlantGraphNodePoints>(entt::registry& reg, entt::registry::entity_type e)
+{
+    auto& t = reg.get<PlantGraphNodePoints>(e);
+
+    for (size_t i = 0; i < t.points.size(); i++) {
+        if (ImGui::TreeNode((void*)i, "Node %zu", i)) {
+            ImGui::Text("Node with %zu points", t.points[i].size());
+            if (ImGui::Button("Dump to file")) {
+                groot::save_PLY("out.ply", t.points[i].data(), t.points[i].size());
+            }
+            if (ImGui::TreeNode("Points")) {
+                for (size_t j = 0; j < t.points[i].size(); j++) {
+                    ImGui::Text("Point: (%f, %f, %f)",
+                        t.points[i][j].x(),
+                        t.points[i][j].y(),
+                        t.points[i][j].z());
+                }
+                ImGui::TreePop();
+            }
+            ImGui::TreePop();
+        }
+    }
+}
+
 }

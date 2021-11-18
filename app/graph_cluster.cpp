@@ -1,4 +1,6 @@
 #include "graph_cluster.hpp"
+#include "components.hpp"
+#include "groot/plant_graph.hpp"
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>
@@ -80,7 +82,7 @@ CommandState GraphCluster::execute()
     std::map<std::pair<size_t, size_t>, groot::Vertex> cluster_vertices;
 
     // Map (simpified vertex) -> (list of points in the cluster)
-    std::vector<std::list<groot::cgal::Point_3>> cluster_points(boost::num_vertices(g));
+    std::vector<std::vector<groot::cgal::Point_3>> cluster_points(boost::num_vertices(g));
     auto cluster_points_map = boost::make_iterator_property_map(cluster_points.begin(), boost::get(boost::vertex_index, simplified));
 
     auto [v_it, v_end] = boost::vertices(g);
@@ -111,10 +113,12 @@ CommandState GraphCluster::execute()
     }
 
     simplified.m_property->root_index = cluster_vertices[{ 0, 0 }];
+    points.points.resize(boost::num_vertices(simplified));
+    auto points_map = groot::make_vertex_property_map(points.points, simplified);
 
     auto [s_it, s_end] = boost::vertices(simplified);
     for (; s_it != s_end; ++s_it) {
-        std::list<groot::cgal::Point_3>& point_list = cluster_points_map[*s_it];
+        std::vector<groot::cgal::Point_3>& point_list = cluster_points_map[*s_it];
 
         groot::cgal::Vector_3 center(0, 0, 0);
         for (auto it = point_list.begin(); it != point_list.end(); ++it) {
@@ -124,8 +128,10 @@ CommandState GraphCluster::execute()
         center /= point_list.size();
         simplified[*s_it].position = groot::cgal::Point_3(center.x(), center.y(), center.z());
     }
+    points.points = std::move(cluster_points);
+    points.points.shrink_to_fit();
 
-    groot::reindex(simplified);
+    groot::reindex_edges(simplified);
     result = std::move(simplified);
     return CommandState::Ok;
 }
@@ -174,4 +180,5 @@ GuiState GraphCluster::draw_gui()
 void GraphCluster::on_finish(entt::registry& reg)
 {
     reg.emplace_or_replace<groot::PlantGraph>(target, std::move(result));
+    reg.emplace_or_replace<PlantGraphNodePoints>(target, std::move(points));
 }
