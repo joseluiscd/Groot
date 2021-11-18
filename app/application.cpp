@@ -57,16 +57,11 @@ Application::~Application()
 
 BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>&& command)
 {
-    BackgroundTaskHandle it;
+    BackgroundTaskHandle it = background_tasks.emplace(background_tasks.end());
 
-    {
-        std::unique_lock _lock(background_task_lock);
-        it = background_tasks.emplace(background_tasks.end(), std::make_shared<BackgroundTask>());
-    }
-
-    (*it)->command = std::move(command);
-    (*it)->task = async::spawn([=]() {
-        return (*it)->command->execute();
+    it->command = std::move(command);
+    it->task = async::spawn([=]() {
+        return it->command->execute();
     });
 
     return it;
@@ -92,13 +87,13 @@ void Application::draw_background_tasks()
 {
     auto it = background_tasks.begin();
     while (it != background_tasks.end()) {
-        if ((*it)->task.ready()) {
-            CommandState result = (*it)->task.get();
+        if ((it)->task.ready()) {
+            CommandState result = (it)->task.get();
             if (result == CommandState::Ok) {
-                (*it)->command->on_finish(registry);
+                (it)->command->on_finish(registry);
                 background_tasks.erase(it++);
             } else {
-                this->show_error((*it)->command->error_string);
+                this->show_error((it)->command->error_string);
             }
         } else {
             it++;
@@ -107,11 +102,10 @@ void Application::draw_background_tasks()
 
     if (windows.background_tasks) {
         if (ImGui::Begin("Background tasks", &windows.background_tasks)) {
-            std::shared_lock _lock(background_task_lock);
             for (auto it = background_tasks.begin(); it != background_tasks.end(); ++it) {
                 ImGui::Spinner("##spinner", 10.0f, 5.0f);
                 ImGui::SameLine();
-                ImGui::Text((*it)->command->name().data(), (size_t)it->get());
+                ImGui::Text("%s", (it)->command->name().data());
             }
         }
         ImGui::End();

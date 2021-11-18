@@ -3,11 +3,8 @@
 #include "command.hpp"
 #include "command_gui.hpp"
 #include "resources.hpp"
-#include <future>
 #include <gfx/gfx.hpp>
 #include <list>
-#include <queue>
-#include <shared_mutex>
 #include <async++.h>
 #include "app_log.hpp"
 
@@ -19,7 +16,7 @@ struct BackgroundTask {
     std::unique_ptr<Command> command;
 };
 
-using BackgroundTaskHandle = std::list<std::shared_ptr<BackgroundTask>>::iterator;
+using BackgroundTaskHandle = std::list<BackgroundTask>::iterator;
 
 struct Windows {
     bool background_tasks = true;
@@ -80,11 +77,7 @@ private:
     std::set<EntityEditor::ComponentTypeID> entity_filter;
 
     std::list<std::unique_ptr<Gui>> guis;
-    std::list<std::shared_ptr<BackgroundTask>> background_tasks;
-    std::queue<std::shared_ptr<BackgroundTask>> remove_background_tasks;
-
-    std::shared_mutex background_task_lock;
-    std::shared_mutex command_gui_lock;
+    std::list<BackgroundTask> background_tasks;
 
     Windows windows;
 
