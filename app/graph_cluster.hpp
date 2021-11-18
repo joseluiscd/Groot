@@ -26,6 +26,7 @@ private:
     entt::entity target;
 
     groot::PlantGraph* graph;
+    PlantGraphNodePoints points;
 
     enum IntervalType : int {
         FixedIntervalDistance = 0,

@@ -3,6 +3,7 @@
 #include <boost/graph/adj_list_serialize.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/subgraph.hpp>
+#include <boost/property_map/property_map.hpp>
 #include <glm/glm.hpp>
 #include <groot/cgal.hpp>
 #include <iostream>
@@ -36,6 +37,11 @@ using PlantGraph = boost::adjacency_list<boost::listS, boost::vecS, boost::undir
 using Vertex = PlantGraph::vertex_descriptor;
 using Edge = PlantGraph::edge_descriptor;
 
+struct VertexTag {
+};
+struct EdgeTag {
+};
+
 void reindex(PlantGraph& graph);
 void reindex_vertices(PlantGraph& graph);
 void reindex_edges(PlantGraph& graph);
@@ -53,6 +59,33 @@ struct PlantProperties {
     float max_root_distance = 0.0;
     size_t root_index;
 };
+
+template <typename T>
+using PropertyMap = std::vector<T>;
+
+template <typename T>
+inline auto make_vertex_property_map(const PropertyMap<T>& m, const PlantGraph& g)
+{
+    return boost::make_iterator_property_map(m.begin(), boost::get(boost::vertex_index, g));
+}
+
+template <typename T>
+inline auto make_edge_property_map(const PropertyMap<T>& m, const PlantGraph& g)
+{
+    return boost::make_iterator_property_map(m.begin(), boost::get(boost::edge_index, g));
+}
+
+template <typename T>
+inline auto make_vertex_property_map(PropertyMap<T>& m, const PlantGraph& g)
+{
+    return boost::make_iterator_property_map(m.begin(), boost::get(boost::vertex_index, g));
+}
+
+template <typename T>
+inline auto make_edge_property_map(PropertyMap<T>& m, const PlantGraph& g)
+{
+    return boost::make_iterator_property_map(m.begin(), boost::get(boost::edge_index, g));
+}
 
 /// Operations to obtain a certain point in the tree
 namespace point_finder {
@@ -147,6 +180,7 @@ inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = p
 }
 
 namespace boost {
+
 namespace serialization {
     template <class Archive>
     void serialize(Archive& ar, groot::cgal::Point_3& point, unsigned version)

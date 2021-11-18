@@ -244,8 +244,7 @@ struct EdgeFilter {
 PlantGraph geodesic(PlantGraph& graph)
 {
     std::vector<Vertex> predecessors(boost::num_vertices(graph));
-    auto predecessor_map
-        = boost::make_iterator_property_map(predecessors.begin(), boost::get(boost::vertex_index, graph));
+    auto predecessor_map = make_vertex_property_map(predecessors, graph);
 
     auto weight_map = boost::get(&EdgeProperties::length, graph);
     auto distance_map = boost::get(&VertexProperties::root_distance, graph);
