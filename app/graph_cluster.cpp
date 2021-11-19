@@ -46,6 +46,8 @@ CommandState GraphCluster::execute()
 
     float max_root_distance = g.m_property->max_root_distance;
     std::vector<std::pair<size_t, size_t>> clusters(boost::num_vertices(g));
+
+    // Points of base graph -> cluster (depth, id)
     ClusterMap clusters_map = ClusterMap(clusters.begin(), boost::get(boost::vertex_index, g));
 
     // Compute the interval of each vertex
@@ -112,7 +114,9 @@ CommandState GraphCluster::execute()
         }
     }
 
-    simplified.m_property->root_index = cluster_vertices[{ 0, 0 }];
+    auto root_cluster = clusters_map[g.m_property->root_index];
+    simplified.m_property->root_index = cluster_vertices[root_cluster];
+
     points.points.resize(boost::num_vertices(simplified));
     auto points_map = groot::make_vertex_property_map(points.points, simplified);
 
