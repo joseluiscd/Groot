@@ -172,6 +172,8 @@ PlantGraph geodesic(PlantGraph& g);
 /// Computes distances to ther root on the original graph and returns simplified version.
 PlantGraph minimum_spanning_tree(PlantGraph& g);
 
+void recompute_edge_lengths(PlantGraph &g);
+
 inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = point_finder::MinY())
 {
     graph.m_property->root_index = boost::get(boost::vertex_index, graph)[pf(graph)];

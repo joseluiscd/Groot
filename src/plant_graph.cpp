@@ -327,6 +327,19 @@ PlantGraph minimum_spanning_tree(PlantGraph& graph)
     return ret;
 }
 
+void recompute_edge_lengths(PlantGraph &g)
+{
+    auto [it, end] = boost::edges(g);
+    for (; it != end; ++it) {
+        Vertex v1 = boost::source(*it, g);
+        Vertex v2 = boost::target(*it, g);
+
+        g[*it].length = std::sqrt(CGAL::squared_distance(
+            g[v1].position, g[v2].position
+        ));
+    }
+}
+
 void write_to_file(const PlantGraph& g, std::ostream& output)
 {
     boost::archive::binary_oarchive out_archive(output);

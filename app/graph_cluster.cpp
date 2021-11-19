@@ -136,6 +136,7 @@ CommandState GraphCluster::execute()
     points.points.shrink_to_fit();
 
     groot::reindex_edges(simplified);
+    groot::recompute_edge_lengths(simplified);
     result = std::move(simplified);
     return CommandState::Ok;
 }
