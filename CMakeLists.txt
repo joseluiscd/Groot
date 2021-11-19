@@ -14,7 +14,8 @@ set(CMAKE_MODULE_PATH
     )
 
 
-find_package(Boost 1.69 REQUIRED COMPONENTS graph serialization python39 numpy39)
+find_package(glfw3 3.3 REQUIRED)
+find_package(Boost 1.77 REQUIRED COMPONENTS graph serialization python39 numpy39)
 find_package(TBB REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.5 REQUIRED)
@@ -28,7 +29,6 @@ set(BUILD_DEMOS OFF CACHE BOOL "enable Zep demos")
 set(BUILD_EXTENSIONS OFF CACHE BOOL "enable Zep extensions")
 include(CMakePackageConfigHelpers)
 
-add_subdirectory(3rdparty/glfw)
 add_subdirectory(3rdparty/gfx)
 add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/entt)
