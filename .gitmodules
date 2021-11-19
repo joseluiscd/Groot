@@ -7,9 +7,6 @@
 [submodule "3rdparty/entt"]
 	path = 3rdparty/entt
 	url = https://github.com/skypjack/entt.git
-[submodule "3rdparty/glfw"]
-	path = 3rdparty/glfw
-	url = https://github.com/glfw/glfw.git
 [submodule "3rdparty/asyncplusplus"]
 	path = 3rdparty/asyncplusplus
 	url = https://github.com/Amanieu/asyncplusplus.git

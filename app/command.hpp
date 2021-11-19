@@ -25,7 +25,7 @@ public:
         return CommandState::Error;
     }
 
-    virtual const std::string_view name()
+    virtual const std::string_view name() const
     {
         return "Generic command name";
     }

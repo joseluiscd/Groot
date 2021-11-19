@@ -27,9 +27,20 @@ public:
 
 class Gui {
 public:
-    virtual std::vector<Command*> get_commands() = 0;
+    virtual std::vector<Command*> get_commands(entt::registry& reg) = 0;
     virtual GuiResult draw_gui() = 0;
-    virtual ~Gui() {}
+    virtual ~Gui() { }
+
+    template <typename Cmd, typename Iterator, typename Function>
+    static std::vector<Command*> command_to_entities(entt::registry& reg, Iterator begin, Iterator end, Function&& f);
+};
+
+class DialogGui : public Gui {
+public:
+    virtual ~DialogGui() { }
+    virtual GuiResult draw_gui() override;
+    virtual void draw_dialog() = 0;
+    virtual std::string_view name() const = 0;
 };
 
 class GuiAdapter : public Gui {
@@ -42,7 +53,7 @@ public:
         spdlog::warn("This command should use the new interface.");
     }
 
-    std::vector<Command*> get_commands() override
+    std::vector<Command*> get_commands(entt::registry& reg) override
     {
         return { (Command*)gui };
     }
@@ -73,4 +84,21 @@ template <typename CmdGui, typename... Args>
 GuiAdapter* make_gui_adapter(Args&&... args)
 {
     return new GuiAdapter(new CmdGui(std::forward<Args...>(args)...));
+}
+
+template <typename Cmd, typename Iterator, typename Function>
+std::vector<Command*> Gui::command_to_entities(entt::registry& reg, Iterator begin, Iterator end, Function&& f)
+{
+    static_assert(std::is_base_of_v<Command, Cmd>, "Cmd must be base of Command");
+    static_assert(std::is_same_v<typename std::iterator_traits<Iterator>::value_type, entt::entity>,
+        "`Iterator end` must be an entity iterator");
+    static_assert(std::is_same_v<std::invoke_result_t<decltype(f), entt::handle>, Cmd*>, 
+        "`Function&& f` must have function signature `Cmd* f(entt::handle h)`");
+    
+    std::vector<Command*> result;
+    std::transform(begin, end, std::back_inserter(result), [f = std::move(f), &reg](entt::entity entity){
+        return (Command*) f(entt::handle(reg, entity));
+    });
+
+    return result;
 }

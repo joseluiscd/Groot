@@ -197,7 +197,7 @@ void run(entt::registry& registry)
             for (size_t i = 0; i < graph_view.points.size(); i++) {
                 glm::vec4 p = view_proj_matrix * glm::vec4(graph_view.points[i], 1.0);
                 p /= p.w;
-                if (p.z > 0) {
+                if (p.z > 0.01 && p.z < 1.0) {
                     std::string t = fmt::format("{}", i);
                     draw_list.add_text(glm::vec2(p), t.data(), t.size());
                 }
@@ -233,16 +233,6 @@ const char* fragment_shader_source = "\n"
 }
 
 namespace MM {
-template <>
-void ComponentEditorWidget<groot::PlantGraph>(entt::registry& reg, entt::registry::entity_type e)
-{
-    auto& t = reg.get<groot::PlantGraph>(e);
-    size_t vertices = boost::num_vertices(t);
-    size_t edges = boost::num_edges(t);
-
-    ImGui::Text("Plant Graph: %zu vertices, %zu edges", vertices, edges);
-}
-
 template <>
 void ComponentEditorWidget<graph_viewer_system::GraphViewerComponent>(entt::registry& reg, entt::registry::entity_type e)
 {

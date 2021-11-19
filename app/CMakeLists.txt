@@ -10,6 +10,9 @@ add_library(groot
 
     application.hpp
     application.cpp
+
+    command_gui.hpp
+    command_gui.cpp
     
     resources.hpp
     components.hpp
@@ -46,6 +49,9 @@ add_library(groot
     
     cylinder_connect.hpp
     cylinder_connect.cpp
+
+    graph_resample.hpp
+    graph_resample.cpp
 
     viewer_system.cpp
     viewer_system.hpp

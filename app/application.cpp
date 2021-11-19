@@ -1,4 +1,5 @@
 #include "application.hpp"
+#include "app_log.hpp"
 #include "cloud_system.hpp"
 #include "command.hpp"
 #include "components.hpp"
@@ -8,6 +9,7 @@
 #include "entt/entity/fwd.hpp"
 #include "gfx/font_awesome.hpp"
 #include "graph_cluster.hpp"
+#include "graph_resample.hpp"
 #include "graph_viewer_system.hpp"
 #include "import_ply.hpp"
 #include "open_workspace.hpp"
@@ -19,7 +21,8 @@
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <spdlog/spdlog.h>
-#include "app_log.hpp"
+
+
 
 Application::Application(entt::registry& _reg)
     : gui_app(gfx::InitOptions {
@@ -71,7 +74,6 @@ BackgroundTaskHandle Application::execute_command_async(Command* command)
 {
     return execute_command_async(std::unique_ptr<Command>(command));
 }
-
 
 void Application::open_window(Gui* gui)
 {
@@ -128,21 +130,34 @@ void Application::draw_command_gui()
             ++it;
             break;
 
-        case GuiResult::RunAndClose: erase = true; [[fallthrough]];
+        case GuiResult::RunAndClose:
+            erase = true;
+            [[fallthrough]];
         case GuiResult::RunAndKeepOpen:
-            commands = (*it)->get_commands();
+            commands = (*it)->get_commands(registry);
             for (auto command : commands) {
                 this->execute_command_async(command);
             }
-            if (erase) guis.erase(it++);
+            if (erase)
+                guis.erase(it++);
             break;
         }
     }
 }
 
+entt::entity Application::get_selected_entity()
+{
+    return registry.ctx<SelectedEntity>().selected;
+}
+
 void Application::draw_gui()
 {
     ImGui::BeginMainWindow();
+    auto get_selection = [this]() {
+        return std::vector<entt::entity>({
+            this->get_selected_entity()
+        });
+    };
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
@@ -219,6 +234,7 @@ void Application::draw_gui()
             }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tResample Graph")) {
+                open_new_window<GraphResampleGui>(get_selection());
             }
             ImGui::EndMenu();
         }
@@ -259,10 +275,18 @@ void Application::draw_gui()
         glEnable(GL_DEPTH_TEST);
     }
 
-    graph_viewer_system::run(registry);
-    cloud_view_system::run(registry);
-    cylinder_view_system::run(registry);
-    viewer_system::run(registry);
+    bool will_render = false;
+    if (ImGui::Begin("3D Viewer")) {
+        will_render = true;
+    }
+    ImGui::End();
+
+    if (will_render) {
+        graph_viewer_system::run(registry);
+        cloud_view_system::run(registry);
+        cylinder_view_system::run(registry);
+        viewer_system::run(registry);
+    }
 
     auto& entity_editor = registry.ctx<EntityEditor>();
     if (ImGui::Begin("Entity List")) {

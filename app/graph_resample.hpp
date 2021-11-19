@@ -11,30 +11,35 @@ struct GraphResampleArgs {
 
 class GraphResample : public Command {
 public:
-    GraphResample(entt::handle h, const GraphResampleArgs& args = GraphResampleArgs{});
+    GraphResample(const entt::handle h, const GraphResampleArgs& args = GraphResampleArgs{});
 
     CommandState execute() override;
     void on_finish(entt::registry& reg) override; 
 
-    virtual const std::string_view name() override {
+    virtual const std::string_view name() const override {
         return "Graph Resample";
     }
+
+    entt::entity result;
  
 private:
     GraphResampleArgs args;
     groot::PlantGraph* graph;
 
+    std::string old_name;
     groot::PlantGraph sampled;
 };
 
-class GraphResampleGui: public Gui {
+class GraphResampleGui: public DialogGui {
 public:
-    GraphResampleGui(const GraphResampleArgs& _args = GraphResampleArgs{})
+    GraphResampleGui(std::vector<entt::entity>&& _targets, const GraphResampleArgs& _args = GraphResampleArgs{})
         : args(_args)
+        , targets(std::move(_targets))
     {}
 
-    std::vector<Command*> get_commands() override;
-    GuiResult draw_gui() override;
+    std::vector<Command*> get_commands(entt::registry& reg) override;
+    void draw_dialog() override;
+    std::string_view name() const override { return "Graph resample"; }
 
 private:
     GraphResampleArgs args;

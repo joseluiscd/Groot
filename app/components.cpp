@@ -39,6 +39,26 @@ void ComponentEditorWidget<Name>(entt::registry& reg, entt::registry::entity_typ
 }
 
 template <>
+void ComponentEditorWidget<groot::PlantGraph>(entt::registry& reg, entt::registry::entity_type e)
+{
+    auto& t = reg.get<groot::PlantGraph>(e);
+    size_t vertices = boost::num_vertices(t);
+    size_t edges = boost::num_edges(t);
+
+    ImGui::Text("Plant Graph: %zu vertices, %zu edges", vertices, edges);
+    ImGui::Text("Root node ID: %zu", t.m_property->root_index);
+
+    if (ImGui::TreeNode("Points")) {
+        auto [it, end] = boost::vertices(t);
+        for (; it != end; ++it) {
+            const groot::Point_3& p = t[*it].position;
+            ImGui::Text("(%f, %f, %f)", p.x(), p.y(), p.z());
+        }
+        ImGui::TreePop();
+    }
+}
+
+template <>
 void ComponentEditorWidget<PointCloud>(entt::registry& reg, entt::registry::entity_type e)
 {
     auto& t = reg.get<PointCloud>(e);
