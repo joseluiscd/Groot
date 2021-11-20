@@ -75,6 +75,11 @@ BackgroundTaskHandle Application::execute_command_async(Command* command)
     return execute_command_async(std::unique_ptr<Command>(command));
 }
 
+void Application::execute_task(Task<void>&& t)
+{
+    tasks.emplace_back(std::move(t));
+}
+
 void Application::open_window(Gui* gui)
 {
     guis.emplace_back(gui);
@@ -87,6 +92,21 @@ void Application::show_error(const std::string& error)
 
 void Application::draw_background_tasks()
 {
+    async::fifo_scheduler& sched = sync_scheduler();
+    sched.try_run_one_task();
+
+    {
+        auto it = tasks.begin();
+        while (it != tasks.end()) {
+            if (it->task.ready()) {
+                tasks.erase(it++);
+            } else {
+                ++it;
+            }
+        }
+    }
+    
+    {
     auto it = background_tasks.begin();
     while (it != background_tasks.end()) {
         if ((it)->task.ready()) {
@@ -100,6 +120,7 @@ void Application::draw_background_tasks()
         } else {
             it++;
         }
+    }
     }
 
     if (windows.background_tasks) {

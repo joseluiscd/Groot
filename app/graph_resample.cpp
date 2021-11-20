@@ -1,5 +1,8 @@
 #include "graph_resample.hpp"
 #include "components.hpp"
+#include "entt/entity/fwd.hpp"
+#include "groot/plant_graph.hpp"
+#include "task.hpp"
 #include <gfx/imgui/imgui.h>
 #include <groot/plant_graph_compare.hpp>
 
@@ -25,6 +28,29 @@ void GraphResample::on_finish(entt::registry& reg)
     reg.emplace<groot::PlantGraph>(result, std::move(sampled));
     reg.emplace<Name>(result, old_name + "_resampled");
     reg.emplace<Visible>(result);
+}
+
+Task<entt::entity> cmd(GraphResampleArgs args, entt::registry& reg, entt::entity e)
+{
+    return create_task()
+        .then_sync([&reg, e]() -> groot::PlantGraph* {
+            groot::PlantGraph* graph = require_components<groot::PlantGraph>(entt::handle(reg, e));
+            return graph;
+        })
+        .then_async([args](groot::PlantGraph* graph) -> groot::PlantGraph {
+            return groot::resample_plant_graph(*graph, args.sample_length);
+        })
+        .then_sync([&reg, e](groot::PlantGraph&& sampled) -> entt::entity {
+            Name* name_c = reg.try_get<Name>(e);
+            std::string old_name = name_c ? name_c->name : std::string("");
+
+            entt::entity result = reg.create();
+            reg.emplace<groot::PlantGraph>(result, std::move(sampled));
+            reg.emplace<Name>(result, old_name + "_resampled");
+            reg.emplace<Visible>(result);
+
+            return result;
+        });
 }
 
 void GraphResampleGui::draw_dialog()

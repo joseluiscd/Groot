@@ -7,6 +7,7 @@
 #include <list>
 #include <async++.h>
 #include "app_log.hpp"
+#include "task.hpp"
 
 class Application;
 
@@ -36,6 +37,14 @@ public:
 
     BackgroundTaskHandle execute_command_async(Command* command);
     BackgroundTaskHandle execute_command_async(std::unique_ptr<Command>&& command);
+    void execute_task(Task<void>&& t);
+
+    template <typename R>
+    void execute_task(Task<R>&& t)
+    {
+        execute_task(std::move(t.and_discard_result()));
+    }
+
 
     void open_window(Gui* gui);
 
@@ -78,6 +87,7 @@ private:
 
     std::list<std::unique_ptr<Gui>> guis;
     std::list<BackgroundTask> background_tasks;
+    std::list<Task<void>> tasks;
 
     Windows windows;
 

@@ -11,6 +11,9 @@ add_library(groot
     application.hpp
     application.cpp
 
+    task.hpp
+    task.cpp
+
     command_gui.hpp
     command_gui.cpp
     
