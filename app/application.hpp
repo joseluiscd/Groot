@@ -11,14 +11,6 @@
 
 class Application;
 
-
-struct BackgroundTask {
-    async::task<CommandState> task;
-    std::unique_ptr<Command> command;
-};
-
-using BackgroundTaskHandle = std::list<BackgroundTask>::iterator;
-
 struct Windows {
     bool background_tasks = true;
     bool history = true;
@@ -28,23 +20,9 @@ struct Windows {
 };
 
 class Application {
-    friend class PlantGraphSource;
-
 public:
     Application(entt::registry& reg);
-
     ~Application();
-
-    BackgroundTaskHandle execute_command_async(Command* command);
-    BackgroundTaskHandle execute_command_async(std::unique_ptr<Command>&& command);
-    void execute_task(Task<void>&& t);
-
-    template <typename R>
-    void execute_task(Task<R>&& t)
-    {
-        execute_task(std::move(t.and_discard_result()));
-    }
-
 
     void open_window(Gui* gui);
 
@@ -86,8 +64,6 @@ private:
     std::set<EntityEditor::ComponentTypeID> entity_filter;
 
     std::list<std::unique_ptr<Gui>> guis;
-    std::list<BackgroundTask> background_tasks;
-    std::list<Task<void>> tasks;
 
     Windows windows;
 

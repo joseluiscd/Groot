@@ -4,31 +4,22 @@
 #include "command_gui.hpp"
 #include "command.hpp"
 #include "components.hpp"
+#include "task.hpp"
+#include <boost/iterator/transform_iterator.hpp>
 
 struct GraphResampleArgs {
     float sample_length = 0.3;
 };
 
-class GraphResample : public Command {
-public:
-    GraphResample(const entt::handle h, const GraphResampleArgs& args = GraphResampleArgs{});
-
-    CommandState execute() override;
-    void on_finish(entt::registry& reg) override; 
-
-    virtual const std::string_view name() const override {
-        return "Graph Resample";
-    }
-
-    entt::entity result;
- 
-private:
-    GraphResampleArgs args;
-    groot::PlantGraph* graph;
-
-    std::string old_name;
-    groot::PlantGraph sampled;
-};
+async::task<entt::entity> graph_resample_command(entt::handle h, float sample_length);
+template <typename Iterator>
+auto graph_resample_command(entt::registry& reg, Iterator begin, Iterator end, float sample_length)
+{
+    auto f = [&](entt::entity e){
+        return graph_resample_command(entt::handle(reg, e), sample_length);
+    };
+    return async::when_all(boost::make_transform_iterator(begin, f), boost::make_transform_iterator(end, f));
+}
 
 class GraphResampleGui: public DialogGui {
 public:
@@ -37,7 +28,7 @@ public:
         , targets(std::move(_targets))
     {}
 
-    std::vector<Command*> get_commands(entt::registry& reg) override;
+    void schedule_commands(entt::registry& reg) override;
     void draw_dialog() override;
     std::string_view name() const override { return "Graph resample"; }
 

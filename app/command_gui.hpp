@@ -3,6 +3,7 @@
 #include "command.hpp"
 #include <memory>
 #include <spdlog/spdlog.h>
+#include "task.hpp"
 
 /// Legacy
 enum class GuiState {
@@ -27,7 +28,7 @@ public:
 
 class Gui {
 public:
-    virtual std::vector<Command*> get_commands(entt::registry& reg) = 0;
+    virtual void schedule_commands(entt::registry& reg) = 0;
     virtual GuiResult draw_gui() = 0;
     virtual ~Gui() { }
 
@@ -53,9 +54,21 @@ public:
         spdlog::warn("This command should use the new interface.");
     }
 
-    std::vector<Command*> get_commands(entt::registry& reg) override
+    void schedule_commands(entt::registry& reg) override
     {
-        return { (Command*)gui };
+        std::string name(gui->name());
+
+        auto&& task = async::spawn(async_scheduler(), [gui = std::exchange(gui, nullptr)]() {
+            std::unique_ptr<CommandGui> cmd(gui);
+            if (cmd->execute() == CommandState::Error) {
+                throw std::runtime_error(cmd->error_string);
+            };
+            return cmd;
+        }).then(sync_scheduler(), [&reg](std::unique_ptr<CommandGui>&& cmd){
+            cmd->on_finish(reg);
+        });
+
+        reg.ctx<TaskBroker>().push_task(name, std::move(task));
     }
 
     GuiResult draw_gui() override
@@ -67,8 +80,6 @@ public:
             return GuiResult::KeepOpen;
         case GuiState::RunAsync:
             return GuiResult::RunAndClose;
-        //case GuiState::RunSync:
-        //    return GuiResult::RunAndClose;
         case GuiState::RunAsyncUpdate:
             return GuiResult::RunAndKeepOpen;
         default:

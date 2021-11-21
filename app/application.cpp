@@ -22,8 +22,6 @@
 #include <gfx/render_pass.hpp>
 #include <spdlog/spdlog.h>
 
-
-
 Application::Application(entt::registry& _reg)
     : gui_app(gfx::InitOptions {
         .title = "Groot Graph Viewer",
@@ -38,6 +36,7 @@ Application::Application(entt::registry& _reg)
 {
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();
+    registry.set<TaskBroker>();
 
     init_components(registry);
     ShaderCollection::init(registry);
@@ -58,28 +57,6 @@ Application::~Application()
     cylinder_view_system::deinit(registry);
 }
 
-BackgroundTaskHandle Application::execute_command_async(std::unique_ptr<Command>&& command)
-{
-    BackgroundTaskHandle it = background_tasks.emplace(background_tasks.end());
-
-    it->command = std::move(command);
-    it->task = async::spawn([=]() {
-        return it->command->execute();
-    });
-
-    return it;
-}
-
-BackgroundTaskHandle Application::execute_command_async(Command* command)
-{
-    return execute_command_async(std::unique_ptr<Command>(command));
-}
-
-void Application::execute_task(Task<void>&& t)
-{
-    tasks.emplace_back(std::move(t));
-}
-
 void Application::open_window(Gui* gui)
 {
     guis.emplace_back(gui);
@@ -93,46 +70,19 @@ void Application::show_error(const std::string& error)
 void Application::draw_background_tasks()
 {
     async::fifo_scheduler& sched = sync_scheduler();
-    sched.try_run_one_task();
+    sched.run_all_tasks();
 
-    {
-        auto it = tasks.begin();
-        while (it != tasks.end()) {
-            if (it->task.ready()) {
-                tasks.erase(it++);
-            } else {
-                ++it;
-            }
-        }
-    }
-    
-    {
-    auto it = background_tasks.begin();
-    while (it != background_tasks.end()) {
-        if ((it)->task.ready()) {
-            CommandState result = (it)->task.get();
-            if (result == CommandState::Ok) {
-                (it)->command->on_finish(registry);
-                background_tasks.erase(it++);
-            } else {
-                this->show_error((it)->command->error_string);
-            }
-        } else {
-            it++;
-        }
-    }
+    if (windows.background_tasks && ImGui::Begin("Background tasks", &windows.background_tasks)) {
+        registry.ctx<TaskBroker>().cycle_tasks([](std::string_view&& task_name) {
+            ImGui::Spinner("##spinner", 10.0f, 5.0f);
+            ImGui::SameLine();
+            ImGui::Text("%s", task_name.data());
+        });
+    } else {
+        registry.ctx<TaskBroker>().cycle_tasks([](auto&& _) {});
     }
 
-    if (windows.background_tasks) {
-        if (ImGui::Begin("Background tasks", &windows.background_tasks)) {
-            for (auto it = background_tasks.begin(); it != background_tasks.end(); ++it) {
-                ImGui::Spinner("##spinner", 10.0f, 5.0f);
-                ImGui::SameLine();
-                ImGui::Text("%s", (it)->command->name().data());
-            }
-        }
-        ImGui::End();
-    }
+    ImGui::End();
 }
 
 void Application::draw_command_gui()
@@ -155,10 +105,7 @@ void Application::draw_command_gui()
             erase = true;
             [[fallthrough]];
         case GuiResult::RunAndKeepOpen:
-            commands = (*it)->get_commands(registry);
-            for (auto command : commands) {
-                this->execute_command_async(command);
-            }
+            (*it)->schedule_commands(registry);
             if (erase)
                 guis.erase(it++);
             break;
@@ -175,9 +122,7 @@ void Application::draw_gui()
 {
     ImGui::BeginMainWindow();
     auto get_selection = [this]() {
-        return std::vector<entt::entity>({
-            this->get_selected_entity()
-        });
+        return std::vector<entt::entity>({ this->get_selected_entity() });
     };
 
     if (ImGui::BeginMenuBar()) {
@@ -318,7 +263,8 @@ void Application::draw_gui()
     auto selected = registry.ctx<SelectedEntity>().selected;
 
     if (ImGui::Begin("Entity properties")) {
-        entity_editor.renderEditor(registry, selected, !background_tasks.empty());
+        bool bg_tasks_empty = registry.ctx<TaskBroker>().empty();
+        entity_editor.renderEditor(registry, selected, !bg_tasks_empty);
     }
     ImGui::End();
 
