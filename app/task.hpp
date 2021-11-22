@@ -8,7 +8,7 @@ async::fifo_scheduler& sync_scheduler();
 
 inline void discard() { }
 
-class TaskBroker {
+class __attribute__ ((visibility("hidden"))) TaskBroker {
 public:
     TaskBroker()
         : tasks()
@@ -26,11 +26,17 @@ public:
         tasks.emplace_back(s, std::move(task));
     }
 
+    template <typename Result>
+    void push_task(std::string_view s, async::task<Result>&& task)
+    {
+        push_task(s, task.then(discard));
+    }
+
     /**
     Cycle through tasks. Apply function `f` to active tasks.
     */
     template <typename F>
-    void cycle_tasks(F&& f)
+    inline void cycle_tasks(F&& f)
     {
         auto it = tasks.begin();
         while (it != tasks.end()) {

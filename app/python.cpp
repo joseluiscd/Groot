@@ -3,6 +3,7 @@
 #include "cylinder_marching.hpp"
 #include "cylinder_connect.hpp"
 #include "entt/entity/fwd.hpp"
+#include "graph_resample.hpp"
 #include "groot/cgal.hpp"
 #include "groot/cloud.hpp"
 #include "import_ply.hpp"
@@ -21,6 +22,17 @@
 #include <functional>
 #include "application.hpp"
 #include <boost/python/numpy.hpp>
+
+template <typename Result>
+Result run_task(async::task<Result>&& task)
+{
+    // Run all sync tasks in current thread until task finishes
+    while (!task.ready()) {
+        sync_scheduler().run_all_tasks();
+    }
+
+    return task.get();
+}
 
 class Entity {
 public:
@@ -61,7 +73,7 @@ public:
     void set_visible(bool v)
     {
         if (v) {
-            e.emplace<Visible>();
+            e.emplace_or_replace<Visible>();
         } else {
             e.remove<Visible>();
         }
@@ -156,12 +168,32 @@ public:
         cmd.run(*e.registry());
     }
 
+    void graph_from_cloud_radius(float r)
+    {
+        CreateGraph cmd{entt::handle(e)};
+        cmd.selected_method = CreateGraph::Method::kRadius;
+        cmd.radius = r;
+        cmd.run(*e.registry());
+    }
+
     void graph_from_alpha_shape(float k)
     {
         CreateGraph cmd{entt::handle(e)};
         cmd.selected_method = CreateGraph::Method::kAlphaShape;
         cmd.alpha = k;
         cmd.run(*e.registry());
+    }
+
+    Entity graph_resample(float length)
+    {
+        auto&& task = graph_resample_command(e, length);
+        auto& sched = sync_scheduler();
+
+        while (!task.ready()) {
+            sched.run_all_tasks();
+        }
+
+        return Entity(*e.registry(), run_task(std::move(task)));
     }
 
 private:
@@ -206,10 +238,9 @@ public:
 
     Entity load_ply(const std::string& filename)
     {
-        ImportPLY cmd(reg);
-        cmd.input_file = filename;
-        cmd.run(reg);
-        return Entity(reg, cmd.result);
+        auto&& task = import_ply_command(reg, filename);
+
+        return Entity(reg, run_task(std::move(task)));
     }
 
     Entity new_entity()
@@ -301,6 +332,8 @@ BOOST_PYTHON_MODULE(groot)
         .def("build_graph_from_cylinders", &Entity::build_graph_from_cylinders)
         .def("graph_cluster", &Entity::graph_cluster)
         .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn)
+        .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius)
+        .def("graph_resample", &Entity::graph_resample)
     ;
 
     class_<PointCloud>("PointCloud", no_init)

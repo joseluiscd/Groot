@@ -125,6 +125,10 @@ void Application::draw_gui()
         return std::vector<entt::entity>({ this->get_selected_entity() });
     };
 
+    auto get_selected_handle = [this]() {
+        return entt::handle(registry, this->get_selected_entity());
+    };
+
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Workspace")) {
@@ -161,11 +165,11 @@ void Application::draw_gui()
 
         if (ImGui::BeginMenu("Point Cloud")) {
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PLY")) {
-                open_new_window_adaptor<ImportPLY>(registry);
+                open_new_window<ImportPLYGui>();
             }
 
             if (ImGui::MenuItem(ICON_FA_FILE_EXPORT "\tExport PLY")) {
-                open_new_window_adaptor<ExportPLY>(registry);
+                open_new_window<ExportPLYGui>(get_selected_handle());
             }
 
             ImGui::Separator();

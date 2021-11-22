@@ -69,6 +69,46 @@ struct SystemData {
     entt::observer update_graph;
     entt::observer create_graph;
 };
+void update_viewer_component(entt::registry& registry, entt::entity entity)
+{
+    groot::PlantGraph& _graph = registry.get<groot::PlantGraph>(entity);
+
+    registry.patch<GraphViewerComponent>(entity, [&_graph](auto& view_data) {
+        auto edit_points = view_data.points.edit(false);
+        auto edit_lines = view_data.lines.edit(false);
+
+        edit_points.vector().clear();
+        edit_lines.vector().clear();
+
+        {
+            auto [it, end] = boost::vertices(_graph);
+            for (; it != end; ++it) {
+                groot::cgal::Point_3 position = _graph[*it].position;
+                edit_points.vector().push_back(glm::vec3(position.x(), position.y(), position.z()));
+            }
+        }
+        {
+            auto vertex_indices = boost::get(boost::vertex_index, _graph);
+
+            auto [it, end] = boost::edges(_graph);
+            for (; it != end; ++it) {
+                groot::Vertex u = boost::source(*it, _graph);
+                groot::Vertex v = boost::target(*it, _graph);
+
+                edit_lines.vector().push_back(vertex_indices[u]);
+                edit_lines.vector().push_back(vertex_indices[v]);
+            }
+        }
+
+        view_data.point_vao.set_element_count(edit_points.vector().size());
+        view_data.line_vao.set_element_count(edit_lines.vector().size());
+
+        if (boost::num_vertices(_graph) > 0) {
+            groot::cgal::Point_3 root_p = _graph[_graph.m_property->root_index].position;
+            view_data.root = glm::vec3(root_p.x(), root_p.y(), root_p.z());
+        }
+    });
+};
 
 void init(entt::registry& registry)
 {
@@ -82,7 +122,7 @@ void init(entt::registry& registry)
                              .with_vertex_shader(vertex_shader_source)
                              .with_fragment_shader(fragment_shader_source)
                              .build())
-            .build() ));
+            .build()));
 
     system_data.update_graph.connect(
         registry,
@@ -93,6 +133,10 @@ void init(entt::registry& registry)
     system_data.create_graph.connect(
         registry,
         entt::collector.group<groot::PlantGraph>());
+
+    registry
+            .on_destroy<groot::PlantGraph>()
+            .connect<&entt::registry::remove<GraphViewerComponent>>();
 
     auto& entity_editor = registry.ctx<EntityEditor>();
     entity_editor.registerComponent<GraphViewerComponent>("Graph View", true);
@@ -112,54 +156,15 @@ void run(entt::registry& registry)
 
     glm::mat4 view_proj_matrix = view_data.camera->get_matrix();
 
-    auto update_viewer_component = [&](entt::entity entity) {
-        groot::PlantGraph& _graph = registry.get<groot::PlantGraph>(entity);
-
-        registry.patch<GraphViewerComponent>(entity, [&_graph](auto& view_data) {
-            auto edit_points = view_data.points.edit(false);
-            auto edit_lines = view_data.lines.edit(false);
-
-            edit_points.vector().clear();
-            edit_lines.vector().clear();
-
-            {
-                auto [it, end] = boost::vertices(_graph);
-                for (; it != end; ++it) {
-                    groot::cgal::Point_3 position = _graph[*it].position;
-                    edit_points.vector().push_back(glm::vec3(position.x(), position.y(), position.z()));
-                }
-            }
-            {
-                auto vertex_indices = boost::get(boost::vertex_index, _graph);
-
-                auto [it, end] = boost::edges(_graph);
-                for (; it != end; ++it) {
-                    groot::Vertex u = boost::source(*it, _graph);
-                    groot::Vertex v = boost::target(*it, _graph);
-
-                    edit_lines.vector().push_back(vertex_indices[u]);
-                    edit_lines.vector().push_back(vertex_indices[v]);
-                }
-            }
-
-            view_data.point_vao.set_element_count(edit_points.vector().size());
-            view_data.line_vao.set_element_count(edit_lines.vector().size());
-
-            if (boost::num_vertices(_graph) > 0) {
-                groot::cgal::Point_3 root_p = _graph[_graph.m_property->root_index].position;
-                view_data.root = glm::vec3(root_p.x(), root_p.y(), root_p.z());
-            }
-        });
-    };
     for (const auto entity : data.create_graph) {
         registry.emplace<GraphViewerComponent>(entity);
         registry.emplace_or_replace<Visible>(entity);
 
-        update_viewer_component(entity);
+        update_viewer_component(registry, entity);
     }
 
     for (const auto entity : data.update_graph) {
-        update_viewer_component(entity);
+        update_viewer_component(registry, entity);
     }
 
     data.create_graph.clear();
@@ -233,6 +238,15 @@ const char* fragment_shader_source = "\n"
 }
 
 namespace MM {
+template <>
+void ComponentAddAction<graph_viewer_system::GraphViewerComponent>(entt::registry& reg, entt::entity entity)
+{
+    if (reg.all_of<groot::PlantGraph>(entity)) {
+        reg.emplace<graph_viewer_system::GraphViewerComponent>(entity);
+        graph_viewer_system::update_viewer_component(reg, entity);
+    }
+}
+
 template <>
 void ComponentEditorWidget<graph_viewer_system::GraphViewerComponent>(entt::registry& reg, entt::registry::entity_type e)
 {

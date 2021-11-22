@@ -1,115 +1,129 @@
 #include "import_ply.hpp"
 #include "components.hpp"
-#include <fstream>
 #include <gfx/imgui/imfilebrowser.h>
 #include <groot/cloud_load.hpp>
 #include <spdlog/spdlog.h>
-#include <CGAL/IO/write_ply_points.h>
 
 const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
 const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
 
-ImportPLY::ImportPLY(entt::registry& _registry)
-    : registry(_registry)
-    , open(open_flags)
+ImportPLYGui::ImportPLYGui()
+    : open(open_flags)
 {
     open.SetTitle("Open PLY Cloud");
     open.SetTypeFilters({ ".ply" });
     open.Open();
 }
 
-GuiState ImportPLY::draw_gui()
+void ImportPLYGui::schedule_commands(entt::registry& reg)
+{
+    reg.ctx<TaskBroker>()
+        .push_task(
+            "Loading PLY",
+            import_ply_command(reg, this->input_file));
+}
+
+GuiResult ImportPLYGui::draw_gui()
 {
     open.Display();
 
     if (open.HasSelected()) {
         input_file = open.GetSelected().string();
         open.ClearSelected();
-        return GuiState::RunAsync;
-    } else if (! open.IsOpened()) {
-        return GuiState::Close;
+        return GuiResult::RunAndClose;
+    } else if (!open.IsOpened()) {
+        return GuiResult::Close;
     } else {
-        return GuiState::Editing;
+        return GuiResult::KeepOpen;
     }
 }
 
-CommandState ImportPLY::execute()
+async::task<entt::entity> import_ply_command(entt::registry& reg, const std::string_view& file)
 {
-    spdlog::info("Loading PLY file...");
+    return async::spawn(async_scheduler(), [input_file = std::string(file)]() {
+        spdlog::info("Loading PLY file...");
 
-    if (input_file.empty()) {
-        error_string = "Cannot open file";
-        return CommandState::Error;
-    }
+        if (input_file.empty()) {
+            throw std::runtime_error("Cannot open file");
+        }
 
-    auto&& data = groot::load_PLY(input_file.c_str());
+        groot::CloudData&& data = groot::load_PLY(input_file.c_str());
+        spdlog::info("Loaded PLY file with {} points!", data.points.size());
+        return data;
+    }).then(sync_scheduler(), [&reg, input_file = std::string(file)](groot::CloudData&& data) {
+        entt::entity entity = reg.create();
+        reg.emplace<PointCloud>(entity, std::move(data.points));
+        reg.emplace<Name>(entity, input_file);
 
-    cloud = std::move(data.points);
-    normals = std::move(data.normals);
-    colors = std::move(data.colors);
+        if (data.normals) {
+            reg.emplace<PointNormals>(entity, std::move(*data.normals));
+        }
+        if (data.colors) {
+            reg.emplace<PointColors>(entity, std::move(*data.colors));
+        }
 
-    spdlog::info("Loaded PLY file with {} points!", cloud.size());
-    return CommandState::Ok;
+        return entity;
+    });
 }
 
-void ImportPLY::on_finish(entt::registry& reg)
-{
-    auto entity = registry.create();
-    registry.emplace<PointCloud>(entity, std::move(cloud));
-    registry.emplace<Name>(entity, this->input_file);
-
-    if (normals) {
-        registry.emplace<PointNormals>(entity, std::move(*normals));
-    }
-    if (colors) {
-        registry.emplace<PointColors>(entity, std::move(*colors));
-    }
-
-    result = entity;
-}
-
-ExportPLY::ExportPLY(entt::handle&& handle)
-    : registry(*handle.registry())
-    , save(save_flags)
+ExportPLYGui::ExportPLYGui(entt::handle handle)
+    : save(save_flags)
+    , target(handle)
 {
     save.SetTitle("Open PLY Cloud");
     save.SetTypeFilters({ ".ply" });
     save.Open();
-    target = handle.entity();
 
-    if (registry.valid(target) && registry.all_of<PointCloud>(target)) {
-        this->cloud = &registry.get<PointCloud>(target);
-    } else {
+    if (!target.valid() || !target.all_of<PointCloud>()) {
         throw std::runtime_error("Selected entity must have PointCloud");
-    }
-
-    if (handle.all_of<PointNormals>()) {
-        normals = &handle.get<PointNormals>();
     }
 }
 
-GuiState ExportPLY::draw_gui()
+GuiResult ExportPLYGui::draw_gui()
 {
     save.Display();
 
     if (save.HasSelected()) {
         output_file = save.GetSelected().string();
         save.ClearSelected();
-        return GuiState::RunAsync;
-    } else if (! save.IsOpened()) {
-        return GuiState::Close;
+        return GuiResult::RunAndClose;
+    } else if (!save.IsOpened()) {
+        return GuiResult::Close;
     } else {
-        return GuiState::Editing;
+        return GuiResult::KeepOpen;
     }
 }
-
-CommandState ExportPLY::execute()
+void ExportPLYGui::schedule_commands(entt::registry& reg)
 {
-    if (normals) {
-        groot::save_PLY(output_file.c_str(), cloud->cloud.data(), (*normals)->normals.data(), cloud->cloud.size());
-    } else {
-        groot::save_PLY(output_file.c_str(), cloud->cloud.data(), cloud->cloud.size());
-    }
-    return CommandState::Ok;
+    reg.ctx<TaskBroker>()
+        .push_task(
+            "Saving PLY",
+            export_ply_command(target, this->output_file));
 }
+async::task<void> export_ply_command(entt::handle e, const std::string_view& file)
+{
+    return async::spawn(sync_scheduler(), [e]() {
+        if (!e.valid() || !e.all_of<PointCloud>()) {
+            throw std::runtime_error("Selected entity must have PointCloud");
+        }
 
+        PointCloud* cloud = &e.get<PointCloud>();
+        PointNormals* normals = e.try_get<PointNormals>();
+        PointColors* colors = e.try_get<PointColors>();
+
+        spdlog::info("Saving PLY...");
+
+        return std::make_tuple(cloud, normals, colors);
+    }).then(async_scheduler(), [file = std::string(file)](std::tuple<PointCloud*, PointNormals*, PointColors*>&& data) {
+        auto&& [cloud, normals, colors] = data;
+
+        if (normals) {
+            spdlog::info("PLY Saving with normals...");
+            groot::save_PLY(file.c_str(), cloud->cloud.data(), normals->normals.data(), cloud->cloud.size());
+        } else {
+            spdlog::info("PLY Saving without normals...");
+            groot::save_PLY(file.c_str(), cloud->cloud.data(), cloud->cloud.size());
+        }
+        spdlog::info("Finished saving PLY!");
+    });
+}

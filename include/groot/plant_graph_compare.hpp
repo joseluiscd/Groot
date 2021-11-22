@@ -11,6 +11,6 @@ struct PlantGraphCompareParams {
 };
 
 PlantGraph resample_plant_graph(const PlantGraph& graph, float sample_length);
-void plant_graph_compare(const PlantGraphCompareParams& p, const groot::PlantGraph& ground_truth, const groot::PlantGraph&);
+PlantGraphCompareResult plant_graph_compare(const PlantGraphCompareParams& p, const groot::PlantGraph& ground_truth, const groot::PlantGraph& plant);
 
 }

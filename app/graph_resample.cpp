@@ -6,7 +6,6 @@
 #include <gfx/imgui/imgui.h>
 #include <groot/plant_graph_compare.hpp>
 
-
 async::task<entt::entity> graph_resample_command(entt::handle h, float sample_length)
 {
     entt::registry& reg = *h.registry();
