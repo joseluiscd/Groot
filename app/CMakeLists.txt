@@ -23,8 +23,8 @@ add_library(groot
 
     entity_editor.hpp
 
-    import_ply.hpp
-    import_ply.cpp
+    cloud_io.hpp
+    cloud_io.cpp
 
     serde.hpp
 

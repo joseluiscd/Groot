@@ -1,27 +1,26 @@
 #include "python.hpp"
+#include "application.hpp"
+#include "cloud_io.hpp"
+#include "cloud_system.hpp"
 #include "components.hpp"
-#include "cylinder_marching.hpp"
+#include "create_graph.hpp"
 #include "cylinder_connect.hpp"
-#include "entt/entity/fwd.hpp"
+#include "cylinder_marching.hpp"
+#include "graph_cluster.hpp"
 #include "graph_resample.hpp"
 #include "groot/cgal.hpp"
 #include "groot/cloud.hpp"
-#include "import_ply.hpp"
-#include "graph_cluster.hpp"
 #include "open_workspace.hpp"
 #include "save_workspace.hpp"
-#include "create_graph.hpp"
-#include "cloud_system.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/python/list.hpp>
+#include <boost/python/numpy.hpp>
 #include <boost/python/numpy/dtype.hpp>
 #include <boost/python/numpy/ndarray.hpp>
 #include <boost/python/return_value_policy.hpp>
 #include <boost/python/tuple.hpp>
 #include <entt/entt.hpp>
 #include <functional>
-#include "application.hpp"
-#include <boost/python/numpy.hpp>
 
 template <typename Result>
 Result run_task(async::task<Result>&& task)
@@ -38,15 +37,18 @@ class Entity {
 public:
     Entity(entt::registry& _reg, entt::entity _e)
         : e(_reg, _e)
-    {}
+    {
+    }
 
     Entity(const entt::handle& h)
         : e(h)
-    {}
+    {
+    }
 
     Entity(entt::handle&& h)
         : e(h)
-    {}
+    {
+    }
 
     template <typename Component>
     Component* get_component()
@@ -80,12 +82,11 @@ public:
     }
 
     void compute_normals(
-        int k ,
-        float radius 
-    )
+        int k,
+        float radius)
     {
-        ComputeNormals cmd{ entt::handle(e) };
-        cmd.k = k; 
+        ComputeNormals cmd { entt::handle(e) };
+        cmd.k = k;
         cmd.radius = radius;
 
         cmd.run(*e.registry());
@@ -97,10 +98,9 @@ public:
         float sampling,
         float normal_deviation,
         float overlook_probability,
-        float voxel_size
-    )
+        float voxel_size)
     {
-        CylinderMarching cmd{ entt::handle(e)};
+        CylinderMarching cmd { entt::handle(e) };
         cmd.min_points = min_points;
         cmd.epsilon = epsilon;
         cmd.sampling = sampling;
@@ -114,10 +114,9 @@ public:
         float radius_min,
         float radius_max,
         float length_min,
-        float length_max
-    )
+        float length_max)
     {
-        CylinderFilter cmd{entt::handle(e)};
+        CylinderFilter cmd { entt::handle(e) };
         cmd.filter_radius = true;
         cmd.radius_range[0] = radius_min;
         cmd.radius_range[1] = radius_max;
@@ -131,7 +130,7 @@ public:
     {
         boost::python::list result;
 
-        SplitCloud cmd{entt::handle(e)};
+        SplitCloud cmd { entt::handle(e) };
         cmd.voxel_size = voxel_size;
         cmd.run(*e.registry());
 
@@ -143,26 +142,26 @@ public:
 
     void rebuild_cloud_from_cylinders()
     {
-        CylinderPointFilter cmd{entt::handle(e)};
+        CylinderPointFilter cmd { entt::handle(e) };
         cmd.run(*e.registry());
     }
 
     void build_graph_from_cylinders()
     {
-        CylinderConnection cmd{entt::handle(e)};
+        CylinderConnection cmd { entt::handle(e) };
         cmd.run(*e.registry());
     }
-    
+
     void graph_cluster(int intervals)
     {
-        GraphCluster cmd{entt::handle(e)};
+        GraphCluster cmd { entt::handle(e) };
         cmd.interval_count = intervals;
         cmd.run(*e.registry());
     }
 
     void graph_from_cloud_knn(int k)
     {
-        CreateGraph cmd{entt::handle(e)};
+        CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kKnn;
         cmd.k = k;
         cmd.run(*e.registry());
@@ -170,7 +169,7 @@ public:
 
     void graph_from_cloud_radius(float r)
     {
-        CreateGraph cmd{entt::handle(e)};
+        CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kRadius;
         cmd.radius = r;
         cmd.run(*e.registry());
@@ -178,7 +177,7 @@ public:
 
     void graph_from_alpha_shape(float k)
     {
-        CreateGraph cmd{entt::handle(e)};
+        CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kAlphaShape;
         cmd.alpha = k;
         cmd.run(*e.registry());
@@ -209,7 +208,7 @@ public:
 
     entt::handle selected()
     {
-        return entt::handle(reg, reg.ctx<SelectedEntity>().selected); 
+        return entt::handle(reg, reg.ctx<SelectedEntity>().selected);
     }
 
     boost::python::list entities()
@@ -228,10 +227,10 @@ public:
         cmd.set_file(filename);
         cmd.run(reg);
     }
-    
+
     void save(const std::string& filename)
     {
-        SaveWorkspace cmd{ reg };
+        SaveWorkspace cmd { reg };
         cmd.set_file(filename);
         cmd.run(reg);
     }
@@ -258,33 +257,32 @@ private:
     entt::registry reg;
 };
 
-
 boost::python::numpy::ndarray create_numpy_array(std::vector<groot::Point_3>& v)
 {
     return boost::python::numpy::from_data(v.data(),
-                boost::python::numpy::dtype::get_builtin<float>(),
-                boost::python::make_tuple(v.size(), 3),
-                boost::python::make_tuple(3*sizeof(float), sizeof(float)),
-                boost::python::object());
+        boost::python::numpy::dtype::get_builtin<float>(),
+        boost::python::make_tuple(v.size(), 3),
+        boost::python::make_tuple(3 * sizeof(float), sizeof(float)),
+        boost::python::object());
 }
 
 boost::python::numpy::ndarray create_numpy_array(std::vector<groot::Vector_3>& v)
 {
     return boost::python::numpy::from_data(v.data(),
-                boost::python::numpy::dtype::get_builtin<float>(),
-                boost::python::make_tuple(v.size(), 3),
-                boost::python::make_tuple(3*sizeof(float), sizeof(float)),
-                boost::python::object());
+        boost::python::numpy::dtype::get_builtin<float>(),
+        boost::python::make_tuple(v.size(), 3),
+        boost::python::make_tuple(3 * sizeof(float), sizeof(float)),
+        boost::python::object());
 }
 
 template <typename Object, typename T, size_t count>
 boost::python::numpy::ndarray create_numpy_array(Object& v)
 {
     return boost::python::numpy::from_data(&v,
-                boost::python::numpy::dtype::get_builtin<T>(),
-                boost::python::make_tuple(count),
-                boost::python::make_tuple(sizeof(T)),
-                boost::python::object());
+        boost::python::numpy::dtype::get_builtin<T>(),
+        boost::python::make_tuple(count),
+        boost::python::make_tuple(sizeof(T)),
+        boost::python::object());
 }
 
 BOOST_PYTHON_MODULE(groot)
@@ -294,17 +292,15 @@ BOOST_PYTHON_MODULE(groot)
 
     np::initialize();
 
-
     class_<Registry, boost::noncopyable>("Registry",
         "The registry where all data is stored")
-        .def("selected", &Registry::selected) 
+        .def("selected", &Registry::selected)
         .def("entities", &Registry::entities)
         .def("load", &Registry::load)
         .def("save", &Registry::save)
         .def("load_ply", &Registry::load_ply)
         .def("new_entity", &Registry::new_entity)
-        .def("run_viewer", &Registry::run_viewer)
-        ;
+        .def("run_viewer", &Registry::run_viewer);
 
     class_<Entity>("Entity", "An entity in a registry", no_init)
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
@@ -314,69 +310,64 @@ BOOST_PYTHON_MODULE(groot)
         .def("graph", &Entity::get_component<groot::PlantGraph>, return_internal_reference<1>())
         .def("select", &Entity::select)
         .def("compute_normals", &Entity::compute_normals,
-            (arg("k")=10, arg("radius")=10.0f))
+            (arg("k") = 10, arg("radius") = 10.0f))
         .def("cylinder_marching", &Entity::cylinder_marching,
             (arg("min_points") = 20,
-            arg("epsilon") = 0.03,
-            arg("sampling") = 0.06,
-            arg("normal_deviation") = 25.0,
-            arg("overlook_probability") = 0.01,
-            arg("voxel_size") = 1.0))
+                arg("epsilon") = 0.03,
+                arg("sampling") = 0.06,
+                arg("normal_deviation") = 25.0,
+                arg("overlook_probability") = 0.01,
+                arg("voxel_size") = 1.0))
         .def("cylinder_filter", &Entity::cylinder_filter,
-            (arg("radius_min") = 0.0, 
-            arg("radius_max") = 99.0,
-            arg("length_min") = 0.0,
-            arg("length_max") = 99.0))
+            (arg("radius_min") = 0.0,
+                arg("radius_max") = 99.0,
+                arg("length_min") = 0.0,
+                arg("length_max") = 99.0))
         .def("split_cloud", &Entity::split_cloud)
         .def("rebuild_cloud_from_cylinders", &Entity::rebuild_cloud_from_cylinders)
         .def("build_graph_from_cylinders", &Entity::build_graph_from_cylinders)
         .def("graph_cluster", &Entity::graph_cluster)
         .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn)
         .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius)
-        .def("graph_resample", &Entity::graph_resample)
-    ;
+        .def("graph_resample", &Entity::graph_resample);
 
     class_<PointCloud>("PointCloud", no_init)
-        .def("points", +[](PointCloud& c){ return create_numpy_array(c.cloud);})
-    ;
+        .def(
+            "points", +[](PointCloud& c) { return create_numpy_array(c.cloud); });
 
     class_<PointNormals>("PointNormals", no_init)
-        .def("normals", +[](PointNormals& c){ return create_numpy_array(c.normals);})
-    ;
+        .def(
+            "normals", +[](PointNormals& c) { return create_numpy_array(c.normals); });
 
     class_<Cylinders>("Cylinders", no_init)
-        .def("__len__", +[](const Cylinders& c){ return c.cylinders.size(); })
-        .def("__getitem__", +[](Cylinders& c, size_t i) -> groot::CylinderWithPoints& { return c.cylinders.at(i); },
-            return_internal_reference<1>())
-    ;
+        .def(
+            "__len__", +[](const Cylinders& c) { return c.cylinders.size(); })
+        .def(
+            "__getitem__", +[](Cylinders& c, size_t i) -> groot::CylinderWithPoints& { return c.cylinders.at(i); },
+            return_internal_reference<1>());
 
     class_<groot::CylinderWithPoints>("CylinderWithPoints", no_init)
-        .def("points", +[](groot::CylinderWithPoints& c) 
-        {
-            return create_numpy_array(c.points);
-        })
-        .def_readwrite("cylinder", &groot::CylinderWithPoints::cylinder)
-    ;
+        .def(
+            "points", +[](groot::CylinderWithPoints& c) {
+                return create_numpy_array(c.points);
+            })
+        .def_readwrite("cylinder", &groot::CylinderWithPoints::cylinder);
 
     class_<groot::Cylinder>("Cylinder", no_init)
         .def_readwrite("center", &groot::Cylinder::center)
         .def_readwrite("direction", &groot::Cylinder::direction)
         .def_readwrite("radius", &groot::Cylinder::radius)
-        .def_readwrite("middle_height", &groot::Cylinder::middle_height)
-        ;
-    
+        .def_readwrite("middle_height", &groot::Cylinder::middle_height);
+
     class_<groot::Point_3>("Point_3", init<float, float, float>())
-        .def_readwrite("x", (float groot::Point_3::*) &glm::vec3::x)
-        .def_readwrite("y", (float groot::Point_3::*) &glm::vec3::y)
-        .def_readwrite("z", (float groot::Point_3::*) &glm::vec3::z)
-        .def("as_numpy", &create_numpy_array<groot::Point_3, float, 3>)
-    ;
+        .def_readwrite("x", (float groot::Point_3::*)&glm::vec3::x)
+        .def_readwrite("y", (float groot::Point_3::*)&glm::vec3::y)
+        .def_readwrite("z", (float groot::Point_3::*)&glm::vec3::z)
+        .def("as_numpy", &create_numpy_array<groot::Point_3, float, 3>);
 
     class_<groot::Vector_3>("Vector_3", init<float, float, float>())
-        .def_readwrite("x", (float groot::Vector_3::*) &glm::vec3::x)
-        .def_readwrite("y", (float groot::Vector_3::*) &glm::vec3::y)
-        .def_readwrite("z", (float groot::Vector_3::*) &glm::vec3::z)
-        .def("as_numpy", &create_numpy_array<groot::Vector_3, float, 3>)
-        ;
-    
+        .def_readwrite("x", (float groot::Vector_3::*)&glm::vec3::x)
+        .def_readwrite("y", (float groot::Vector_3::*)&glm::vec3::y)
+        .def_readwrite("z", (float groot::Vector_3::*)&glm::vec3::z)
+        .def("as_numpy", &create_numpy_array<groot::Vector_3, float, 3>);
 }
