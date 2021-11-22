@@ -85,11 +85,8 @@ public:
         int k,
         float radius)
     {
-        ComputeNormals cmd { entt::handle(e) };
-        cmd.k = k;
-        cmd.radius = radius;
-
-        cmd.run(*e.registry());
+        auto&& task = compute_normals_command(e, k, radius);
+        run_task(std::move(task));
     }
 
     void cylinder_marching(

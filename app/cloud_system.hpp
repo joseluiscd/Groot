@@ -6,20 +6,18 @@
 #include <entt/entt.hpp>
 #include <groot/cgal.hpp>
 
-class ComputeNormals : public CommandGui {
-public:
-    ComputeNormals(entt::registry& reg);
-    ComputeNormals(entt::handle&& handle);
+async::task<void> compute_normals_command(entt::handle e, size_t k, float radius);
 
-    GuiState draw_gui() override;
-    CommandState execute() override;
-    void on_finish(entt::registry& reg) override;
+class ComputeNormals : public DialogGui {
+public:
+    ComputeNormals(entt::handle h);
+
+    void draw_dialog() override;
+    std::string_view name() const override { return "Compute Point Cloud Normals"; }
+    void schedule_commands(entt::registry& reg) override;
 
 private:
-    entt::registry& registry;
-    PointCloud* cloud;
     entt::entity target;
-    std::vector<groot::Vector_3> normals;
 
     int selected_k = 1;
 

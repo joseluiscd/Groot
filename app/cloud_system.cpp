@@ -4,7 +4,6 @@
 #include "render.hpp"
 #include "resources.hpp"
 #include "viewer_system.hpp"
-#include <cfloat>
 #include <gfx/buffer.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
@@ -14,64 +13,47 @@
 #include <groot/cylinder_marching.hpp>
 #include <spdlog/spdlog.h>
 
-ComputeNormals::ComputeNormals(entt::handle&& handle)
-    : registry(*handle.registry())
+ComputeNormals::ComputeNormals(entt::handle h)
+    : target(h)
 {
-    target = handle.entity();
-    if (registry.valid(target) && registry.all_of<PointCloud>(target)) {
-        this->cloud = &registry.get<PointCloud>(target);
-    } else {
+    if (!h.valid() || !h.all_of<PointCloud>()) {
         throw std::runtime_error("Selected entity must have PointCloud");
     }
 }
 
-ComputeNormals::ComputeNormals(entt::registry& reg)
-    : ComputeNormals(entt::handle {
-        reg,
-        reg.ctx<SelectedEntity>().selected })
+void ComputeNormals::draw_dialog()
 {
-}
+    ImGui::RadioButton("Radius search", &selected_k, 0);
+    ImGui::RadioButton("kNN##normals", &selected_k, 1);
 
-GuiState ComputeNormals::draw_gui()
-{
-    bool show = true;
-    ImGui::OpenPopup("Compute normals");
-    if (ImGui::BeginPopupModal("Compute normals", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        ImGui::RadioButton("Radius search", &selected_k, 0);
-        ImGui::RadioButton("kNN##normals", &selected_k, 1);
-
-        ImGui::Separator();
-        if (selected_k == 0) { // Radius search
-            ImGui::InputFloat("Radius", &radius);
-            ImGui::InputInt("Max NN", &k);
-        } else {
-            radius = 0.0;
-            ImGui::InputInt("kNN", &k);
-        }
-        ImGui::Separator();
-
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunAsync;
-        }
-
-        ImGui::EndPopup();
+    ImGui::Separator();
+    if (selected_k == 0) { // Radius search
+        ImGui::InputFloat("Radius", &radius);
+        ImGui::InputInt("Max NN", &k);
+    } else {
+        radius = 0.0;
+        ImGui::InputInt("kNN", &k);
     }
-
-    return show ? GuiState::Editing : GuiState::Close;
 }
 
-CommandState ComputeNormals::execute()
+void ComputeNormals::schedule_commands(entt::registry &reg)
 {
-    normals = std::move(
-        groot::compute_normals(cloud->cloud.data(), cloud->cloud.size(), k, radius));
-
-    return CommandState::Ok;
+    reg.ctx<TaskBroker>().push_task("Computing Cloud Normals", compute_normals_command(entt::handle(reg, target), k, radius));
 }
 
-void ComputeNormals::on_finish(entt::registry& reg)
+async::task<void> compute_normals_command(entt::handle e, size_t k, float radius)
 {
-    registry.emplace_or_replace<PointNormals>(target, std::move(normals));
+    return async::spawn(sync_scheduler(), [e]() {
+        if (!e.valid() || !e.all_of<PointCloud>()) {
+            throw std::runtime_error("Selected entity must have PointCloud");
+        }
+
+        return &e.get<PointCloud>();
+    }).then(async_scheduler(), [k, radius](PointCloud* cloud) {
+        return PointNormals { groot::compute_normals(cloud->cloud.data(), cloud->cloud.size(), k, radius) };
+    }).then(sync_scheduler(), [e](PointNormals&& normals) {
+        e.emplace_or_replace<PointNormals>(std::move(normals));
+    });
 }
 
 RecenterCloud::RecenterCloud(entt::registry& _reg)
@@ -118,8 +100,6 @@ void RecenterCloud::on_finish(entt::registry& reg)
 {
     reg.emplace_or_replace<PointCloud>(target, std::move(centered));
 }
-
-
 
 SplitCloud::SplitCloud(entt::handle&& _handle)
     : reg(*_handle.registry())
@@ -316,7 +296,7 @@ void update_cloud_view(entt::registry& registry, entt::entity entity)
     for (auto it = cloud.cloud.begin(); it != cloud.cloud.end(); ++it) {
         edit_points.vector().push_back(glm::vec3(it->x(), it->y(), it->z()));
     }
-    
+
     view_data.cloud_has_colors = registry.all_of<PointColors>(entity);
     if (view_data.cloud_has_colors) {
         auto colors = registry.get<PointColors>(entity);
@@ -336,7 +316,7 @@ void update_cloud_view(entt::registry& registry, entt::entity entity)
 
 void create_normal_view(entt::registry& reg, entt::entity entity)
 {
-    if (! reg.all_of<PointViewComponent, PointNormals>(entity)) {
+    if (!reg.all_of<PointViewComponent, PointNormals>(entity)) {
         return;
     }
 
@@ -436,7 +416,7 @@ void deinit(entt::registry& reg)
     reg.clear<CurvatureViewComponent>();
 
     SystemData& d = reg.ctx<SystemData>();
-    for (size_t i = 0; i< d.connections.size(); i++) {
+    for (size_t i = 0; i < d.connections.size(); i++) {
         d.connections[i].release();
     }
 
@@ -451,14 +431,14 @@ void run(entt::registry& reg)
     auto point_views = reg.view<PointViewComponent, Visible>().each();
     auto normal_views = reg.view<NormalViewComponent, Visible>().each();
 
-    cloud_modified.each([&reg](auto entity){
-        if (! reg.all_of<PointViewComponent>(entity)) {
+    cloud_modified.each([&reg](auto entity) {
+        if (!reg.all_of<PointViewComponent>(entity)) {
             reg.emplace<PointViewComponent>(entity);
         }
         update_cloud_view(reg, entity);
     });
 
-    normals_modified.each([&reg](auto entity){
+    normals_modified.each([&reg](auto entity) {
         create_normal_view(reg, entity);
     });
 
@@ -480,11 +460,11 @@ void run(entt::registry& reg)
         .with_camera(*view_data.camera)
         .for_each(point_views.begin(), point_views.end(), [](auto& pipe, auto&& entity) {
             auto [_, view] = entity;
-            if (view.cloud_has_colors && ! view.uniform_color) {
+            if (view.cloud_has_colors && !view.uniform_color) {
                 pipe
                     .bind(view.size)
                     .draw(view.vao_colors);
-            } 
+            }
         })
         .set_pipeline(system_data.pipeline_vectors)
         .with_camera(*view_data.camera)

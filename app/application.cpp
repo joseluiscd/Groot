@@ -78,9 +78,13 @@ void Application::draw_background_tasks()
             ImGui::Spinner("##spinner", 10.0f, 5.0f);
             ImGui::SameLine();
             ImGui::Text("%s", task_name.data());
+        }, [](const std::string_view& error) {
+            spdlog::error("{}", error);
         });
     } else {
-        registry.ctx<TaskBroker>().cycle_tasks([](auto&& _) {});
+        registry.ctx<TaskBroker>().cycle_tasks([](auto&& _) {}, [](const std::string_view& error) {
+            spdlog::error("{}", error);
+        });
     }
 
     ImGui::End();
@@ -176,7 +180,7 @@ void Application::draw_gui()
             ImGui::Separator();
 
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tNormals...")) {
-                open_new_window_adaptor<ComputeNormals>(registry);
+                open_new_window<ComputeNormals>(get_selected_handle());
             }
 
             if (ImGui::MenuItem(ICON_FA_CUBES "\tSplit Voxels...")) {

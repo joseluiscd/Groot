@@ -34,16 +34,21 @@ public:
 
     /**
     Cycle through tasks. Apply function `f` to active tasks.
+    On error, call `e` with the exception.
     */
-    template <typename F>
-    inline void cycle_tasks(F&& f)
+    template <typename F, typename E>
+    inline void cycle_tasks(F&& f, E&& err)
     {
         auto it = tasks.begin();
         while (it != tasks.end()) {
             if (it->second.ready()) {
                 tasks.erase(it++);
             } else {
-                std::invoke(f, std::string_view(it->first));
+                try {
+                    std::invoke(f, std::string_view(it->first));
+                } catch (const std::exception& e) {
+                    err(e.what());
+                }
                 ++it;
             }
         }
