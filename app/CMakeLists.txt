@@ -26,6 +26,9 @@ add_library(groot
     cloud_io.hpp
     cloud_io.cpp
 
+    graph_io.hpp
+    graph_io.cpp
+
     serde.hpp
 
     create_graph.hpp

@@ -62,12 +62,10 @@ struct SystemData {
     SystemData(gfx::RenderPipeline&& p)
         : pipeline(p)
         , update_graph()
-        , create_graph()
     {
     }
     gfx::RenderPipeline pipeline;
     entt::observer update_graph;
-    entt::observer create_graph;
 };
 void update_viewer_component(entt::registry& registry, entt::entity entity)
 {
@@ -127,19 +125,15 @@ void init(entt::registry& registry)
     system_data.update_graph.connect(
         registry,
         entt::collector
-            .update<groot::PlantGraph>()
-            .where<GraphViewerComponent>());
-
-    system_data.create_graph.connect(
-        registry,
-        entt::collector.group<groot::PlantGraph>());
+            .group<groot::PlantGraph>()
+            .update<groot::PlantGraph>());
 
     registry
             .on_destroy<groot::PlantGraph>()
             .connect<&entt::registry::remove<GraphViewerComponent>>();
 
     auto& entity_editor = registry.ctx<EntityEditor>();
-    entity_editor.registerComponent<GraphViewerComponent>("Graph View", true);
+    entity_editor.registerComponent<GraphViewerComponent>("Plant Graph View", true);
 }
 
 void deinit(entt::registry& registry)
@@ -156,19 +150,12 @@ void run(entt::registry& registry)
 
     glm::mat4 view_proj_matrix = view_data.camera->get_matrix();
 
-    for (const auto entity : data.create_graph) {
-        registry.emplace<GraphViewerComponent>(entity);
-        registry.emplace_or_replace<Visible>(entity);
-
+    data.update_graph.each([&registry](entt::entity entity) {
+        if (! registry.all_of<GraphViewerComponent>(entity)) {
+            registry.emplace<GraphViewerComponent>(entity);
+        }
         update_viewer_component(registry, entity);
-    }
-
-    for (const auto entity : data.update_graph) {
-        update_viewer_component(registry, entity);
-    }
-
-    data.create_graph.clear();
-    data.update_graph.clear();
+    });
 
     const auto view = registry.view<GraphViewerComponent, Visible>();
     for (const auto entity : view) {
@@ -176,8 +163,14 @@ void run(entt::registry& registry)
         gfx::DebugDraw::Builder dd;
 
         dd.set_color(graph_view.root_color);
-        // TODO: Dont try at home
-        glm::vec3 root = *reinterpret_cast<glm::vec3*>(&graph[graph.m_property->root_index].position);
+
+        glm::vec3 root;
+        if (graph.m_property->root_index >= boost::num_vertices(graph)) {
+            root = glm::vec3(+INFINITY, +INFINITY, +INFINITY);
+        } else  {
+            root = *reinterpret_cast<glm::vec3*>(&graph[graph.m_property->root_index].position);
+        }
+
         dd.point(root);
         gfx::DebugDraw d = dd.build();
 

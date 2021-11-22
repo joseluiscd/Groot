@@ -10,6 +10,7 @@
 #include "entt/entity/fwd.hpp"
 #include "gfx/font_awesome.hpp"
 #include "graph_cluster.hpp"
+#include "graph_io.hpp"
 #include "graph_resample.hpp"
 #include "graph_viewer_system.hpp"
 #include "open_workspace.hpp"
@@ -202,6 +203,15 @@ void Application::draw_gui()
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tMinimum Spanning Tree")) {
                 open_new_window_adaptor<MSTGraphCommand>(registry);
             }
+            ImGui::Separator();
+            if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PlantGraph")) {
+                open_new_window<ImportGraphGui>();
+            }
+
+            if (ImGui::MenuItem(ICON_FA_FILE_EXPORT "\tExport PlantGraph")) {
+                open_new_window<ExportGraphGui>(get_selected_handle());
+            }
+
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tResample Graph")) {
                 open_new_window<GraphResampleGui>(get_selection());

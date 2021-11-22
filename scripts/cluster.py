@@ -10,17 +10,13 @@ import groot
 import toml
 
 registry = groot.Registry()
-params = toml.load(sys.argv[1])
+entity = registry.load_ply("/home/joseluis/Trees/palo.ply")
+entity.visible = True
 
-print("Reading from", params["input"])
+entity.graph_from_cloud_knn(10)
+entity.graph_cluster(10)
 
+resampled = entity.graph_resample(0.3)
+resampled.visible = True
 
-entity = registry.load_ply(params["input"])
-
-entity.graph_from_cloud_knn(params["cluster"]["k"])
-entity.graph_cluster(params["cluster"]["intervals"])
-
-print("Done!")
-print("Writing output file")
-registry.save(params["output"])
-print("Finished!")
+registry.run_viewer()

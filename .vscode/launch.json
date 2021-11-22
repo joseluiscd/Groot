@@ -13,6 +13,14 @@
             "cwd": "${workspaceFolder}"
         },
         {
+            "name": "Cluster Palo",
+            "type": "lldb",
+            "request": "launch",
+            "program": "python3",
+            "args": ["scripts/cluster.py", "--debug"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "Viewer",
             "type": "lldb",
             "request": "launch",
