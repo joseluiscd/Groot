@@ -11,6 +11,7 @@
 #include "groot/cgal.hpp"
 #include "groot/cloud.hpp"
 #include "open_workspace.hpp"
+#include "python_imgui.hpp"
 #include "save_workspace.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/python/list.hpp>
@@ -244,10 +245,13 @@ public:
         return Entity(reg, reg.create());
     }
 
-    void run_viewer()
+    void run_viewer(boost::python::object init_func, boost::python::object update_func)
     {
         Application app(reg);
-        app.main_loop();
+        std::invoke(init_func, boost::ref(*this));
+        app.main_loop([this, &update_func](entt::registry&) {
+            std::invoke(update_func, boost::ref(*this));
+        });
     }
 
 private:
@@ -288,6 +292,12 @@ BOOST_PYTHON_MODULE(groot)
     namespace np = boost::python::numpy;
 
     np::initialize();
+    object builtins = import("builtins");
+
+    def(
+        "get_imgui_context", +[]() {
+            return (size_t)ImGui::GetCurrentContext();
+        });
 
     class_<Registry, boost::noncopyable>("Registry",
         "The registry where all data is stored")
@@ -297,7 +307,9 @@ BOOST_PYTHON_MODULE(groot)
         .def("save", &Registry::save)
         .def("load_ply", &Registry::load_ply)
         .def("new_entity", &Registry::new_entity)
-        .def("run_viewer", &Registry::run_viewer);
+        .def("run_viewer", &Registry::run_viewer,
+            (arg("init_func") = builtins.attr("id"),
+                arg("update_func") = builtins.attr("id")));
 
     class_<Entity>("Entity", "An entity in a registry", no_init)
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
@@ -367,4 +379,6 @@ BOOST_PYTHON_MODULE(groot)
         .def_readwrite("y", (float groot::Vector_3::*)&glm::vec3::y)
         .def_readwrite("z", (float groot::Vector_3::*)&glm::vec3::z)
         .def("as_numpy", &create_numpy_array<groot::Vector_3, float, 3>);
+    
+    create_imgui_module();
 }

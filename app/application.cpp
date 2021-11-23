@@ -71,7 +71,11 @@ void Application::show_error(const std::string& error)
 void Application::draw_background_tasks()
 {
     async::fifo_scheduler& sched = sync_scheduler();
-    sched.run_all_tasks();
+    try {
+        sched.run_all_tasks();
+    } catch (const std::exception& e) {
+        spdlog::error("{}", e.what());
+    }
 
     if (windows.background_tasks && ImGui::Begin("Background tasks", &windows.background_tasks)) {
         registry.ctx<TaskBroker>().cycle_tasks([](std::string_view&& task_name) {
@@ -294,7 +298,6 @@ void Application::draw_gui()
         ImGui::ShowDemoWindow(&windows.demo_window);
 
     ImGui::EndMainWindow();
-    gui_app.draw_gui();
 }
 
 void Application::draw_console_log()
@@ -308,5 +311,15 @@ void Application::main_loop()
 {
     gui_app.main_loop([&]() {
         draw_gui();
+        gui_app.draw_gui();
+    });
+}
+
+void Application::main_loop(std::function<void(entt::registry&)> update)
+{
+    gui_app.main_loop([&]() {
+        draw_gui();
+        update(registry);
+        gui_app.draw_gui();
     });
 }

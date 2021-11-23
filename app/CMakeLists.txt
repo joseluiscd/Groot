@@ -47,6 +47,9 @@ add_library(groot
     python.hpp
     python.cpp
 
+    python_imgui.hpp
+    python_imgui.cpp
+
     cloud_system.hpp
     cloud_system.cpp
 

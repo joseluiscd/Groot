@@ -54,6 +54,7 @@ public:
     void draw_console_log();
 
     void main_loop();
+    void main_loop(std::function<void(entt::registry&)> update);
 
 private:
     entt::entity get_selected_entity();
