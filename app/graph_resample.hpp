@@ -12,6 +12,8 @@ struct GraphResampleArgs {
 };
 
 async::task<entt::entity> graph_resample_command(entt::handle h, float sample_length);
+async::task<entt::entity> graph_match_command(entt::handle h1, entt::handle h2);
+
 template <typename Iterator>
 auto graph_resample_command(entt::registry& reg, Iterator begin, Iterator end, float sample_length)
 {

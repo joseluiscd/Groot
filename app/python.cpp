@@ -7,6 +7,7 @@
 #include "cylinder_connect.hpp"
 #include "cylinder_marching.hpp"
 #include "graph_cluster.hpp"
+#include "graph_io.hpp"
 #include "graph_resample.hpp"
 #include "groot/cgal.hpp"
 #include "groot/cloud.hpp"
@@ -49,6 +50,11 @@ public:
     Entity(entt::handle&& h)
         : e(h)
     {
+    }
+
+    void destroy()
+    {
+        e.destroy();
     }
 
     template <typename Component>
@@ -193,6 +199,12 @@ public:
         return Entity(*e.registry(), run_task(std::move(task)));
     }
 
+    Entity match_graph(Entity other)
+    {
+        auto&& task = graph_match_command(this->e, other.e);
+        return Entity(*e.registry(), run_task(std::move(task)));
+    }
+
 private:
     entt::handle e;
 };
@@ -236,6 +248,13 @@ public:
     Entity load_ply(const std::string& filename)
     {
         auto&& task = import_ply_command(reg, filename);
+
+        return Entity(reg, run_task(std::move(task)));
+    }
+    
+    Entity load_graph(const std::string& filename)
+    {
+        auto&& task = import_graph_command(reg, filename);
 
         return Entity(reg, run_task(std::move(task)));
     }
@@ -306,6 +325,7 @@ BOOST_PYTHON_MODULE(groot)
         .def("load", &Registry::load)
         .def("save", &Registry::save)
         .def("load_ply", &Registry::load_ply)
+        .def("load_graph", &Registry::load_graph)
         .def("new_entity", &Registry::new_entity)
         .def("run_viewer", &Registry::run_viewer,
             (arg("init_func") = builtins.attr("id"),
@@ -313,6 +333,7 @@ BOOST_PYTHON_MODULE(groot)
 
     class_<Entity>("Entity", "An entity in a registry", no_init)
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
+        .def("destroy", &Entity::destroy)
         .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1>())
         .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1>())
         .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1>())
@@ -338,7 +359,8 @@ BOOST_PYTHON_MODULE(groot)
         .def("graph_cluster", &Entity::graph_cluster)
         .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn)
         .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius)
-        .def("graph_resample", &Entity::graph_resample);
+        .def("graph_resample", &Entity::graph_resample)
+        .def("match_graph", &Entity::match_graph);
 
     class_<PointCloud>("PointCloud", no_init)
         .def(
