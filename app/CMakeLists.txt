@@ -79,6 +79,13 @@ target_link_libraries(groot
     Async++
 )
 
+target_precompile_headers(groot
+  PUBLIC
+    entt.hpp
+    python.hpp
+    task.hpp
+)
+
 add_executable(groot_test main_test.cpp)
 target_link_libraries(groot_test groot)
 
