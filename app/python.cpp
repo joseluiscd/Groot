@@ -1,4 +1,5 @@
-#include "python.hpp"
+#include "storage.hpp"
+
 #include "application.hpp"
 #include "cloud_io.hpp"
 #include "cloud_system.hpp"
@@ -12,6 +13,7 @@
 #include "groot/cgal.hpp"
 #include "groot/cloud.hpp"
 #include "open_workspace.hpp"
+#include "python.hpp"
 #include "python_imgui.hpp"
 #include "save_workspace.hpp"
 #include <boost/core/noncopyable.hpp>
@@ -21,7 +23,7 @@
 #include <boost/python/numpy/ndarray.hpp>
 #include <boost/python/return_value_policy.hpp>
 #include <boost/python/tuple.hpp>
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <functional>
 
 template <typename Result>
@@ -67,6 +69,13 @@ public:
     void remove_component()
     {
         e.remove<Component>();
+    }
+
+    void remove_component_runtime(const entt::type_info& type)
+    {
+        auto& storage = e.registry()->storage(type);
+        auto ntt = e.entity();
+        storage->erase(*e.registry(), e.entity());
     }
 
     void select()
@@ -214,6 +223,13 @@ public:
     Registry()
         : reg()
     {
+        reg.prepare<Visible>();
+
+        reg.prepare<groot::PlantGraph>();
+        reg.prepare<PointCloud>();
+        reg.prepare<PointNormals>();
+        reg.prepare<PointColors>();
+        reg.prepare<Cylinders>();
     }
 
     entt::handle selected()
@@ -312,6 +328,25 @@ BOOST_PYTHON_MODULE(groot)
 
     np::initialize();
     object builtins = import("builtins");
+    object types = import("types");
+    object module = types.attr("ModuleType");
+
+    class_<entt::type_info>("TypeInfo", no_init)
+        .def("name", &entt::type_info::name)
+        .def("id", &entt::type_info::index)
+        .def("hash", &entt::type_info::hash);
+
+    {
+        object components_mod = module("components", "Namespace for all component types");
+        scope().attr("components") = components_mod;
+        scope components(components_mod);
+
+        components.attr("PlantGraph") = entt::type_id<groot::PlantGraph>();
+        components.attr("PointCloud") = entt::type_id<PointCloud>();
+        components.attr("PointNormals") = entt::type_id<PointNormals>();
+        components.attr("PointColors") = entt::type_id<PointColors>();
+        components.attr("Cylinders") = entt::type_id<Cylinders>();
+    }
 
     def(
         "get_imgui_context", +[]() {
@@ -334,6 +369,7 @@ BOOST_PYTHON_MODULE(groot)
     class_<Entity>("Entity", "An entity in a registry", no_init)
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
         .def("destroy", &Entity::destroy)
+        .def("remove_component", &Entity::remove_component_runtime)
         .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1>())
         .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1>())
         .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1>())
@@ -401,6 +437,6 @@ BOOST_PYTHON_MODULE(groot)
         .def_readwrite("y", (float groot::Vector_3::*)&glm::vec3::y)
         .def_readwrite("z", (float groot::Vector_3::*)&glm::vec3::z)
         .def("as_numpy", &create_numpy_array<groot::Vector_3, float, 3>);
-    
+
     create_imgui_module();
 }

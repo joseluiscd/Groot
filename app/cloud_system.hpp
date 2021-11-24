@@ -3,7 +3,7 @@
 #include "command_gui.hpp"
 #include "components.hpp"
 #include "groot/cloud.hpp"
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <groot/cgal.hpp>
 
 async::task<void> compute_normals_command(entt::handle e, size_t k, float radius);

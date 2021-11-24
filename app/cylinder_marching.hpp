@@ -2,7 +2,7 @@
 
 #include "command_gui.hpp"
 #include "components.hpp"
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <groot/cylinder_marching.hpp>
 
 class CylinderMarching : public CommandGui {

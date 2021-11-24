@@ -7,7 +7,7 @@
 #include <string>
 
 #include "components.hpp"
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <gfx/imgui/imgui.h>
 
 #ifndef MM_IEEE_ASSERT

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "command_gui.hpp"
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <filesystem>
 #include <gfx/imgui/imfilebrowser.h>
 

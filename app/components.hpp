@@ -1,6 +1,6 @@
 #pragma once
 
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <fmt/format.h>
 #include <groot/cgal.hpp>
 #include <groot/cylinder_marching.hpp>

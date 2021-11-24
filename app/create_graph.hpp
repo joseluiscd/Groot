@@ -2,7 +2,7 @@
 
 #include "command_gui.hpp"
 #include "components.hpp"
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <gfx/imgui/imgui.h>
 #include <groot/plant_graph.hpp>
 #include <optional>

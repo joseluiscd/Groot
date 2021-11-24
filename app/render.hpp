@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gfx/imgui/imgui.h"
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <gfx/camera.hpp>
 #include <gfx/framebuffer.hpp>
 #include <gfx/uniform.hpp>

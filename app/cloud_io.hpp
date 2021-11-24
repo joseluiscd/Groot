@@ -2,7 +2,7 @@
 
 #include "command_gui.hpp"
 #include "components.hpp"
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <gfx/imgui/imfilebrowser.h>
 #include <gfx/imgui/imgui.h>
 #include <groot/cgal.hpp>

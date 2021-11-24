@@ -1,6 +1,6 @@
 #pragma once
 
-#include <entt/entt.hpp>
+#include "entt.hpp"
 #include <gfx/camera.hpp>
 #include <gfx/framebuffer.hpp>
 

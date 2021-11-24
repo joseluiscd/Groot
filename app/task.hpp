@@ -1,7 +1,7 @@
 #pragma once
 
 #include <async++.h>
-#include <entt/entt.hpp>
+#include "entt.hpp"
 
 async::threadpool_scheduler& async_scheduler();
 async::fifo_scheduler& sync_scheduler();
