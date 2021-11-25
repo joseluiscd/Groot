@@ -74,8 +74,27 @@ public:
     void remove_component_runtime(const entt::type_info& type)
     {
         auto& storage = e.registry()->storage(type);
-        auto ntt = e.entity();
         storage->erase(*e.registry(), e.entity());
+    }
+
+    void move_component(Entity& target, const entt::type_info& type)
+    {
+        if (e.registry() != target.e.registry()) {
+            throw std::runtime_error("Source and target entities must be in the same registry");
+        }
+
+        if (target.e == e) {
+            //Nothing to do, as they are the same
+            return;
+        }
+
+        auto& storage = e.registry()->storage(type);
+
+        if (! storage->contains(e)) {
+            throw std::runtime_error("Entity does not have this component");
+        }
+
+        storage->move_to(*e.registry(), e, target.e);
     }
 
     void select()
@@ -341,10 +360,13 @@ BOOST_PYTHON_MODULE(groot)
         scope().attr("components") = components_mod;
         scope components(components_mod);
 
+        components.attr("Name") = entt::type_id<Name>();
+
         components.attr("PlantGraph") = entt::type_id<groot::PlantGraph>();
         components.attr("PointCloud") = entt::type_id<PointCloud>();
         components.attr("PointNormals") = entt::type_id<PointNormals>();
         components.attr("PointColors") = entt::type_id<PointColors>();
+        components.attr("PointCurvature") = entt::type_id<PointCurvature>();
         components.attr("Cylinders") = entt::type_id<Cylinders>();
     }
 
@@ -370,6 +392,7 @@ BOOST_PYTHON_MODULE(groot)
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
         .def("destroy", &Entity::destroy)
         .def("remove_component", &Entity::remove_component_runtime)
+        .def("move_component", &Entity::move_component)
         .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1>())
         .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1>())
         .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1>())

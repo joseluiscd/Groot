@@ -15,9 +15,8 @@ ImGui = groot.ImGui
 
 def resample(entity):
     sampled = entity.graph_resample(0.03)
-    sampled.visible = True
-    entity.destroy()
-    return sampled
+    sampled.move_component(entity, groot.components.PlantGraph)
+    sampled.destroy()
     
 def init(registry):
     ground_truth = []
@@ -33,14 +32,11 @@ def init(registry):
         reconstructed.append(ply)
 
     for (a, b) in zip(reconstructed, ground_truth):
-        a = resample(a)
-        b = resample(b)
+        resample(a)
+        resample(b)
 
         g = a.match_graph(b)
         g.visible = True
-
-        u = b.match_graph(b)
-        u.visible = True
 
 
 show = False
