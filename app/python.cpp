@@ -25,6 +25,7 @@
 #include <boost/python/tuple.hpp>
 #include "entt.hpp"
 #include <functional>
+#include "python_task.hpp"
 
 template <typename Result>
 Result run_task(async::task<Result>&& task)
@@ -308,6 +309,11 @@ public:
         });
     }
 
+    void schedule_task(PythonTask& t) {
+        std::string name = boost::python::extract<std::string>(t.name);
+        reg.ctx<TaskBroker>().push_task(name, std::move(t.ignore_result()));
+    }
+
 private:
     entt::registry reg;
 };
@@ -386,7 +392,8 @@ BOOST_PYTHON_MODULE(groot)
         .def("new_entity", &Registry::new_entity)
         .def("run_viewer", &Registry::run_viewer,
             (arg("init_func") = builtins.attr("id"),
-                arg("update_func") = builtins.attr("id")));
+                arg("update_func") = builtins.attr("id")))
+        .def("schedule_task", &Registry::schedule_task);
 
     class_<Entity>("Entity", "An entity in a registry", no_init)
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
@@ -462,4 +469,5 @@ BOOST_PYTHON_MODULE(groot)
         .def("as_numpy", &create_numpy_array<groot::Vector_3, float, 3>);
 
     create_imgui_module();
+    create_task_module();
 }

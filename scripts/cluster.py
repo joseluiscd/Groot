@@ -1,5 +1,8 @@
 #!/bin/env python3
 
+import time
+import pdb
+
 import sys
 if "--debug" in sys.argv:
     sys.path.append("build/app")
@@ -13,11 +16,25 @@ import glob
 registry = groot.Registry()
 ImGui = groot.ImGui
 
+def f1():
+    print("F1")
+    return 4
+
+def f2(v):
+    time.sleep(1)
+    print("F2", v)
+    return v+1
+
 def resample(entity):
     sampled = entity.graph_resample(0.03)
     sampled.move_component(entity, groot.components.PlantGraph)
     sampled.destroy()
     
+def spawn(reg):
+    task = groot.task.Task(f1, "The F Operator", groot.task.TaskMode.Sync)
+    task.then(f2, groot.task.TaskMode.Async)
+    reg.schedule_task(task)
+
 def init(registry):
     ground_truth = []
     for f in glob.glob("/home/joseluis/Trees/TEST_DATA/A.obj"):
@@ -49,6 +66,7 @@ def update(registry):
             ImGui.Text("Hello world")
             if ImGui.Button("Push me"):
                 print("Wololo")
+                spawn(registry)
      
         ImGui.End()
     

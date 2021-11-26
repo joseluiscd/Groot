@@ -50,6 +50,9 @@ add_library(groot
     python_imgui.hpp
     python_imgui.cpp
 
+    python_task.hpp
+    python_task.cpp
+
     cloud_system.hpp
     cloud_system.cpp
 
