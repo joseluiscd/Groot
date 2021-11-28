@@ -1,7 +1,13 @@
 #include "task.hpp"
 
+void pre_run()
+{
+    static size_t threads = std::thread::hardware_concurrency();
+}
+
 async::threadpool_scheduler& async_scheduler()
 {
+
     return async::default_threadpool_scheduler();
 }
 

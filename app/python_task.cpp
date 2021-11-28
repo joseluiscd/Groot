@@ -1,5 +1,7 @@
 #include "python_task.hpp"
 
+thread_local PythonThreadState ReleaseGil::thread_state = PythonThreadState();
+
 void create_task_module()
 {
     using namespace boost::python;

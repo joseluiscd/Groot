@@ -27,6 +27,8 @@
 #include <functional>
 #include "python_task.hpp"
 
+using cpp_func = ReleaseGil;
+
 template <typename Result>
 Result run_task(async::task<Result>&& task)
 {
@@ -161,16 +163,20 @@ public:
 
     boost::python::list split_cloud(float voxel_size)
     {
-        boost::python::list result;
 
         SplitCloud cmd { entt::handle(e) };
         cmd.voxel_size = voxel_size;
         cmd.run(*e.registry());
 
-        for (auto i : cmd.result) {
-            result.append(Entity(i));
+        {
+            AcquireGilGuard gil;
+
+            boost::python::list result;
+            for (auto i : cmd.result) {
+                result.append(Entity(i));
+            }
+            return result;
         }
-        return result;
     }
 
     void rebuild_cloud_from_cylinders()
@@ -383,50 +389,50 @@ BOOST_PYTHON_MODULE(groot)
 
     class_<Registry, boost::noncopyable>("Registry",
         "The registry where all data is stored")
-        .def("selected", &Registry::selected)
-        .def("entities", &Registry::entities)
-        .def("load", &Registry::load)
-        .def("save", &Registry::save)
-        .def("load_ply", &Registry::load_ply)
-        .def("load_graph", &Registry::load_graph)
-        .def("new_entity", &Registry::new_entity)
+        .def("selected", &Registry::selected, cpp_func())
+        .def("entities", &Registry::entities, cpp_func())
+        .def("load", &Registry::load, cpp_func())
+        .def("save", &Registry::save, cpp_func())
+        .def("load_ply", &Registry::load_ply, cpp_func())
+        .def("load_graph", &Registry::load_graph, cpp_func())
+        .def("new_entity", &Registry::new_entity, cpp_func())
+        .def("schedule_task", &Registry::schedule_task, cpp_func())
         .def("run_viewer", &Registry::run_viewer,
             (arg("init_func") = builtins.attr("id"),
-                arg("update_func") = builtins.attr("id")))
-        .def("schedule_task", &Registry::schedule_task);
+                arg("update_func") = builtins.attr("id")));
 
     class_<Entity>("Entity", "An entity in a registry", no_init)
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
-        .def("destroy", &Entity::destroy)
-        .def("remove_component", &Entity::remove_component_runtime)
-        .def("move_component", &Entity::move_component)
-        .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1>())
-        .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1>())
-        .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1>())
-        .def("graph", &Entity::get_component<groot::PlantGraph>, return_internal_reference<1>())
-        .def("select", &Entity::select)
+        .def("destroy", &Entity::destroy, cpp_func())
+        .def("remove_component", &Entity::remove_component_runtime, cpp_func())
+        .def("move_component", &Entity::move_component, cpp_func())
+        .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1, cpp_func>())
+        .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1, cpp_func>())
+        .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1, cpp_func>())
+        .def("graph", &Entity::get_component<groot::PlantGraph>, return_internal_reference<1, cpp_func>())
+        .def("select", &Entity::select, cpp_func())
         .def("compute_normals", &Entity::compute_normals,
-            (arg("k") = 10, arg("radius") = 10.0f))
+            (arg("k") = 10, arg("radius") = 10.0f), cpp_func())
         .def("cylinder_marching", &Entity::cylinder_marching,
             (arg("min_points") = 20,
                 arg("epsilon") = 0.03,
                 arg("sampling") = 0.06,
                 arg("normal_deviation") = 25.0,
                 arg("overlook_probability") = 0.01,
-                arg("voxel_size") = 1.0))
+                arg("voxel_size") = 1.0), cpp_func())
         .def("cylinder_filter", &Entity::cylinder_filter,
             (arg("radius_min") = 0.0,
                 arg("radius_max") = 99.0,
                 arg("length_min") = 0.0,
-                arg("length_max") = 99.0))
-        .def("split_cloud", &Entity::split_cloud)
-        .def("rebuild_cloud_from_cylinders", &Entity::rebuild_cloud_from_cylinders)
-        .def("build_graph_from_cylinders", &Entity::build_graph_from_cylinders)
-        .def("graph_cluster", &Entity::graph_cluster)
-        .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn)
-        .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius)
-        .def("graph_resample", &Entity::graph_resample)
-        .def("match_graph", &Entity::match_graph);
+                arg("length_max") = 99.0), cpp_func())
+        .def("split_cloud", &Entity::split_cloud, cpp_func())
+        .def("rebuild_cloud_from_cylinders", &Entity::rebuild_cloud_from_cylinders, cpp_func())
+        .def("build_graph_from_cylinders", &Entity::build_graph_from_cylinders, cpp_func())
+        .def("graph_cluster", &Entity::graph_cluster, cpp_func())
+        .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn, cpp_func())
+        .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius, cpp_func())
+        .def("graph_resample", &Entity::graph_resample, cpp_func())
+        .def("match_graph", &Entity::match_graph, cpp_func());
 
     class_<PointCloud>("PointCloud", no_init)
         .def(
