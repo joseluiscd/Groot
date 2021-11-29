@@ -1,64 +1,35 @@
 #pragma once
 
 #include "components.hpp"
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/vector.hpp>
+#include <groot/plant_graph_serialize.hpp>
+#include <cereal/cereal.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/archives/binary.hpp>
 
-struct SerializeTag;
-struct DeserializeTag;
+using Serializer = cereal::BinaryOutputArchive;
+using Deserializer = cereal::BinaryInputArchive;
 
-template <typename Archive, typename Tag>
-struct Serde {
-    Archive archive;
-
-    template <typename... Args>
-    Serde(Args&&... a)
-        : archive(std::forward<Args>(a)...)
-    {
-    }
-
-    template <typename T, typename... Args>
-    void operator()(T&& a, Args&&... rest)
-    {
-        (*this)(a);
-        (*this)(std::forward<Args>(rest)...);
-    }
-
-    template <typename T>
-    void operator()(T&& a)
-    {
-        archive& a;
-    }
-};
-
-using Serializer = Serde<boost::archive::binary_oarchive, SerializeTag>;
-using Deserializer = Serde<boost::archive::binary_iarchive, DeserializeTag>;
-
-namespace boost {
-namespace serialization {
+namespace cereal {
 
 template <typename Archive>
-void serialize(Archive& ar, Name& name, unsigned int) {
-    ar & name.name;
+void serialize(Archive& ar, Name& name) {
+    ar(name.name);
 }
 
 template <typename Archive>
-void serialize(Archive& ar, PointCloud& cloud, unsigned int) {
-    ar & cloud.cloud;
+void serialize(Archive& ar, PointCloud& cloud) {
+    ar(cloud.cloud);
 }
 
 template <typename Archive>
-void serialize(Archive& ar, PointNormals& normals, unsigned int) {
-    ar & normals.normals;
+void serialize(Archive& ar, PointNormals& normals) {
+    ar(normals.normals);
 }
 
 template <typename Archive>
-void serialize(Archive& ar, Cylinders& cylinders, unsigned int) {
-    ar & cylinders.cylinders;
+void serialize(Archive& ar, Cylinders& cylinders) {
+    ar(cylinders.cylinders);
 }
 
-
-}
 }

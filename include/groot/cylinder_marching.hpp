@@ -108,19 +108,3 @@ std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int
 std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);
 
 }
-
-namespace boost {
-namespace serialization {
-    template <typename Archive>
-    void serialize(Archive& ar, groot::Cylinder& cylinder, unsigned int)
-    {
-        ar& cylinder.center& cylinder.direction& cylinder.radius& cylinder.middle_height;
-    }
-
-    template <typename Archive>
-    void serialize(Archive& ar, groot::CylinderWithPoints& cylinder, unsigned int)
-    {
-        ar& cylinder.cylinder& cylinder.points;
-    }
-}
-}

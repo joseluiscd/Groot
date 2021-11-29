@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/graph/adj_list_serialize.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/subgraph.hpp>
 #include <boost/property_map/property_map.hpp>
@@ -145,8 +144,6 @@ namespace point_finder {
     extern MaxZ MaxZPointFinder;
 };
 
-void write_to_file(const PlantGraph& g, std::ostream& output);
-PlantGraph read_from_file(std::istream& input);
 
 PlantGraph empty();
 PlantGraph from_delaunay(
@@ -179,51 +176,4 @@ inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = p
     graph.m_property->root_index = boost::get(boost::vertex_index, graph)[pf(graph)];
 }
 
-}
-
-namespace boost {
-
-namespace serialization {
-    template <class Archive>
-    void serialize(Archive& ar, groot::cgal::Point_3& point, unsigned version)
-    {
-        float x = point.x();
-        float y = point.y();
-        float z = point.z();
-
-        ar& x& y& z;
-
-        point = groot::cgal::Point_3(x, y, z);
-    }
-
-    template <class Archive>
-    void serialize(Archive& ar, groot::Vector_3& vector, unsigned version)
-    {
-        float x = vector.x();
-        float y = vector.y();
-        float z = vector.z();
-
-        ar& x& y& z;
-
-        vector = groot::cgal::Vector_3(x, y, z);
-    }
-
-    template <class Archive>
-    void serialize(Archive& ar, groot::VertexProperties& props, unsigned /*version*/)
-    {
-        ar& props.position& props.root_distance;
-    }
-
-    template <class Archive>
-    void serialize(Archive& ar, groot::EdgeProperties& props, unsigned /*version*/)
-    {
-        ar& props.length;
-    }
-
-    template <class Archive>
-    void serialize(Archive& ar, groot::PlantProperties& props, unsigned /*version*/)
-    {
-        ar& props.max_root_distance& props.root_index;
-    }
-}
 }

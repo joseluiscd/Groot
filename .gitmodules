@@ -10,3 +10,6 @@
 [submodule "3rdparty/asyncplusplus"]
 	path = 3rdparty/asyncplusplus
 	url = https://github.com/Amanieu/asyncplusplus.git
+[submodule "3rdparty/cereal"]
+	path = 3rdparty/cereal
+	url = https://github.com/USCiLab/cereal.git

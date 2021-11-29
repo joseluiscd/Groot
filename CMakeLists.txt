@@ -15,7 +15,7 @@ set(CMAKE_MODULE_PATH
 
 
 find_package(glfw3 3.3 REQUIRED)
-find_package(Boost 1.77 REQUIRED COMPONENTS graph serialization python39 numpy39)
+find_package(Boost 1.77 REQUIRED COMPONENTS graph python39 numpy39)
 find_package(TBB REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.5 REQUIRED)
@@ -30,6 +30,7 @@ set(BUILD_EXTENSIONS OFF CACHE BOOL "enable Zep extensions")
 include(CMakePackageConfigHelpers)
 
 add_subdirectory(3rdparty/gfx)
+add_subdirectory(3rdparty/cereal)
 add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/entt)
 add_subdirectory(3rdparty/asyncplusplus)
@@ -55,9 +56,9 @@ target_link_libraries(groot_base
     CGAL::Eigen_support
     spdlog::spdlog
     Boost::boost
-    Boost::serialization
     Boost::python39
     Boost::numpy39
+    cereal::cereal
     EnTT::EnTT
     doctest
     gfx

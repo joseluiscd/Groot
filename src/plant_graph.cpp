@@ -2,7 +2,6 @@
 #include <CGAL/Fuzzy_sphere.h>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <boost/graph/adj_list_serialize.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/copy.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
@@ -44,7 +43,7 @@ void reindex_edges(PlantGraph& graph)
 
 void reindex(PlantGraph& graph)
 {
-    //reindex_vertices(graph);
+    // reindex_vertices(graph);
     reindex_edges(graph);
 }
 
@@ -164,7 +163,7 @@ PlantGraph from_alpha_shape(
     return graph;
 }
 
-PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder &f)
+PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f)
 {
     PlantGraph radius_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius, .search = SearchType::kRadiusSearch });
 
@@ -185,19 +184,19 @@ PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const
         float distance = +INFINITY;
     };
 
-    //std::vector<EdgeElement> elements(components * components);
+    // std::vector<EdgeElement> elements(components * components);
 
     // Further operation
     PlantGraph alpha_graph = from_alpha_shape(cloud, count, 0.0, 1);
     groot::find_root(radius_graph, f);
     alpha_graph = geodesic(alpha_graph);
-    //PlantGraph alpha_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius * 2, .search = SearchType::kRadiusSearch});
-    //PlantGraph alpha_graph = from_cardenas_et_al(cloud, count, radius * 2);
+    // PlantGraph alpha_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius * 2, .search = SearchType::kRadiusSearch});
+    // PlantGraph alpha_graph = from_cardenas_et_al(cloud, count, radius * 2);
 
     // Este es el bueno:
-    //PlantGraph alpha_graph = from_delaunay(cloud, count);
-    //groot::find_root(radius_graph, f);
-    //alpha_graph = minimum_spanning_tree(alpha_graph);
+    // PlantGraph alpha_graph = from_delaunay(cloud, count);
+    // groot::find_root(radius_graph, f);
+    // alpha_graph = minimum_spanning_tree(alpha_graph);
 
     auto [edge_begin, edge_end] = boost::edges(alpha_graph);
     for (auto i = edge_begin; i != edge_end; ++i) {
@@ -217,15 +216,15 @@ PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const
         }
     }
 
-    //for (size_t a = 0; a < components; a++) {
-    //    for (size_t b = 0; b < a; b++) {
-    //        EdgeElement& e = elements[a * components + b];
-    //        if (e.distance != INFINITY) {
-    //            auto [edge, _] = boost::add_edge(e.a, e.b, radius_graph);
-    //            radius_graph[edge].length = e.distance;
-    //        }
-    //    }
-    //}
+    // for (size_t a = 0; a < components; a++) {
+    //     for (size_t b = 0; b < a; b++) {
+    //         EdgeElement& e = elements[a * components + b];
+    //         if (e.distance != INFINITY) {
+    //             auto [edge, _] = boost::add_edge(e.a, e.b, radius_graph);
+    //             radius_graph[edge].length = e.distance;
+    //         }
+    //     }
+    // }
     reindex(radius_graph);
     return radius_graph;
 }
@@ -327,7 +326,7 @@ PlantGraph minimum_spanning_tree(PlantGraph& graph)
     return ret;
 }
 
-void recompute_edge_lengths(PlantGraph &g)
+void recompute_edge_lengths(PlantGraph& g)
 {
     auto [it, end] = boost::edges(g);
     for (; it != end; ++it) {
@@ -335,24 +334,8 @@ void recompute_edge_lengths(PlantGraph &g)
         Vertex v2 = boost::target(*it, g);
 
         g[*it].length = std::sqrt(CGAL::squared_distance(
-            g[v1].position, g[v2].position
-        ));
+            g[v1].position, g[v2].position));
     }
-}
-
-void write_to_file(const PlantGraph& g, std::ostream& output)
-{
-    boost::archive::binary_oarchive out_archive(output);
-    out_archive << g;
-}
-
-PlantGraph read_from_file(std::istream& input)
-{
-    PlantGraph g;
-    boost::archive::binary_iarchive input_archive(input);
-    input_archive >> g;
-
-    return g;
 }
 
 namespace point_finder {
