@@ -38,7 +38,7 @@ struct PythonThreadState {
 
     ~PythonThreadState()
     {
-        if (state != nullptr) {
+        if (state != nullptr && state->interp != nullptr) {
             PyThreadState_Clear(state);
         }
     }

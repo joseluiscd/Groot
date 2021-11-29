@@ -7,6 +7,7 @@
 #include "create_graph.hpp"
 #include "cylinder_connect.hpp"
 #include "cylinder_marching.hpp"
+#include "entt.hpp"
 #include "graph_cluster.hpp"
 #include "graph_io.hpp"
 #include "graph_resample.hpp"
@@ -15,6 +16,7 @@
 #include "open_workspace.hpp"
 #include "python.hpp"
 #include "python_imgui.hpp"
+#include "python_task.hpp"
 #include "save_workspace.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/python/list.hpp>
@@ -23,11 +25,7 @@
 #include <boost/python/numpy/ndarray.hpp>
 #include <boost/python/return_value_policy.hpp>
 #include <boost/python/tuple.hpp>
-#include "entt.hpp"
 #include <functional>
-#include "python_task.hpp"
-
-using cpp_func = ReleaseGil;
 
 template <typename Result>
 Result run_task(async::task<Result>&& task)
@@ -82,18 +80,20 @@ public:
 
     void move_component(Entity& target, const entt::type_info& type)
     {
+        ReleaseGilGuard guard;
+
         if (e.registry() != target.e.registry()) {
             throw std::runtime_error("Source and target entities must be in the same registry");
         }
 
         if (target.e == e) {
-            //Nothing to do, as they are the same
+            // Nothing to do, as they are the same
             return;
         }
 
         auto& storage = e.registry()->storage(type);
 
-        if (! storage->contains(e)) {
+        if (!storage->contains(e)) {
             throw std::runtime_error("Entity does not have this component");
         }
 
@@ -123,6 +123,8 @@ public:
         int k,
         float radius)
     {
+        ReleaseGilGuard guard;
+
         auto&& task = compute_normals_command(e, k, radius);
         run_task(std::move(task));
     }
@@ -135,6 +137,8 @@ public:
         float overlook_probability,
         float voxel_size)
     {
+        ReleaseGilGuard guard;
+
         CylinderMarching cmd { entt::handle(e) };
         cmd.min_points = min_points;
         cmd.epsilon = epsilon;
@@ -151,6 +155,8 @@ public:
         float length_min,
         float length_max)
     {
+        ReleaseGilGuard guard;
+
         CylinderFilter cmd { entt::handle(e) };
         cmd.filter_radius = true;
         cmd.radius_range[0] = radius_min;
@@ -163,6 +169,7 @@ public:
 
     boost::python::list split_cloud(float voxel_size)
     {
+        ReleaseGilGuard guard;
 
         SplitCloud cmd { entt::handle(e) };
         cmd.voxel_size = voxel_size;
@@ -181,18 +188,24 @@ public:
 
     void rebuild_cloud_from_cylinders()
     {
+        ReleaseGilGuard guard;
+
         CylinderPointFilter cmd { entt::handle(e) };
         cmd.run(*e.registry());
     }
 
     void build_graph_from_cylinders()
     {
+        ReleaseGilGuard guard;
+
         CylinderConnection cmd { entt::handle(e) };
         cmd.run(*e.registry());
     }
 
     void graph_cluster(int intervals)
     {
+        ReleaseGilGuard guard;
+
         GraphCluster cmd { entt::handle(e) };
         cmd.interval_count = intervals;
         cmd.run(*e.registry());
@@ -200,6 +213,8 @@ public:
 
     void graph_from_cloud_knn(int k)
     {
+        ReleaseGilGuard guard;
+
         CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kKnn;
         cmd.k = k;
@@ -208,6 +223,8 @@ public:
 
     void graph_from_cloud_radius(float r)
     {
+        ReleaseGilGuard guard;
+
         CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kRadius;
         cmd.radius = r;
@@ -216,6 +233,8 @@ public:
 
     void graph_from_alpha_shape(float k)
     {
+        ReleaseGilGuard guard;
+
         CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kAlphaShape;
         cmd.alpha = k;
@@ -224,6 +243,8 @@ public:
 
     Entity graph_resample(float length)
     {
+        ReleaseGilGuard guard;
+
         auto&& task = graph_resample_command(e, length);
         auto& sched = sync_scheduler();
 
@@ -236,6 +257,8 @@ public:
 
     Entity match_graph(Entity other)
     {
+        ReleaseGilGuard guard;
+
         auto&& task = graph_match_command(this->e, other.e);
         return Entity(*e.registry(), run_task(std::move(task)));
     }
@@ -275,6 +298,8 @@ public:
 
     void load(const std::string& filename)
     {
+        ReleaseGilGuard guard;
+
         OpenWorkspace cmd;
         cmd.set_file(filename);
         cmd.run(reg);
@@ -282,6 +307,7 @@ public:
 
     void save(const std::string& filename)
     {
+        ReleaseGilGuard guard;
         SaveWorkspace cmd { reg };
         cmd.set_file(filename);
         cmd.run(reg);
@@ -289,13 +315,15 @@ public:
 
     Entity load_ply(const std::string& filename)
     {
+        ReleaseGilGuard guard;
         auto&& task = import_ply_command(reg, filename);
 
         return Entity(reg, run_task(std::move(task)));
     }
-    
+
     Entity load_graph(const std::string& filename)
     {
+        ReleaseGilGuard guard;
         auto&& task = import_graph_command(reg, filename);
 
         return Entity(reg, run_task(std::move(task)));
@@ -308,6 +336,7 @@ public:
 
     void run_viewer(boost::python::object init_func, boost::python::object update_func)
     {
+
         Application app(reg);
         std::invoke(init_func, boost::ref(*this));
         app.main_loop([this, &update_func](entt::registry&) {
@@ -315,7 +344,8 @@ public:
         });
     }
 
-    void schedule_task(PythonTask& t) {
+    void schedule_task(PythonTask& t)
+    {
         std::string name = boost::python::extract<std::string>(t.name);
         reg.ctx<TaskBroker>().push_task(name, std::move(t.ignore_result()));
     }
@@ -389,50 +419,50 @@ BOOST_PYTHON_MODULE(groot)
 
     class_<Registry, boost::noncopyable>("Registry",
         "The registry where all data is stored")
-        .def("selected", &Registry::selected, cpp_func())
-        .def("entities", &Registry::entities, cpp_func())
-        .def("load", &Registry::load, cpp_func())
-        .def("save", &Registry::save, cpp_func())
-        .def("load_ply", &Registry::load_ply, cpp_func())
-        .def("load_graph", &Registry::load_graph, cpp_func())
-        .def("new_entity", &Registry::new_entity, cpp_func())
-        .def("schedule_task", &Registry::schedule_task, cpp_func())
+        .def("selected", &Registry::selected)
+        .def("entities", &Registry::entities)
+        .def("load", &Registry::load)
+        .def("save", &Registry::save)
+        .def("load_ply", &Registry::load_ply)
+        .def("load_graph", &Registry::load_graph)
+        .def("new_entity", &Registry::new_entity)
+        .def("schedule_task", &Registry::schedule_task)
         .def("run_viewer", &Registry::run_viewer,
             (arg("init_func") = builtins.attr("id"),
                 arg("update_func") = builtins.attr("id")));
 
     class_<Entity>("Entity", "An entity in a registry", no_init)
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
-        .def("destroy", &Entity::destroy, cpp_func())
-        .def("remove_component", &Entity::remove_component_runtime, cpp_func())
-        .def("move_component", &Entity::move_component, cpp_func())
-        .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1, cpp_func>())
-        .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1, cpp_func>())
-        .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1, cpp_func>())
-        .def("graph", &Entity::get_component<groot::PlantGraph>, return_internal_reference<1, cpp_func>())
-        .def("select", &Entity::select, cpp_func())
+        .def("destroy", &Entity::destroy)
+        .def("remove_component", &Entity::remove_component_runtime)
+        .def("move_component", &Entity::move_component)
+        .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1>())
+        .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1>())
+        .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1>())
+        .def("graph", &Entity::get_component<groot::PlantGraph>, return_internal_reference<1>())
+        .def("select", &Entity::select)
         .def("compute_normals", &Entity::compute_normals,
-            (arg("k") = 10, arg("radius") = 10.0f), cpp_func())
+            (arg("k") = 10, arg("radius") = 10.0f))
         .def("cylinder_marching", &Entity::cylinder_marching,
             (arg("min_points") = 20,
                 arg("epsilon") = 0.03,
                 arg("sampling") = 0.06,
                 arg("normal_deviation") = 25.0,
                 arg("overlook_probability") = 0.01,
-                arg("voxel_size") = 1.0), cpp_func())
+                arg("voxel_size") = 1.0))
         .def("cylinder_filter", &Entity::cylinder_filter,
             (arg("radius_min") = 0.0,
                 arg("radius_max") = 99.0,
                 arg("length_min") = 0.0,
-                arg("length_max") = 99.0), cpp_func())
-        .def("split_cloud", &Entity::split_cloud, cpp_func())
-        .def("rebuild_cloud_from_cylinders", &Entity::rebuild_cloud_from_cylinders, cpp_func())
-        .def("build_graph_from_cylinders", &Entity::build_graph_from_cylinders, cpp_func())
-        .def("graph_cluster", &Entity::graph_cluster, cpp_func())
-        .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn, cpp_func())
-        .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius, cpp_func())
-        .def("graph_resample", &Entity::graph_resample, cpp_func())
-        .def("match_graph", &Entity::match_graph, cpp_func());
+                arg("length_max") = 99.0))
+        .def("split_cloud", &Entity::split_cloud)
+        .def("rebuild_cloud_from_cylinders", &Entity::rebuild_cloud_from_cylinders)
+        .def("build_graph_from_cylinders", &Entity::build_graph_from_cylinders)
+        .def("graph_cluster", &Entity::graph_cluster)
+        .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn)
+        .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius)
+        .def("graph_resample", &Entity::graph_resample)
+        .def("match_graph", &Entity::match_graph);
 
     class_<PointCloud>("PointCloud", no_init)
         .def(
