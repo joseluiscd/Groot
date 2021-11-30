@@ -25,7 +25,12 @@
 #include <boost/python/numpy/ndarray.hpp>
 #include <boost/python/return_value_policy.hpp>
 #include <boost/python/tuple.hpp>
+#include <entt/meta/pointer.hpp>
 #include <functional>
+
+using namespace entt::literals;
+
+constexpr const entt::id_type convert_to_python = "convert_to_python"_hs; 
 
 template <typename Result>
 Result run_task(async::task<Result>&& task)
@@ -37,6 +42,35 @@ Result run_task(async::task<Result>&& task)
 
     return task.get();
 }
+
+struct meta_any_to_python {
+    static PyObject* convert(const entt::meta_any& component)
+    {
+        spdlog::error("{}", component.type().info().name());
+        if (!component.type()) {
+            Py_RETURN_NONE;
+        }
+
+        assert((bool) component);
+        assert(component.data() != nullptr);
+
+        auto function = component.type().func(convert_to_python);
+        assert((bool) function);
+        assert(function.arity() == 0);
+        assert(! function.is_static());
+        assert(function.is_const());
+        assert(function.ret() == entt::resolve<boost::python::object>());
+
+        entt::meta_any result_any = function.invoke(component);
+        assert(result_any);
+        spdlog::error("{}", result_any.type().info().name());
+
+
+        auto result = result_any.cast<boost::python::object>();
+
+        return boost::python::incref(result.ptr());
+    }
+};
 
 class Entity {
 public:
@@ -70,6 +104,23 @@ public:
     void remove_component()
     {
         e.remove<Component>();
+    }
+
+    entt::meta_any get_component_runtime(const entt::type_info& type)
+    {
+        auto& storage = e.registry()->storage(type);
+        if (!storage->contains(e)) {
+            // No entity
+            return entt::meta_any();
+        }
+
+        auto component = storage->get(e);
+
+        assert((bool) component);
+        assert(component.type().info() == type);
+        assert(component.data() != nullptr);
+
+        return component;
     }
 
     void remove_component_runtime(const entt::type_info& type)
@@ -382,6 +433,23 @@ boost::python::numpy::ndarray create_numpy_array(Object& v)
         boost::python::object());
 }
 
+template <typename Component>
+boost::python::object convert_to_python_impl(const Component& c)
+{
+    return boost::python::object(boost::ref(c));
+}
+
+template <typename Component>
+void declare_python_component(boost::python::scope& scope, const std::string_view& name)
+{
+
+    entt::meta<Component>()
+        .type()
+        .template func<convert_to_python_impl<Component>, entt::as_ref_t>(convert_to_python);
+
+    scope.attr(name.data()) = entt::type_id<Component>();
+}
+
 BOOST_PYTHON_MODULE(groot)
 {
     using namespace boost::python;
@@ -391,6 +459,8 @@ BOOST_PYTHON_MODULE(groot)
     object builtins = import("builtins");
     object types = import("types");
     object module = types.attr("ModuleType");
+
+    to_python_converter<entt::meta_any, meta_any_to_python, false>();
 
     class_<entt::type_info>("TypeInfo", no_init)
         .def("name", &entt::type_info::name)
@@ -402,14 +472,12 @@ BOOST_PYTHON_MODULE(groot)
         scope().attr("components") = components_mod;
         scope components(components_mod);
 
-        components.attr("Name") = entt::type_id<Name>();
-
-        components.attr("PlantGraph") = entt::type_id<groot::PlantGraph>();
-        components.attr("PointCloud") = entt::type_id<PointCloud>();
-        components.attr("PointNormals") = entt::type_id<PointNormals>();
-        components.attr("PointColors") = entt::type_id<PointColors>();
-        components.attr("PointCurvature") = entt::type_id<PointCurvature>();
-        components.attr("Cylinders") = entt::type_id<Cylinders>();
+        declare_python_component<Name>(components, "Name");
+        declare_python_component<groot::PlantGraph>(components, "PlantGraph");
+        declare_python_component<PointNormals>(components, "PointNormals");
+        declare_python_component<PointColors>(components, "PointColors");
+        declare_python_component<PointCurvature>(components, "PointCurvature");
+        declare_python_component<Cylinders>(components, "Cylinders");
     }
 
     def(
@@ -436,6 +504,7 @@ BOOST_PYTHON_MODULE(groot)
         .def("destroy", &Entity::destroy)
         .def("remove_component", &Entity::remove_component_runtime)
         .def("move_component", &Entity::move_component)
+        .def("get_component", &Entity::get_component_runtime, with_custodian_and_ward_postcall<1, 0>())
         .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1>())
         .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1>())
         .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1>())
@@ -463,6 +532,10 @@ BOOST_PYTHON_MODULE(groot)
         .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius)
         .def("graph_resample", &Entity::graph_resample)
         .def("match_graph", &Entity::match_graph);
+
+    class_<Name>("Name", no_init)
+        .add_property("name", +[](const Name& n) { return n.name; }, +[](Name& n, const std::string& newname) { n.name = newname; })
+        .def("__str__", +[](Name& n) { return n.name; });
 
     class_<PointCloud>("PointCloud", no_init)
         .def(

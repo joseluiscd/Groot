@@ -2,6 +2,7 @@
 
 #include <entt/core/utility.hpp>
 #include <entt/entity/poly_storage.hpp>
+#include <entt/meta/meta.hpp>
 
 template <typename T>
 struct as_type_list {
@@ -20,9 +21,10 @@ struct PolyStorage
     : entt::type_list_cat_t<
           as_type_list_t<StorageBase>,
           entt::type_list<
-            bool(entt::entity),
-            void(entt::registry&, entt::entity),
-            void(entt::registry&, entt::entity, entt::entity)>> {
+              bool(entt::entity),
+              void(entt::registry&, entt::entity),
+              void(entt::registry&, entt::entity, entt::entity),
+              entt::meta_any(entt::entity)>> {
 
     template <typename Base>
     struct type : StorageBase::template type<Base> {
@@ -42,11 +44,16 @@ struct PolyStorage
         {
             entt::poly_call<base + 2>(*this, reg, e_source, e_target);
         }
+
+        entt::meta_any get(entt::entity e)
+        {
+            return entt::poly_call<base + 3>(*this, e);
+        }
     };
 
     template <typename Type>
     struct members {
-        
+
         static void erase(Type& self, entt::registry& reg, entt::entity e)
         {
             self.remove(e, (void*)&reg);
@@ -57,7 +64,7 @@ struct PolyStorage
             if constexpr (std::is_void_v<decltype(self.get(e_source))>) {
                 // Type is an empty type
                 self.remove(e_source, (void*)&reg);
-                if (! self.contains(e_target)) {
+                if (!self.contains(e_target)) {
                     self.emplace(reg, e_target);
                 }
             } else {
@@ -67,7 +74,17 @@ struct PolyStorage
                 auto& val = self.get(e_source);
                 self.emplace(reg, e_target, std::move(val));
                 self.remove(e_source, (void*)&reg);
+            }
+        }
 
+        static entt::meta_any get(Type& self, entt::entity e)
+        {
+            using Component = typename Type::value_type;
+
+            if constexpr(std::is_void_v<decltype(self.get(e))>) {
+                return entt::meta_any();
+            } else {
+                return entt::forward_as_meta<Component&>(self.get(e));
             }
         }
     };
@@ -78,7 +95,8 @@ struct PolyStorage
         entt::value_list<
             &Type::contains,
             &members<Type>::erase,
-            &members<Type>::move_to>>;
+            &members<Type>::move_to,
+            &members<Type>::get>>;
 };
 
 extern entt::poly<PolyStorage> u;
