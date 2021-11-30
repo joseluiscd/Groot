@@ -17,6 +17,7 @@
 #include "python.hpp"
 #include "python_imgui.hpp"
 #include "python_task.hpp"
+#include "python_graph.hpp"
 #include "save_workspace.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/python/list.hpp>
@@ -504,11 +505,7 @@ BOOST_PYTHON_MODULE(groot)
         .def("destroy", &Entity::destroy)
         .def("remove_component", &Entity::remove_component_runtime)
         .def("move_component", &Entity::move_component)
-        .def("get_component", &Entity::get_component_runtime, with_custodian_and_ward_postcall<1, 0>())
-        .def("point_cloud", &Entity::get_component<PointCloud>, return_internal_reference<1>())
-        .def("point_normals", &Entity::get_component<PointNormals>, return_internal_reference<1>())
-        .def("cylinders", &Entity::get_component<Cylinders>, return_internal_reference<1>())
-        .def("graph", &Entity::get_component<groot::PlantGraph>, return_internal_reference<1>())
+        .def("get_component", &Entity::get_component_runtime, with_custodian_and_ward_postcall<0, 1>())
         .def("select", &Entity::select)
         .def("compute_normals", &Entity::compute_normals,
             (arg("k") = 10, arg("radius") = 10.0f))
@@ -577,6 +574,7 @@ BOOST_PYTHON_MODULE(groot)
         .def_readwrite("z", (float groot::Vector_3::*)&glm::vec3::z)
         .def("as_numpy", &create_numpy_array<groot::Vector_3, float, 3>);
 
+    create_plant_graph_component();
     create_imgui_module();
     create_task_module();
 }

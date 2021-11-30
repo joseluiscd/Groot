@@ -53,6 +53,9 @@ add_library(groot
     python_task.hpp
     python_task.cpp
 
+    python_graph.hpp
+    python_graph.cpp
+
     cloud_system.hpp
     cloud_system.cpp
 
