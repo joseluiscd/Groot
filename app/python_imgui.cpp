@@ -5,6 +5,23 @@
 struct ImGuiContext {
 };
 
+void create_table_functions()
+{
+    using namespace boost::python;
+
+    def("BeginTable", &ImGui::BeginTable,
+        (
+            arg("name"),
+            arg("columns"),
+            arg("flags") = 0,
+            arg("size") = ImVec2(0.0, 0.0),
+            arg("inner_width") = 0.0),
+        "Begin a table");
+    def("EndTable", &ImGui::EndTable);
+    def("TableNextColumn", &ImGui::TableNextColumn);
+    def("TableNextRow", &ImGui::TableNextRow, (arg("row_flags") = 0, arg("min_height") = 0.0f));
+}
+
 void create_imgui_module()
 {
     using namespace boost::python;
@@ -77,4 +94,6 @@ void create_imgui_module()
         (arg("label"), arg("shortcut") = "", arg("selected") = false, arg("enabled") = true), "returns (clicked, state)");
 
     def("Separator", &ImGui::Separator);
+    
+    create_table_functions();
 }
