@@ -2,6 +2,7 @@
 
 #include "python.hpp"
 #include "task.hpp"
+#include <optional>
 
 enum TaskMode {
     Async = 0,
@@ -9,92 +10,82 @@ enum TaskMode {
     Inline
 };
 
-
-
 struct PythonThreadState {
-    PythonThreadState()
-        : state(nullptr)
-    {
-    }
-
-    void create_if_needed()
+    static void create_if_needed()
     {
         if (state == nullptr) {
             state = PyThreadState_New(PyInterpreterState_Get());
         }
     }
 
-    void release_gil()
+    static void release_thread()
     {
-        create_if_needed();
         state = PyEval_SaveThread();
     }
 
-    void acquire_gil()
+    static void acquire_thread()
     {
         create_if_needed();
         PyEval_RestoreThread(state);
     }
 
-    ~PythonThreadState()
-    {
-        if (state != nullptr && state->interp != nullptr) {
-            PyThreadState_Clear(state);
-        }
-    }
-
-    PyThreadState* state;
-};
-
-
-struct ReleaseGil : boost::python::default_call_policies {
-    template <class ArgumentPackage>
-    static bool precall(ArgumentPackage const&)
-    {
-        thread_state.create_if_needed();
-        thread_state.release_gil();
-        return true;
-    }
-
-    // Pass the result through
-    template <class ArgumentPackage>
-    static PyObject* postcall(ArgumentPackage const&, PyObject* result)
-    {
-        thread_state.acquire_gil();
-        return result;
-    }
-
-    // Retain pointer to PyThreadState on a per-thread basis here
-    static thread_local PythonThreadState thread_state;
+    static thread_local PyThreadState* state;
 };
 
 struct ReleaseGilGuard {
-    ReleaseGilGuard() {
-        ReleaseGil::thread_state.release_gil();
+    ReleaseGilGuard()
+    {
+        PythonThreadState::release_thread();
     }
 
     ~ReleaseGilGuard()
     {
-        ReleaseGil::thread_state.acquire_gil();
+        PythonThreadState::acquire_thread();
     }
 };
 
 struct AcquireGilGuard {
-    AcquireGilGuard() {
-        ReleaseGil::thread_state.acquire_gil();
+    AcquireGilGuard()
+        : state(PyGILState_Ensure())
+    {
     }
 
     ~AcquireGilGuard()
     {
-        ReleaseGil::thread_state.release_gil();
+        PyGILState_Release(state);
     }
+
+    PyGILState_STATE state;
 };
+
+template <typename T>
+struct DestroyWithGil {
+    DestroyWithGil(const T& _obj)
+        : obj(_obj)
+    {
+    }
+
+    ~DestroyWithGil()
+    {
+        AcquireGilGuard guard;
+        obj.reset();
+    }
+
+    std::optional<T> obj;
+};
+
+template <typename T>
+DestroyWithGil<T> destroy_with_gil(const T& obj)
+{
+    return DestroyWithGil<T>(obj);
+}
 
 inline auto call_f(boost::python::object f)
 {
-    return [f](boost::python::object result) {
+    return [f = destroy_with_gil(f)](boost::python::object result) {
         AcquireGilGuard guard;
-        return std::invoke(f, result);
+        boost::python::object function = *f.obj;
+        return std::invoke(function, result);
     };
 }
 
@@ -102,6 +93,12 @@ class PythonTask : public async::task<boost::python::object> {
 public:
     PythonTask(async::task<boost::python::object>&& _t, boost::python::str _name)
         : async::task<boost::python::object>(std::move(_t))
+        , name(_name)
+    {
+    }
+
+    PythonTask(async::task<void>&& _t, boost::python::str _name)
+        : async::task<boost::python::object>(std::move(_t.then(async::inline_scheduler(), create_none)))
         , name(_name)
     {
     }
@@ -132,6 +129,11 @@ public:
         return this->then(async::inline_scheduler(), []() {});
     }
 
+    static boost::python::object create_none()
+    {
+        return boost::python::object();
+    }
+
     void then_python(boost::python::object f, TaskMode mode)
     {
         switch (mode) {
@@ -150,7 +152,7 @@ public:
         };
     }
 
-    boost::python::object run_in_pythread(boost::python::object o);
+    void run_till_completion();
 
     boost::python::str name;
 
