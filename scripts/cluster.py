@@ -2,6 +2,8 @@
 
 import time
 import pdb
+from functools import partial
+from collections import defaultdict
 
 import sys
 if "--debug" in sys.argv:
@@ -16,68 +18,98 @@ import glob
 registry = groot.Registry()
 ImGui = groot.ImGui
 
-def f1():
-    print("F1")
-    return 4
-
-def f2(v):
-    time.sleep(1)
-    print("F2", v)
-    return v+1
-
 def resample(entity):
     sampled = entity.graph_resample(0.03)
     sampled.move_component(entity, groot.components.PlantGraph)
     sampled.destroy()
+
+def reconstruct_cardenas_et_al(entity):
+    ply.graph_from_cloud
     
-def spawn(reg):
-    task = groot.task.Task(f1, "The F Operator", groot.task.TaskMode.Sync)
-    task.then(f2, groot.task.TaskMode.Async)
-    reg.schedule_task(task)
+
+results = defaultdict(dict) 
+evaluate_tasks = {}
+compute_cardenas_et_al = {}
+
 
 def init(registry):
-    ground_truth = []
-    for f in glob.glob("/home/joseluis/Trees/TEST_DATA/A.obj"):
-        ground_truth.append(registry.load_graph(f))
+    global evaluate_task
 
-    reconstructed = []
-    for f in glob.glob("/home/joseluis/Trees/TEST_DATA/A.ply"):
+    files = ["A", "B", "C", "D", "E", "F"]
+
+    ground_truth = {} 
+    for name, f in map(lambda x: (x, "/home/joseluis/Trees/TEST_DATA/{}.obj".format(x)), files):
+        e = registry.load_graph(f)
+        ground_truth[name] = e
+
+
+    reconstructed_base = []
+    reconstructed_cd = {}
+    reconstructed_cd_tasks = {}
+    for name, f in map(lambda x: (x, "/home/joseluis/Trees/TEST_DATA/{}.ply".format(x)), files):
         ply = registry.load_ply(f)
 
         ply.graph_from_cloud_knn(10)
         ply.graph_cluster(30)
-        reconstructed.append(ply)
+        ply.remove_component(groot.components.PointNormals)
 
-    for (a, b) in zip(reconstructed, ground_truth):
+        base = registry.new_entity()
+        base.name = "{} BASE".format(name)
+        ply.move_component(base, groot.components.PlantGraph)
+        reconstructed_base.append(base)
+
+
+        def cd_task_finish(registry, ply, __):
+            cd = registry.new_entity()
+            cd.name = "{} CD".format(name)
+            ply.graph_cluster(30)
+            ply.move_component(cd, groot.components.PlantGraph)
+            return cd
+
+        cd_task = groot.compute_cardenas_et_al(ply, 0.1)
+        cd_task.then(partial(cd_task_finish, registry, ply))
+        reconstructed_cd_tasks[name] = cd_task
+        print("TNOW", reconstructed_cd_tasks)
+
+    registry.run_tasks()
+
+    for (name, a) in zip(files, reconstructed_base):
+        b = ground_truth[name]
+
         resample(a)
         resample(b)
 
-        g = a.match_graph(b)
-        g.visible = True
+        evaluate_tasks[("Base method", name)] = groot.evaluate_difference(a, b, True)
+
+    print(reconstructed_cd_tasks)
+    for name in files:
+        reconstructed_cd_tasks[name].run_till_completion()
+        a = reconstructed_cd_tasks[name].get()
+        b = ground_truth[name] 
+
+        resample(a)
+
+        evaluate_tasks[("Cardenas et al.", name)] = groot.evaluate_difference(a, b, True)
 
 
-show = False
 def update(registry):
-    global show
+    global evaluate_tasks
+    global results
 
-    if show:
-        expanded, show = ImGui.Begin("Test Window", show)
-        if expanded:
-            ImGui.Text("Hello world")
-            if ImGui.Button("Push me"):
-                print("Wololo")
-                spawn(registry)
-     
-        ImGui.End()
-    
-    ImGui.Begin("App")
-    if ImGui.BeginMenuBar():
-        if ImGui.BeginMenu("Window"):
-            _, show = ImGui.MenuItem("Show strange window", selected=show)
+    for x in list(evaluate_tasks.keys()):
+        task = evaluate_tasks[x]
+        (method, name) = x
+        if task.ready():
+            e, r = task.get()
+            e.name = "{} DIFF {}".format(name, method)
+            results[name][method] = r
+            del(evaluate_tasks[x])
 
-            ImGui.EndMenu()
+    ImGui.Begin("Result Window")
+    for (name, rest) in results.items():
+        for (method, result) in rest.items():
+            ImGui.Text("{} - {} - {}".format(method, name, result))
 
-        ImGui.EndMenuBar()
     ImGui.End()
-
+    
 registry.run_viewer(init, update)

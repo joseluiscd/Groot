@@ -24,7 +24,8 @@ struct PolyStorage
               bool(entt::entity),
               void(entt::registry&, entt::entity),
               void(entt::registry&, entt::entity, entt::entity),
-              entt::meta_any(entt::entity)>> {
+              entt::meta_any(entt::entity),
+              entt::meta_any(entt::entity, entt::meta_any)>> {
 
     template <typename Base>
     struct type : StorageBase::template type<Base> {
@@ -48,6 +49,11 @@ struct PolyStorage
         entt::meta_any get(entt::entity e)
         {
             return entt::poly_call<base + 3>(*this, e);
+        }
+
+        entt::meta_any emplace(entt::entity e, entt::meta_any c)
+        {
+            return entt::poly_call<base + 4>(*this, e, c);
         }
     };
 
@@ -85,6 +91,23 @@ struct PolyStorage
                 return entt::meta_any();
             } else {
                 return entt::forward_as_meta<Component&>(self.get(e));
+            }
+        }
+
+        static entt::meta_any emplace(Type& self, entt::entity e, entt::meta_any c)
+        {
+            using Component = typename Type::value_type;
+            assert(! self.contains(e));
+
+            Component* casted = c.try_cast<Component>();
+            assert(casted != nullptr);
+
+            if constexpr(std::is_void_v<decltype(self.get(e))>) {
+                self.emplace(e, std::move(*casted));
+                return entt::meta_any();
+            } else {
+                Component& emplaced = self.emplace(e, std::move(*casted));
+                return entt::forward_as_meta(emplaced);
             }
         }
     };

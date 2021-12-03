@@ -15,9 +15,9 @@
 #include "groot/cloud.hpp"
 #include "open_workspace.hpp"
 #include "python.hpp"
+#include "python_graph.hpp"
 #include "python_imgui.hpp"
 #include "python_task.hpp"
-#include "python_graph.hpp"
 #include "save_workspace.hpp"
 #include <boost/core/noncopyable.hpp>
 #include <boost/python/list.hpp>
@@ -28,10 +28,11 @@
 #include <boost/python/tuple.hpp>
 #include <entt/meta/pointer.hpp>
 #include <functional>
+#include <groot/plant_graph_compare.hpp>
 
 using namespace entt::literals;
 
-constexpr const entt::id_type convert_to_python = "convert_to_python"_hs; 
+constexpr const entt::id_type convert_to_python = "convert_to_python"_hs;
 
 template <typename Result>
 Result run_task(async::task<Result>&& task)
@@ -52,13 +53,13 @@ struct meta_any_to_python {
             Py_RETURN_NONE;
         }
 
-        assert((bool) component);
+        assert((bool)component);
         assert(component.data() != nullptr);
 
         auto function = component.type().func(convert_to_python);
-        assert((bool) function);
+        assert((bool)function);
         assert(function.arity() == 0);
-        assert(! function.is_static());
+        assert(!function.is_static());
         assert(function.is_const());
         assert(function.ret() == entt::resolve<boost::python::object>());
 
@@ -66,10 +67,45 @@ struct meta_any_to_python {
         assert(result_any);
         spdlog::error("{}", result_any.type().info().name());
 
-
         auto result = result_any.cast<boost::python::object>();
 
         return boost::python::incref(result.ptr());
+    }
+};
+
+struct meta_any_from_python {
+    meta_any_from_python()
+    {
+        boost::python::converter::registry::push_back(&convertible, &construct, boost::python::type_id<entt::meta_any>());
+    }
+
+    static void* convertible(PyObject* obj)
+    {
+        PyObject* type = PyObject_GetAttrString(obj, "type_id");
+        if (type == nullptr) {
+            return nullptr;
+        }
+        boost::python::extract<entt::type_info> info_extract(type);
+        if (!info_extract.check()) {
+            return nullptr;
+        }
+        return obj;
+    }
+
+    static void construct(PyObject* obj, boost::python::converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((boost::python::converter::rvalue_from_python_storage<entt::meta_any>*)data)->storage.bytes;
+        boost::python::object object { boost::python::handle<>(obj) };
+        entt::type_info info = boost::python::extract<entt::type_info>(object.attr("type_id"));
+
+        entt::meta_type type = entt::resolve(info);
+        if (!type) {
+            new (storage) entt::meta_any();
+            return;
+        }
+
+        entt::meta_any constructed = type.construct(object);
+        storage = new entt::meta_any(constructed.as_ref());
     }
 };
 
@@ -117,11 +153,25 @@ public:
 
         auto component = storage->get(e);
 
-        assert((bool) component);
+        assert((bool)component);
         assert(component.type().info() == type);
         assert(component.data() != nullptr);
 
         return component;
+    }
+
+    void set_component_runtime(const entt::type_info& type, boost::python::object component)
+    {
+        auto& storage = e.registry()->storage(type);
+
+        entt::meta_any constructed = entt::resolve(type).construct(component);
+        assert((bool)constructed);
+
+        if (storage->contains(e.entity())) {
+            storage->erase(*e.registry(), e.entity());
+        }
+
+        storage->emplace(e.entity(), constructed.as_ref());
     }
 
     void remove_component_runtime(const entt::type_info& type)
@@ -169,6 +219,17 @@ public:
         } else {
             e.remove<Visible>();
         }
+    }
+
+    std::string* get_name()
+    {
+        Name* name = e.try_get<Name>();
+        return name == nullptr ? &name->name : nullptr;
+    }
+
+    void set_name(const std::string& v)
+    {
+        e.emplace_or_replace<Name>(v);
     }
 
     void compute_normals(
@@ -315,7 +376,6 @@ public:
         return Entity(*e.registry(), run_task(std::move(task)));
     }
 
-private:
     entt::handle e;
 };
 
@@ -388,12 +448,21 @@ public:
 
     void run_viewer(boost::python::object init_func, boost::python::object update_func)
     {
-
         Application app(reg);
-        std::invoke(init_func, boost::ref(*this));
+        {
+            auto state = PyGILState_Ensure();
+            std::invoke(init_func, boost::ref(*this));
+            PyGILState_Release(state);
+        }
+
         app.main_loop([this, &update_func](entt::registry&) {
             std::invoke(update_func, boost::ref(*this));
         });
+    }
+
+    void run_tasks()
+    {
+        sync_scheduler().run_all_tasks();
     }
 
     void schedule_task(PythonTask& t)
@@ -441,11 +510,18 @@ boost::python::object convert_to_python_impl(const Component& c)
 }
 
 template <typename Component>
+Component get_from_python_impl(boost::python::object o)
+{
+    return Component(std::move(boost::python::extract<Component&>(o)));
+}
+
+template <typename Component>
 void declare_python_component(boost::python::scope& scope, const std::string_view& name)
 {
 
     entt::meta<Component>()
         .type()
+        .template ctor<get_from_python_impl<Component>>()
         .template func<convert_to_python_impl<Component>, entt::as_ref_t>(convert_to_python);
 
     scope.attr(name.data()) = entt::type_id<Component>();
@@ -462,6 +538,7 @@ BOOST_PYTHON_MODULE(groot)
     object module = types.attr("ModuleType");
 
     to_python_converter<entt::meta_any, meta_any_to_python, false>();
+    meta_any_from_python();
 
     class_<entt::type_info>("TypeInfo", no_init)
         .def("name", &entt::type_info::name)
@@ -473,7 +550,6 @@ BOOST_PYTHON_MODULE(groot)
         scope().attr("components") = components_mod;
         scope components(components_mod);
 
-        declare_python_component<Name>(components, "Name");
         declare_python_component<groot::PlantGraph>(components, "PlantGraph");
         declare_python_component<PointNormals>(components, "PointNormals");
         declare_python_component<PointColors>(components, "PointColors");
@@ -481,13 +557,9 @@ BOOST_PYTHON_MODULE(groot)
         declare_python_component<Cylinders>(components, "Cylinders");
     }
 
-    def(
-        "get_imgui_context", +[]() {
-            return (size_t)ImGui::GetCurrentContext();
-        });
-
     class_<Registry, boost::noncopyable>("Registry",
         "The registry where all data is stored")
+        .def_readonly("type_id", entt::type_id<Registry>())
         .def("selected", &Registry::selected)
         .def("entities", &Registry::entities)
         .def("load", &Registry::load)
@@ -496,16 +568,20 @@ BOOST_PYTHON_MODULE(groot)
         .def("load_graph", &Registry::load_graph)
         .def("new_entity", &Registry::new_entity)
         .def("schedule_task", &Registry::schedule_task)
+        .def("run_tasks", &Registry::run_tasks)
         .def("run_viewer", &Registry::run_viewer,
             (arg("init_func") = builtins.attr("id"),
                 arg("update_func") = builtins.attr("id")));
 
     class_<Entity>("Entity", "An entity in a registry", no_init)
+        .def_readonly("type_id", entt::type_id<Entity>())
         .add_property("visible", &Entity::is_visible, &Entity::set_visible)
+        .add_property("name", make_function(&Entity::get_name, return_internal_reference<1>()), &Entity::set_name)
         .def("destroy", &Entity::destroy)
         .def("remove_component", &Entity::remove_component_runtime)
         .def("move_component", &Entity::move_component)
-        .def("get_component", &Entity::get_component_runtime, with_custodian_and_ward_postcall<0, 1>())
+        .def("__getitem__", &Entity::get_component_runtime, with_custodian_and_ward_postcall<0, 1>())
+        .def("__setitem", &Entity::set_component_runtime)
         .def("select", &Entity::select)
         .def("compute_normals", &Entity::compute_normals,
             (arg("k") = 10, arg("radius") = 10.0f))
@@ -531,18 +607,24 @@ BOOST_PYTHON_MODULE(groot)
         .def("match_graph", &Entity::match_graph);
 
     class_<Name>("Name", no_init)
-        .add_property("name", +[](const Name& n) { return n.name; }, +[](Name& n, const std::string& newname) { n.name = newname; })
-        .def("__str__", +[](Name& n) { return n.name; });
+        .def_readonly("type_id", entt::type_id<Name>())
+        .add_property(
+            "name", +[](const Name& n) { return n.name; }, +[](Name& n, const std::string& newname) { n.name = newname; })
+        .def(
+            "__str__", +[](Name& n) { return n.name; });
 
     class_<PointCloud>("PointCloud", no_init)
+        .def_readonly("type_id", entt::type_id<PointCloud>())
         .def(
             "points", +[](PointCloud& c) { return create_numpy_array(c.cloud); });
 
     class_<PointNormals>("PointNormals", no_init)
+        .def_readonly("type_id", entt::type_id<PointNormals>())
         .def(
             "normals", +[](PointNormals& c) { return create_numpy_array(c.normals); });
 
     class_<Cylinders>("Cylinders", no_init)
+        .def_readonly("type_id", entt::type_id<Cylinders>())
         .def(
             "__len__", +[](const Cylinders& c) { return c.cylinders.size(); })
         .def(
@@ -550,6 +632,7 @@ BOOST_PYTHON_MODULE(groot)
             return_internal_reference<1>());
 
     class_<groot::CylinderWithPoints>("CylinderWithPoints", no_init)
+        .def_readonly("type_id", entt::type_id<groot::CylinderWithPoints>())
         .def(
             "points", +[](groot::CylinderWithPoints& c) {
                 return create_numpy_array(c.points);
@@ -557,6 +640,7 @@ BOOST_PYTHON_MODULE(groot)
         .def_readwrite("cylinder", &groot::CylinderWithPoints::cylinder);
 
     class_<groot::Cylinder>("Cylinder", no_init)
+        .def_readonly("type_id", entt::type_id<groot::Cylinder>())
         .def_readwrite("center", &groot::Cylinder::center)
         .def_readwrite("direction", &groot::Cylinder::direction)
         .def_readwrite("radius", &groot::Cylinder::radius)
@@ -577,4 +661,45 @@ BOOST_PYTHON_MODULE(groot)
     create_plant_graph_component();
     create_imgui_module();
     create_task_module();
+
+    def("compute_cardenas_et_al", +[](Entity e, float radius) {
+        auto && task = async::spawn(sync_scheduler(), [e](){
+            PointCloud* cloud = require_components<PointCloud>(e.e);
+            return cloud;
+        }).then(async_scheduler(), [radius](PointCloud* cloud) {
+            groot::PlantGraph graph = groot::from_cardenas_et_al(cloud->cloud.data(), cloud->cloud.size(), radius);
+            return graph;
+        }).then(sync_scheduler(), [e](groot::PlantGraph&& graph){
+            e.e.emplace_or_replace<groot::PlantGraph>(std::move(graph));
+        });
+
+        return new PythonTask { std::move(task), "Cardenas et al."};
+    }, return_value_policy<manage_new_object>());
+
+    def(
+        "evaluate_difference", +[](Entity e, Entity f, bool create_entity) -> PythonTask* {
+            ReleaseGilGuard guard;
+
+            auto&& task = async::spawn(sync_scheduler(), [e, f]() {
+                groot::PlantGraph* g1 = require_components<groot::PlantGraph>(e.e);
+                groot::PlantGraph* g2 = require_components<groot::PlantGraph>(f.e);
+
+                return std::make_pair(g1, g2);
+            }).then(async_scheduler(), [](std::pair<groot::PlantGraph*, groot::PlantGraph*>&& graphs) {
+                  groot::PlantGraph diff = groot::plant_graph_nn(*graphs.first, *graphs.second);
+                  return std::make_tuple(diff, groot::plant_graph_nn_score(diff));
+              }).then(sync_scheduler(), [create_entity, &reg = *e.e.registry()](std::tuple<groot::PlantGraph, float>&& v) {
+                AcquireGilGuard guard;
+                if (create_entity) {
+                    entt::entity e = reg.create();
+                    reg.emplace<groot::PlantGraph>(e, std::move(std::get<0>(v)));
+                    return object(boost::python::make_tuple(Entity(reg, e), std::get<1>(v)));
+                } else {
+                    return object(v);
+                }
+            });
+
+            return new PythonTask { std::move(task), "Evaluate difference. Returns value if create_entity == False. Returns (entity, value) if create_entity == True" };
+        },
+        (arg("entity1"), arg("entity2"), arg("create_entity") = false), return_value_policy<manage_new_object>());
 }
