@@ -68,6 +68,11 @@ PlantGraph resample_plant_graph(const PlantGraph& graph, float sample_length)
 {
     PlantGraph sampled_plant;
 
+    // Early return for empty graph
+    if (boost::num_vertices(graph) == 0) {
+        return sampled_plant;
+    }
+
     std::vector<float> remaining_distances(boost::num_vertices(graph), 0.0f);
     std::vector<Vertex> last_corresponding_vertex(boost::num_vertices(graph));
     std::vector<int> color(boost::num_vertices(graph), 0);
@@ -129,10 +134,10 @@ groot::PlantGraph plant_graph_nn(const groot::PlantGraph& a, const groot::PlantG
             b_res_vertex = *b_to_r[b_vertex];
         }
 
-        boost::add_edge(a_res_vertex, b_res_vertex, result);
+       boost::add_edge(a_res_vertex, b_res_vertex, result);
     }
 
-    for (auto [it, end] = boost::vertices(b); it!=end; ++it) {
+    for (auto [it, end] = boost::vertices(b); it != end; ++it) {
         cgal::KNeighbour knn(p1_tree, b[*it].position, 1);
 
         Vertex b_res_vertex;
@@ -149,6 +154,7 @@ groot::PlantGraph plant_graph_nn(const groot::PlantGraph& a, const groot::PlantG
         boost::add_edge(a_res_vertex, b_res_vertex, result);
     }
 
+    recompute_edge_lengths(result);
     return result;
 }
 
@@ -176,6 +182,68 @@ PlantGraphCompareResult plant_graph_compare(const PlantGraphCompareParams& p, co
     // Check for false positives
 
     return result;
+}
+
+float plant_graph_nn_score(const groot::PlantGraph& g)
+{
+    float sum = 0.0;
+
+    for (auto [it, end] = boost::edges(g); it != end; ++it) {
+        float l = g[*it].length;
+        sum += l * l;
+    }
+
+    return sum / float(boost::num_edges(g));
+}
+
+}
+
+#include <doctest/doctest.h>
+namespace test {
+
+TEST_CASE("Graph Resample Empty")
+{
+    groot::PlantGraph g;
+
+    groot::PlantGraph r = groot::resample_plant_graph(g, 1.0);
+
+    REQUIRE_EQ(boost::num_vertices(r), 0);
+    REQUIRE_EQ(boost::num_edges(r), 0);
+}
+
+TEST_CASE("Graph Resample single edge")
+{
+    using namespace groot;
+    PlantGraph g;
+    Vertex a = boost::add_vertex(g);
+    Vertex b = boost::add_vertex(g);
+
+    g[a].position = Point_3(0.0, 0.0, 0.0);
+    g[b].position = Point_3(0.0, 1.001, 0.0);
+
+    Edge e = boost::add_edge(a, b, g).first;
+    g[e].length = 1.0;
+
+    g.m_property->root_index = a;
+
+    SUBCASE("Oversample")
+    {
+        PlantGraph r = resample_plant_graph(g, 0.33);
+
+        CHECK_EQ(boost::num_vertices(r), 4);
+        CHECK_EQ(boost::num_edges(r), 3);
+        CHECK_EQ(g[g.m_property->root_index].position, r[r.m_property->root_index].position);
+    }
+
+    SUBCASE("Same resolution")
+    {
+        PlantGraph r = resample_plant_graph(g, 1.0);
+
+        CHECK_EQ(boost::num_vertices(r), 2);
+        CHECK_EQ(boost::num_edges(r), 1);
+        CHECK_EQ(g[g.m_property->root_index].position, r[r.m_property->root_index].position);
+    }
+
 }
 
 }

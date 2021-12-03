@@ -45,6 +45,9 @@ void reindex(PlantGraph& graph);
 void reindex_vertices(PlantGraph& graph);
 void reindex_edges(PlantGraph& graph);
 
+void recompute_edge_length(PlantGraph& graph, Edge e);
+void recompute_edge_lengths(PlantGraph& graph);
+
 struct VertexProperties {
     cgal::Point_3 position = cgal::Point_3(0, 0, 0);
     float root_distance = 0.0;
@@ -168,8 +171,6 @@ PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const
 PlantGraph geodesic(PlantGraph& g);
 /// Computes distances to ther root on the original graph and returns simplified version.
 PlantGraph minimum_spanning_tree(PlantGraph& g);
-
-void recompute_edge_lengths(PlantGraph &g);
 
 inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = point_finder::MinY())
 {

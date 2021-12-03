@@ -47,6 +47,23 @@ void reindex(PlantGraph& graph)
     reindex_edges(graph);
 }
 
+void recompute_edge_length(PlantGraph& graph, Edge e)
+{
+    Vertex a = boost::source(e, graph);
+    Vertex b = boost::target(e, graph);
+
+    graph[e].length = std::sqrt(CGAL::squared_distance(
+        graph[a].position, graph[b].position
+    ));
+}
+
+void recompute_edge_lengths(PlantGraph& graph)
+{
+    for (auto [it, end] = boost::edges(graph); it != end; ++it) {
+        recompute_edge_length(graph, *it);
+    }
+}
+
 PlantGraph from_search(
     cgal::Point_3* cloud,
     size_t count,
@@ -187,16 +204,16 @@ PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const
     // std::vector<EdgeElement> elements(components * components);
 
     // Further operation
-    PlantGraph alpha_graph = from_alpha_shape(cloud, count, 0.0, 1);
-    groot::find_root(radius_graph, f);
-    alpha_graph = geodesic(alpha_graph);
+    //PlantGraph alpha_graph = from_alpha_shape(cloud, count, 0.0, 1);
+    //groot::find_root(radius_graph, f);
+    //alpha_graph = geodesic(alpha_graph);
     // PlantGraph alpha_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius * 2, .search = SearchType::kRadiusSearch});
     // PlantGraph alpha_graph = from_cardenas_et_al(cloud, count, radius * 2);
 
     // Este es el bueno:
-    // PlantGraph alpha_graph = from_delaunay(cloud, count);
-    // groot::find_root(radius_graph, f);
-    // alpha_graph = minimum_spanning_tree(alpha_graph);
+    PlantGraph alpha_graph = from_delaunay(cloud, count);
+    groot::find_root(radius_graph, f);
+    alpha_graph = minimum_spanning_tree(alpha_graph);
 
     auto [edge_begin, edge_end] = boost::edges(alpha_graph);
     for (auto i = edge_begin; i != edge_end; ++i) {
@@ -324,18 +341,6 @@ PlantGraph minimum_spanning_tree(PlantGraph& graph)
     *ret.m_property = *graph.m_property;
     reindex_edges(ret);
     return ret;
-}
-
-void recompute_edge_lengths(PlantGraph& g)
-{
-    auto [it, end] = boost::edges(g);
-    for (; it != end; ++it) {
-        Vertex v1 = boost::source(*it, g);
-        Vertex v2 = boost::target(*it, g);
-
-        g[*it].length = std::sqrt(CGAL::squared_distance(
-            g[v1].position, g[v2].position));
-    }
 }
 
 namespace point_finder {
