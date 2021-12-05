@@ -1,4 +1,4 @@
-#include "src/application.hpp"
+#include <groot_app/application.hpp>
 
 int main() {
     entt::registry reg;
