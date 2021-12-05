@@ -6,12 +6,13 @@ file(GLOB SOURCES
 )
 
 add_library(groot_app
-    SHARED
+    STATIC
     ${SOURCES}
 )
 
 target_link_libraries(
     groot_app
+    PUBLIC
 
     groot_graph
     groot_base

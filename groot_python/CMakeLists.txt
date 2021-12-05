@@ -1,18 +1,12 @@
+file(GLOB SOURCES 
+    *.cpp
+    *.hpp
+)
 
 Python3_add_library(pygroot
     MODULE
 
-    python.hpp
-    python.cpp
-
-    python_imgui.hpp
-    python_imgui.cpp
-
-    python_task.hpp
-    python_task.cpp
-
-    python_graph.hpp
-    python_graph.cpp
+    ${SOURCES}
 )
 
 target_link_libraries(pygroot
