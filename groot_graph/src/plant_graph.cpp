@@ -8,8 +8,8 @@
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/graph/prim_minimum_spanning_tree.hpp>
 #include <boost/iterator/function_output_iterator.hpp>
-#include <groot/cgal_helper.hpp>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/cgal_helper.hpp>
+#include <groot_graph/plant_graph.hpp>
 #include <spdlog/spdlog.h>
 
 namespace groot {

@@ -10,7 +10,7 @@
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <groot/cloud.hpp>
-#include <groot/cylinder_marching.hpp>
+#include <groot_graph/cylinder_marching.hpp>
 #include <spdlog/spdlog.h>
 
 ComputeNormals::ComputeNormals(entt::handle h)

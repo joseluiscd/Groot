@@ -1,7 +1,7 @@
 #include "graph_io.hpp"
 #include "components.hpp"
 #include <gfx/imgui/imfilebrowser.h>
-#include <groot/plant_graph_io.hpp>
+#include <groot_graph/plant_graph_io.hpp>
 #include <spdlog/spdlog.h>
 
 const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;

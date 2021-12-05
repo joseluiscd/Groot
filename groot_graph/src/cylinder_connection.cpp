@@ -1,6 +1,6 @@
-#include <groot/plant_graph.hpp>
-#include <groot/cylinder_connection.hpp>
-#include <groot/cgal_helper.hpp>
+#include <groot_graph/plant_graph.hpp>
+#include <groot_graph/cylinder_connection.hpp>
+#include <groot_graph/cgal_helper.hpp>
 
 namespace groot {
 

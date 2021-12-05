@@ -3,9 +3,9 @@
 #include "entt.hpp"
 #include <fmt/format.h>
 #include <groot/cgal.hpp>
-#include <groot/cylinder_marching.hpp>
+#include <groot_graph/cylinder_marching.hpp>
 #include <string>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 
 struct Name {
     std::string name;

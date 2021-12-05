@@ -1,4 +1,4 @@
-#include <groot/plant_graph_serialize.hpp>
+#include <groot_graph/plant_graph_serialize.hpp>
 #include <cereal/archives/binary.hpp>
 
 namespace groot {

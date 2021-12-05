@@ -4,7 +4,7 @@
 #include "components.hpp"
 #include "entt.hpp"
 #include <gfx/imgui/imgui.h>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 #include <optional>
 #include <string>
 #include <spdlog/spdlog.h>

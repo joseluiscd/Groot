@@ -2,7 +2,7 @@
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/python.hpp>
 #include <boost/python/iterator.hpp>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 
 using custodian_this = boost::python::with_custodian_and_ward_postcall<0, 1>;
 

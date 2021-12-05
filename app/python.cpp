@@ -28,7 +28,7 @@
 #include <boost/python/tuple.hpp>
 #include <entt/meta/pointer.hpp>
 #include <functional>
-#include <groot/plant_graph_compare.hpp>
+#include <groot_graph/plant_graph_compare.hpp>
 
 using namespace entt::literals;
 

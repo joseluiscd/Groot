@@ -1,10 +1,10 @@
 #include "graph_resample.hpp"
 #include "components.hpp"
 #include "entt/entity/fwd.hpp"
-#include "groot/plant_graph.hpp"
 #include "task.hpp"
 #include <gfx/imgui/imgui.h>
-#include <groot/plant_graph_compare.hpp>
+#include <groot_graph/plant_graph.hpp>
+#include <groot_graph/plant_graph_compare.hpp>
 
 async::task<entt::entity> graph_resample_command(entt::handle h, float sample_length)
 {
@@ -42,10 +42,9 @@ async::task<entt::entity> graph_match_command(entt::handle h1, entt::handle h2)
         r.second = require_components<groot::PlantGraph>(entt::handle(reg, e2));
 
         return r;
-
     }).then(async_scheduler(), [](std::pair<groot::PlantGraph*, groot::PlantGraph*>&& graphs) -> groot::PlantGraph {
-        return groot::plant_graph_nn(*graphs.first, *graphs.second);
-    }).then(sync_scheduler(), [&reg](groot::PlantGraph&& graph) -> entt::entity {
+          return groot::plant_graph_nn(*graphs.first, *graphs.second);
+      }).then(sync_scheduler(), [&reg](groot::PlantGraph&& graph) -> entt::entity {
         entt::entity result = reg.create();
         reg.emplace<groot::PlantGraph>(result, std::move(graph));
         reg.emplace<Visible>(result);

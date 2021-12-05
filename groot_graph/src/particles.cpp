@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <groot/particles.hpp>
+#include <groot_graph/particles.hpp>
 #include <glm/gtx/norm.hpp>
 
 namespace groot {

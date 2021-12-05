@@ -8,7 +8,7 @@
 #include <boost/utility/result_of.hpp>
 #include <glm/glm.hpp>
 #include <groot/cgal.hpp>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 
 namespace groot {
 

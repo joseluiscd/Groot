@@ -11,7 +11,7 @@
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 
 namespace graph_viewer_system {
 

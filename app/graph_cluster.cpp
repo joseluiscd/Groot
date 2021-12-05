@@ -1,6 +1,6 @@
 #include "graph_cluster.hpp"
 #include "components.hpp"
-#include "groot/plant_graph.hpp"
+#include <groot_graph/plant_graph.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>

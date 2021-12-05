@@ -1,6 +1,6 @@
 #pragma once
 
-#include <groot/cylinder_connection.hpp>
+#include <groot_graph/cylinder_connection.hpp>
 #include "command_gui.hpp"
 #include "entt.hpp"
 #include "components.hpp"

@@ -1,5 +1,5 @@
 #include <fstream>
-#include <groot/plant_graph_io.hpp>
+#include <groot_graph/plant_graph_io.hpp>
 #include <spdlog/spdlog.h>
 
 namespace groot {

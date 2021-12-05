@@ -1,7 +1,7 @@
 #include "open_workspace.hpp"
 #include "serde.hpp"
 #include <fstream>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 #include <spdlog/spdlog.h>
 
 OpenWorkspace::OpenWorkspace()

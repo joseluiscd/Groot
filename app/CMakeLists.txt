@@ -79,6 +79,7 @@ add_library(groot
 
 target_link_libraries(groot
     groot_base
+    groot_graph
     gfx
     EnTT::EnTT
     Python3::Python

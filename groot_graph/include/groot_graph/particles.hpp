@@ -1,6 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 #include <vector>
 
 namespace groot {

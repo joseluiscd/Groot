@@ -1,6 +1,5 @@
 #include "cylinder_marching.hpp"
 #include "components.hpp"
-#include "groot/cylinder_marching.hpp"
 #include "render.hpp"
 #include "resources.hpp"
 #include <future>
@@ -8,6 +7,7 @@
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <groot_graph/cylinder_marching.hpp>
 #include <iterator>
 #include <queue>
 
@@ -129,18 +129,18 @@ GuiState CylinderFilter::draw_gui()
 
 CommandState CylinderFilter::execute()
 {
-        for (auto it = cylinders->cylinders.begin(); it != cylinders->cylinders.end(); ++it) {
-            const float radius = it->cylinder.radius;
-            const float length = it->cylinder.middle_height * 2;
+    for (auto it = cylinders->cylinders.begin(); it != cylinders->cylinders.end(); ++it) {
+        const float radius = it->cylinder.radius;
+        const float length = it->cylinder.middle_height * 2;
 
-            if ((!filter_radius
-                    || (radius_range[0] < radius && radius < radius_range[1]))
-                && (!filter_length
-                    || (length_range[0] < length && length < length_range[1]))) {
+        if ((!filter_radius
+                || (radius_range[0] < radius && radius < radius_range[1]))
+            && (!filter_length
+                || (length_range[0] < length && length < length_range[1]))) {
 
-                new_cylinders.push_back(*it);
-            }
+            new_cylinders.push_back(*it);
         }
+    }
     return CommandState::Ok;
 }
 

@@ -1,7 +1,7 @@
 #include "save_workspace.hpp"
 #include "components.hpp"
 #include "serde.hpp"
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 #include <fstream>
 #include <spdlog/spdlog.h>
 

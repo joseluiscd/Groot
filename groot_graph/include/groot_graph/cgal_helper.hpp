@@ -11,7 +11,7 @@
 #include <CGAL/Alpha_shape_vertex_base_3.h>
 #include <CGAL/Alpha_shape_cell_base_3.h>
 #include <groot/cgal.hpp>
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 #include <tuple>
 
 namespace groot::cgal {

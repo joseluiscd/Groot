@@ -1,7 +1,7 @@
 #pragma once
 
 #include "components.hpp"
-#include <groot/plant_graph_serialize.hpp>
+#include <groot_graph/plant_graph_serialize.hpp>
 #include <cereal/cereal.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>

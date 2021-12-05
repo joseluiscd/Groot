@@ -3,7 +3,7 @@
 #include "command_gui.hpp"
 #include "components.hpp"
 #include "entt.hpp"
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 #include <list>
 #include <vector>
 

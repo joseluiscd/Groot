@@ -1,7 +1,7 @@
 #pragma once
 
-#include <groot/plant_graph.hpp>
-#include <groot/cylinder_marching.hpp>
+#include <groot_graph/plant_graph.hpp>
+#include <groot_graph/cylinder_marching.hpp>
 
 namespace groot {
 

@@ -15,7 +15,7 @@ set(CMAKE_MODULE_PATH
 
 
 find_package(glfw3 3.3 REQUIRED)
-find_package(Boost 1.77 REQUIRED COMPONENTS graph python39 numpy39)
+find_package(Boost 1.75 REQUIRED COMPONENTS graph python39 numpy39)
 find_package(TBB REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.5 REQUIRED)
@@ -59,9 +59,7 @@ target_link_libraries(groot_base
     Boost::python39
     Boost::numpy39
     cereal::cereal
-    EnTT::EnTT
     doctest
-    gfx
 )
 
 target_include_directories(groot_base
@@ -71,4 +69,5 @@ target_include_directories(groot_base
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/eventpp/include
 )
 
+add_subdirectory(groot_graph)
 add_subdirectory(app)

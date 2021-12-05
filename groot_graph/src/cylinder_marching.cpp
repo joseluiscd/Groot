@@ -8,9 +8,8 @@
 #include <Eigen/SVD>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>
-#include <gfx/debug_draw.hpp>
 #include <groot/cloud.hpp>
-#include <groot/cylinder_marching.hpp>
+#include <groot_graph/cylinder_marching.hpp>
 #include <iterator>
 #include <spdlog/spdlog.h>
 #include <tbb/parallel_for.h>

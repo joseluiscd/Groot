@@ -1,6 +1,6 @@
 #pragma once
 
-#include <groot/plant_graph.hpp>
+#include <groot_graph/plant_graph.hpp>
 
 namespace groot {
 
