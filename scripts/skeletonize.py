@@ -2,11 +2,11 @@
 
 import sys
 if "--debug" in sys.argv:
-    sys.path.append("build/app")
+    sys.path.append("build/groot_python")
 else:
-    sys.path.append("build_release/app")
+    sys.path.append("build_release/groot_python")
 
-import groot
+import pygroot as groot
 
 registry = groot.Registry()
 params = toml.load(sys.argv[1])

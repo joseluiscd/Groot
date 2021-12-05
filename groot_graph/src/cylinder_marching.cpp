@@ -341,32 +341,3 @@ Cylinder cylinder_from_curvature(const Curvature& c, float height)
 }
 
 }
-
-#include <doctest/doctest.h>
-
-namespace groot {
-
-TEST_CASE("cylinder inclusion test")
-{
-    groot::Cylinder c1 = {
-        .center = groot::Point_3(0.0, 0.0, 0.0),
-        .direction = groot::Vector_3(1.0, 0.0, 0.0),
-        .radius = 0.5,
-        .middle_height = 0.5,
-    };
-    //Points in the cylinder
-    groot::Point_3 p1(0.0, 0.0, 0.0);
-    groot::Point_3 p2(0.499, 0.49, 0.0);
-
-    CHECK(point_in_cylinder(p1, c1));
-    CHECK(point_in_cylinder(p2, c1));
-
-    //Points outside the cylinder
-    groot::Point_3 p3(0.9, 0.0, 0.0);
-    groot::Point_3 p4(0.499, 0.49, 0.49);
-
-    CHECK_FALSE(point_in_cylinder(p3, c1));
-    CHECK_FALSE(point_in_cylinder(p4, c1));
-}
-
-}

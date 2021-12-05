@@ -24,7 +24,7 @@
             "name": "Viewer",
             "type": "lldb",
             "request": "launch",
-            "program": "build/app/groot_run",
+            "program": "build/groot_app/groot",
             "cwd": "${workspaceFolder}",
         },
     ]

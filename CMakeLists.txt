@@ -56,8 +56,6 @@ target_link_libraries(groot_base
     CGAL::Eigen_support
     spdlog::spdlog
     Boost::boost
-    Boost::python39
-    Boost::numpy39
     cereal::cereal
     doctest
 )
@@ -65,9 +63,8 @@ target_link_libraries(groot_base
 target_include_directories(groot_base
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/util
-    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/eventpp/include
 )
 
 add_subdirectory(groot_graph)
-add_subdirectory(app)
+add_subdirectory(groot_app)
+add_subdirectory(groot_python)
