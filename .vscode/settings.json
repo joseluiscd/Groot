@@ -1,7 +1,7 @@
 {
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/build/app"
+        "${workspaceFolder}/build/groot_python"
     ],
     "cmake.parallelJobs": 4
 }
