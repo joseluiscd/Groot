@@ -1,5 +1,6 @@
 #pragma once
 
+#include <groot/groot.hpp>
 #include <groot_app/command_gui.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/entt.hpp>
@@ -8,10 +9,10 @@
 #include <groot/cgal.hpp>
 #include <optional>
 
-async::task<entt::entity> import_ply_command(entt::registry& reg, const std::string_view& file);
-async::task<void> export_ply_command(entt::handle e, const std::string_view& file);
+GROOT_API async::task<entt::entity> import_ply_command(entt::registry& reg, const std::string_view& file);
+GROOT_API async::task<void> export_ply_command(entt::handle e, const std::string_view& file);
 
-class ImportPLYGui : public Gui {
+class GROOT_LOCAL ImportPLYGui : public Gui {
 public:
     ImportPLYGui();
     void schedule_commands(entt::registry& reg) override;
@@ -22,7 +23,7 @@ private:
     std::string input_file;
 };
 
-class ExportPLYGui : public Gui {
+class GROOT_LOCAL ExportPLYGui : public Gui {
 public:
     ExportPLYGui(entt::handle h);
 

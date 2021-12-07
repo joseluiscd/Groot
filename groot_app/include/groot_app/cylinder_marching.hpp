@@ -5,7 +5,7 @@
 #include <groot_app/entt.hpp>
 #include <groot_graph/cylinder_marching.hpp>
 
-class CylinderMarching : public CommandGui {
+class GROOT_API CylinderMarching : public CommandGui {
 public:
     CylinderMarching(entt::registry& reg);
     CylinderMarching(entt::handle&& handle);
@@ -31,7 +31,7 @@ public:
     float voxel_size = 1.0f;
 };
 
-class CylinderFilter : public CommandGui {
+class GROOT_API CylinderFilter : public CommandGui {
 public:
     CylinderFilter(entt::registry& reg);
     CylinderFilter(entt::handle&& handle);
@@ -57,7 +57,7 @@ public:
     float length_range[2] = { 0.0, 1.0 };
 };
 
-class CylinderPointFilter : public CommandGui {
+class GROOT_API CylinderPointFilter : public CommandGui {
 public:
     CylinderPointFilter(entt::handle&& handle);
     CylinderPointFilter(entt::registry& _reg)
@@ -85,8 +85,8 @@ private:
 
 namespace cylinder_view_system {
 
-void init(entt::registry& reg);
-void deinit(entt::registry& reg);
-void run(entt::registry& reg);
+GROOT_LOCAL void init(entt::registry& reg);
+GROOT_LOCAL void deinit(entt::registry& reg);
+GROOT_LOCAL void run(entt::registry& reg);
 
 }

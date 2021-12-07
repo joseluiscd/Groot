@@ -1,5 +1,6 @@
 #pragma once
 
+#include <groot/groot.hpp>
 #include <groot_app/entt.hpp>
 #include <stdexcept>
 #include <string>
@@ -10,7 +11,7 @@ enum class CommandState : bool {
 };
 
 /// Abstract command
-class Command {
+class GROOT_LOCAL Command {
 public:
     virtual ~Command() { }
     virtual CommandState execute() = 0;
@@ -33,7 +34,7 @@ public:
     std::string error_string = "";
 };
 
-inline void throw_on_error(CommandState state, const std::string& error)
+inline GROOT_LOCAL void throw_on_error(CommandState state, const std::string& error)
 {
     if (state != CommandState::Ok)
         throw std::runtime_error(error);

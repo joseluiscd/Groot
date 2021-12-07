@@ -1,5 +1,6 @@
 #pragma once
 
+#include <groot/groot.hpp>
 #include "gfx/imgui/imgui.h"
 #include <groot_app/entt.hpp>
 #include <gfx/camera.hpp>
@@ -27,7 +28,7 @@ enum Attribs {
     ColorAttr,
 };
 
-struct RenderData {
+struct GROOT_LOCAL RenderData {
     gfx::Framebuffer framebuffer;
     std::unique_ptr<gfx::CameraRig> camera;
     std::unique_ptr<gfx::PerspectiveCameraLens> lens;
@@ -39,7 +40,7 @@ struct RenderData {
     RenderData& operator=(const RenderData&) = delete;
 };
 
-struct TextRenderDrawList {
+struct GROOT_LOCAL TextRenderDrawList {
     std::string text_buffer;
     std::vector<glm::vec2> positions;
     std::vector<size_t> begin;
@@ -48,7 +49,7 @@ struct TextRenderDrawList {
     void dump_to_draw_list(ImDrawList* list, glm::vec2 offset = { 0, 0 }, glm::vec2 size = { 1, 1 });
 };
 
-class ShaderCollection {
+class GROOT_LOCAL ShaderCollection {
 public:
     ShaderCollection();
     static void init(entt::registry& reg);

@@ -4,8 +4,8 @@
 #include <async++.h>
 #include <groot_app/entt.hpp>
 
-async::threadpool_scheduler& async_scheduler();
-async::fifo_scheduler& sync_scheduler();
+GROOT_API async::threadpool_scheduler& async_scheduler();
+GROOT_API async::fifo_scheduler& sync_scheduler();
 
 inline void discard() { }
 

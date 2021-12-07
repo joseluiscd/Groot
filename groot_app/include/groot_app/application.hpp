@@ -12,7 +12,7 @@
 
 class Application;
 
-struct Windows {
+struct GROOT_LOCAL Windows {
     bool background_tasks = true;
     bool history = true;
     bool main_viewer = true;

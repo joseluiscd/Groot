@@ -9,7 +9,7 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
-struct CreateGraph : public CommandGui {
+struct GROOT_API CreateGraph : public CommandGui {
     CreateGraph(entt::registry& registry)
         : CreateGraph(entt::handle(
             registry,
@@ -83,7 +83,7 @@ struct CreateGraph : public CommandGui {
 };
 
 template <auto Operation>
-struct SimpleGraphCommand : public CommandGui {
+struct GROOT_API SimpleGraphCommand : public CommandGui {
     SimpleGraphCommand(entt::registry& registry)
         : SimpleGraphCommand(entt::handle(
             registry,

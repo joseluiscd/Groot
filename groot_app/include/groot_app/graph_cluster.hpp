@@ -7,7 +7,7 @@
 #include <list>
 #include <vector>
 
-class GraphCluster : public CommandGui {
+class GROOT_API GraphCluster : public CommandGui {
 public:
     GraphCluster(entt::handle&& handle);
     GraphCluster(entt::registry& _reg)

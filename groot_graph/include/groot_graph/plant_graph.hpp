@@ -96,8 +96,8 @@ namespace point_finder {
         virtual Vertex operator()(const PlantGraph& graph) const = 0;
     };
 
-    Vertex min_coord(const PlantGraph& graph, size_t axis);
-    Vertex max_coord(const PlantGraph& graph, size_t axis);
+    GROOT_API Vertex min_coord(const PlantGraph& graph, size_t axis);
+    GROOT_API Vertex max_coord(const PlantGraph& graph, size_t axis);
 
     struct GROOT_LOCAL MinX : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const

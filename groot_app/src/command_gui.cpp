@@ -1,5 +1,5 @@
-#include <groot_app/command_gui.hpp>
 #include <gfx/imgui/imgui.h>
+#include <groot_app/command_gui.hpp>
 
 GuiResult DialogGui::draw_gui()
 {
@@ -19,4 +19,36 @@ GuiResult DialogGui::draw_gui()
     }
 
     return show ? GuiResult::KeepOpen : GuiResult::Close;
+}
+void GuiAdapter::schedule_commands(entt::registry& reg)
+{
+    std::string name(gui->name());
+
+    auto&& task = async::spawn(async_scheduler(), [gui = std::exchange(gui, nullptr)]() {
+        std::unique_ptr<CommandGui> cmd(gui);
+        if (cmd->execute() == CommandState::Error) {
+            throw std::runtime_error(cmd->error_string);
+        };
+        return cmd;
+    }).then(sync_scheduler(), [&reg](std::unique_ptr<CommandGui>&& cmd) {
+        cmd->on_finish(reg);
+    });
+
+    reg.ctx<TaskBroker>().push_task(name, std::move(task));
+}
+
+GuiResult GuiAdapter::draw_gui()
+{
+    switch (gui->draw_gui()) {
+    case GuiState::Close:
+        return GuiResult::Close;
+    case GuiState::Editing:
+        return GuiResult::KeepOpen;
+    case GuiState::RunAsync:
+        return GuiResult::RunAndClose;
+    case GuiState::RunAsyncUpdate:
+        return GuiResult::RunAndKeepOpen;
+    default:
+        return GuiResult::KeepOpen;
+    }
 }

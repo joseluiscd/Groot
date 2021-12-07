@@ -6,9 +6,9 @@
 #include <groot_app/entt.hpp>
 #include <groot/cgal.hpp>
 
-async::task<void> compute_normals_command(entt::handle e, size_t k, float radius);
+GROOT_API async::task<void> compute_normals_command(entt::handle e, size_t k, float radius);
 
-class ComputeNormals : public DialogGui {
+class GROOT_LOCAL ComputeNormals : public DialogGui {
 public:
     ComputeNormals(entt::handle h);
 
@@ -28,7 +28,7 @@ public:
     float radius = 1.0;
 };
 
-class RecenterCloud : public CommandGui {
+class GROOT_API RecenterCloud : public CommandGui {
 public:
     RecenterCloud(entt::registry& reg);
 
@@ -46,7 +46,7 @@ private:
     int selected;
 };
 
-class SplitCloud : public CommandGui {
+class GROOT_API SplitCloud : public CommandGui {
 public:
     SplitCloud(entt::handle&& handle);
     SplitCloud(entt::registry& _reg)
@@ -84,8 +84,8 @@ public:
 
 namespace cloud_view_system {
 
-void init(entt::registry& reg);
-void deinit(entt::registry& reg);
-void run(entt::registry& reg);
+GROOT_LOCAL void init(entt::registry& reg);
+GROOT_LOCAL void deinit(entt::registry& reg);
+GROOT_LOCAL void run(entt::registry& reg);
 
 }

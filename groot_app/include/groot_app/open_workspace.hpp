@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <gfx/imgui/imfilebrowser.h>
 
-class OpenWorkspace : public CommandGui {
+class GROOT_API OpenWorkspace : public CommandGui {
 public:
     OpenWorkspace();
     CommandState execute() override;
