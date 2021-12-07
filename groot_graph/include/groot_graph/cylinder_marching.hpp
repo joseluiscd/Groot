@@ -27,7 +27,7 @@ using RansacTraits = CGAL::Shape_detection::Efficient_RANSAC_traits<Kernel, std:
 
 using Ransac = CGAL::Shape_detection::Efficient_RANSAC<RansacTraits>;
 
-struct Curvature {
+struct GROOT_LOCAL Curvature {
     cgal::Point_3 sampled_point;
     cgal::Point_3 curvature_center;
     cgal::Vector_3 direction;
@@ -50,23 +50,23 @@ using CurvatureCenterPropertyMap = boost::transform_value_property_map<
     boost::iterator_property_map<Curvature*, boost::identity_property_map>>;
 using CurvatureCenterSearchTraits = CGAL::Search_traits_adapter<size_t, CurvatureCenterPropertyMap, SearchTraits>;
 
-struct Cylinder {
+struct GROOT_LOCAL Cylinder {
     cgal::Point_3 center; // Point in the middle of the cylinder
     cgal::Vector_3 direction;
     float radius;
     float middle_height; // Height / 2.0
 };
 
-float distance(const Cylinder& cylinder, const Point_3& point);
+GROOT_API float distance(const Cylinder& cylinder, const Point_3& point);
 
-struct CylinderWithPoints {
+struct GROOT_LOCAL CylinderWithPoints {
     Cylinder cylinder;
     std::vector<Point_3> points;
 };
 
 using FitCylinder = CGAL::Shape_detection::Cylinder<RansacTraits>;
 
-class CurvatureCylinder : public CGAL::Shape_detection::Shape_base<RansacTraits> {
+class GROOT_LOCAL CurvatureCylinder : public CGAL::Shape_detection::Shape_base<RansacTraits> {
 public:
     size_t minimum_sample_size() const override
     {
@@ -92,19 +92,19 @@ public:
 
 using DiscardPlane = CGAL::Shape_detection::Plane<RansacTraits>;
 
-bool point_in_cylinder(const cgal::Point_3& p, const Cylinder& c);
+bool GROOT_API point_in_cylinder(const cgal::Point_3& p, const Cylinder& c);
 
-void find_cylinders(
+void GROOT_API find_cylinders(
     glm::vec3* cloud,
     size_t count);
 
-std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params = Ransac::Parameters());
-std::vector<CylinderWithPoints> compute_cylinders_curvature(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params = Ransac::Parameters());
-std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
-std::vector<CylinderWithPoints> compute_cylinders_voxelized_curvature(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
-std::vector<CylinderWithPoints> merge_cylinders(const std::vector<CylinderWithPoints>& a, const std::vector<CylinderWithPoints>& b);
+GROOT_API std::vector<CylinderWithPoints> compute_cylinders(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params = Ransac::Parameters());
+GROOT_API std::vector<CylinderWithPoints> compute_cylinders_curvature(Point_3* cloud, Vector_3* normals, std::vector<size_t>& indices, Ransac::Parameters params = Ransac::Parameters());
+GROOT_API std::vector<CylinderWithPoints> compute_cylinders_voxelized(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
+GROOT_API std::vector<CylinderWithPoints> compute_cylinders_voxelized_curvature(Point_3* cloud, Vector_3* normals, size_t count, float voxel_size, Ransac::Parameters params = Ransac::Parameters());
+GROOT_API std::vector<CylinderWithPoints> merge_cylinders(const std::vector<CylinderWithPoints>& a, const std::vector<CylinderWithPoints>& b);
 
-std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius);
-std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);
+GROOT_API std::vector<Vector_3> compute_normals(Point_3* cloud, size_t count, unsigned int k, float radius);
+GROOT_API std::vector<Curvature> cylinder_filter(Curvature* input, size_t count, float height);
 
 }

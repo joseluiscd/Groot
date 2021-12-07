@@ -6,13 +6,17 @@ file(GLOB SOURCES
 )
 
 add_library(groot_graph
-    STATIC
+    SHARED
     ${SOURCES}
 )
 
 target_link_libraries(
     groot_graph
     groot_base
+)
+target_compile_definitions(groot_graph
+    PUBLIC GROOT_DLL
+    PRIVATE GROOT_EXPORTS_DLL
 )
 
 add_executable(groot_graph_test

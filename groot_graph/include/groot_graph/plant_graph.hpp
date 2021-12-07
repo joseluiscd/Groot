@@ -1,5 +1,6 @@
 #pragma once
 
+#include <groot/groot.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/subgraph.hpp>
 #include <boost/property_map/property_map.hpp>
@@ -17,7 +18,7 @@ enum class SearchType {
     kCount,
 };
 
-struct SearchParams {
+struct GROOT_LOCAL SearchParams {
     int k;
     float radius;
 
@@ -36,28 +37,28 @@ using PlantGraph = boost::adjacency_list<boost::listS, boost::vecS, boost::undir
 using Vertex = PlantGraph::vertex_descriptor;
 using Edge = PlantGraph::edge_descriptor;
 
-struct VertexTag {
+struct GROOT_LOCAL VertexTag {
 };
-struct EdgeTag {
+struct GROOT_LOCAL EdgeTag {
 };
 
-void reindex(PlantGraph& graph);
-void reindex_vertices(PlantGraph& graph);
-void reindex_edges(PlantGraph& graph);
+GROOT_API void reindex(PlantGraph& graph);
+GROOT_API void reindex_vertices(PlantGraph& graph);
+GROOT_API void reindex_edges(PlantGraph& graph);
 
-void recompute_edge_length(PlantGraph& graph, Edge e);
-void recompute_edge_lengths(PlantGraph& graph);
+GROOT_API void recompute_edge_length(PlantGraph& graph, Edge e);
+GROOT_API void recompute_edge_lengths(PlantGraph& graph);
 
-struct VertexProperties {
+struct GROOT_LOCAL VertexProperties {
     cgal::Point_3 position = cgal::Point_3(0, 0, 0);
     float root_distance = 0.0;
 };
 
-struct EdgeProperties {
+struct GROOT_LOCAL EdgeProperties {
     float length = 0.0;
 };
 
-struct PlantProperties {
+struct GROOT_LOCAL PlantProperties {
     float max_root_distance = 0.0;
     size_t root_index;
 };
@@ -91,88 +92,88 @@ inline auto make_edge_property_map(PropertyMap<T>& m, const PlantGraph& g)
 
 /// Operations to obtain a certain point in the tree
 namespace point_finder {
-    struct PointFinder {
+    struct GROOT_LOCAL PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const = 0;
     };
 
     Vertex min_coord(const PlantGraph& graph, size_t axis);
     Vertex max_coord(const PlantGraph& graph, size_t axis);
 
-    struct MinX : public PointFinder {
+    struct GROOT_LOCAL MinX : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
         {
             return min_coord(graph, 0);
         }
     };
-    extern MinX MinXPointFinder;
+    extern GROOT_API MinX MinXPointFinder;
 
-    struct MinY : public PointFinder {
+    struct GROOT_LOCAL MinY : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
         {
             return min_coord(graph, 1);
         }
     };
-    extern MinY MinYPointFinder;
+    extern GROOT_API MinY MinYPointFinder;
 
-    struct MinZ : public PointFinder {
+    struct GROOT_LOCAL MinZ : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
         {
             return min_coord(graph, 2);
         }
     };
-    extern MinZ MinZPointFinder;
+    extern GROOT_API MinZ MinZPointFinder;
 
-    struct MaxX : public PointFinder {
+    struct GROOT_LOCAL MaxX : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
         {
             return max_coord(graph, 0);
         }
     };
-    extern MaxX MaxXPointFinder;
+    extern GROOT_API MaxX MaxXPointFinder;
 
-    struct MaxY : public PointFinder {
+    struct GROOT_LOCAL MaxY : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
         {
             return max_coord(graph, 1);
         }
     }; 
-    extern MaxY MaxYPointFinder;
+    extern GROOT_API MaxY MaxYPointFinder;
 
-    struct MaxZ : public PointFinder {
+    struct GROOT_LOCAL MaxZ : public PointFinder {
         virtual Vertex operator()(const PlantGraph& graph) const
         {
             return max_coord(graph, 2);
         }
     };
-    extern MaxZ MaxZPointFinder;
+    extern GROOT_API MaxZ MaxZPointFinder;
 };
 
 
-PlantGraph empty();
-PlantGraph from_delaunay(
+GROOT_API PlantGraph empty();
+GROOT_API PlantGraph from_delaunay(
     cgal::Point_3* cloud,
     size_t size);
 /// Finds the alpha shape and converts to a graph
 /// If alpha == 0, the specified number of components are searched
 /// If alpha != 0, the last parameter is ignored
-PlantGraph from_alpha_shape(
+GROOT_API PlantGraph from_alpha_shape(
     cgal::Point_3* cloud,
     size_t count,
     float alpha = 0.0f,
     size_t components = 1);
-PlantGraph from_search(
+GROOT_API PlantGraph from_search(
     cgal::Point_3* cloud,
     size_t size,
     const SearchParams& search = SearchParams { 3, 0.0, SearchType::kKnnSearch });
 
-PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f = point_finder::MinY());
+GROOT_API PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f = point_finder::MinY());
 
 /// Computes distances to ther root on the original graph and returns simplified version.
-PlantGraph geodesic(PlantGraph& g);
+GROOT_API PlantGraph geodesic(PlantGraph& g);
 /// Computes distances to ther root on the original graph and returns simplified version.
-PlantGraph minimum_spanning_tree(PlantGraph& g);
+GROOT_API PlantGraph minimum_spanning_tree(PlantGraph& g);
 
-inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = point_finder::MinY())
+GROOT_LOCAL inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = point_finder::MinY())
 {
     graph.m_property->root_index = boost::get(boost::vertex_index, graph)[pf(graph)];
 }
