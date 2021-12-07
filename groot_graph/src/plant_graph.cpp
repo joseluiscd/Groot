@@ -147,7 +147,7 @@ PlantGraph from_alpha_shape(
 
     // Just something stupid
     std::vector<std::pair<Point_3, Vertex>> vertices;
-    for (int i = 0; i < count; i++) {
+    for (size_t i = 0; i < count; i++) {
         Vertex v = boost::add_vertex(graph);
         graph[v].position = cloud[i];
 
@@ -182,7 +182,7 @@ PlantGraph from_alpha_shape(
 
 PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f)
 {
-    PlantGraph radius_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius, .search = SearchType::kRadiusSearch });
+    PlantGraph radius_graph = from_search(cloud, count, SearchParams { 0, radius, SearchType::kRadiusSearch });
 
     std::vector<size_t> connected_components(boost::num_vertices(radius_graph));
     auto component_map = boost::make_iterator_property_map(connected_components.begin(), boost::get(boost::vertex_index, radius_graph));

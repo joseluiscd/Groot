@@ -1,5 +1,6 @@
 #pragma once
 
+#include <groot/groot.hpp>
 #include <async++.h>
 #include <groot_app/entt.hpp>
 
@@ -8,7 +9,7 @@ async::fifo_scheduler& sync_scheduler();
 
 inline void discard() { }
 
-class __attribute__ ((visibility("hidden"))) TaskBroker {
+class GROOT_LOCAL TaskBroker {
 public:
     TaskBroker()
         : tasks()

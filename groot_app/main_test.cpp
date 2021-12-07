@@ -1,4 +1,5 @@
 #include <groot_app/application.hpp>
+#define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 
 int main(int argc, const char** argv)

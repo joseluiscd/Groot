@@ -1,5 +1,6 @@
 #pragma once
 
+#include <groot/groot.hpp>
 #include <groot_app/command.hpp>
 #include <groot_app/command_gui.hpp>
 #include <groot_app/resources.hpp>
@@ -19,7 +20,7 @@ struct Windows {
     bool demo_window = false;
 };
 
-class Application {
+class GROOT_API Application {
 public:
     Application(entt::registry& reg);
     ~Application();
@@ -48,10 +49,10 @@ public:
 
     void show_error(const std::string& error);
 
-    void draw_gui();
-    void draw_command_gui();
-    void draw_background_tasks();
-    void draw_console_log();
+    GROOT_LOCAL void draw_gui();
+    GROOT_LOCAL void draw_command_gui();
+    GROOT_LOCAL void draw_background_tasks();
+    GROOT_LOCAL void draw_console_log();
 
     void main_loop();
     void main_loop(std::function<void(entt::registry&)> update);

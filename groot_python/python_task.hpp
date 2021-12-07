@@ -1,5 +1,6 @@
 #pragma once
 
+#include <groot/groot.hpp>
 #include "python.hpp"
 #include <groot_app/task.hpp>
 #include <optional>
@@ -19,7 +20,7 @@ inline auto call_f(boost::python::object f)
     };
 }
 
-class PythonTask : public async::task<boost::python::object> {
+class GROOT_API PythonTask : public async::task<boost::python::object> {
 public:
     PythonTask(async::task<boost::python::object>&& _t, boost::python::str _name)
         : async::task<boost::python::object>(std::move(_t))

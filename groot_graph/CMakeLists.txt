@@ -24,3 +24,4 @@ target_include_directories(groot_graph
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+set_target_properties(groot_graph PROPERTIES CXX_VISIBILITY_PRESET hidden)
