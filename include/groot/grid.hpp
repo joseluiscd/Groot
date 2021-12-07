@@ -1,10 +1,11 @@
 #pragma once
 
+#include <groot/groot.hpp>
 #include <groot/aabb.hpp>
 #include <vector>
 
 template <typename T>
-class Grid {
+class GROOT_API Grid {
 public:
     Grid(const AABB& _bounds, size_t x, size_t y, size_t z, const T& default_value = T())
         : bounds(_bounds)

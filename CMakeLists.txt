@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_INLINES_HIDDEN ON)
 
 set(CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
@@ -24,9 +27,9 @@ find_package(Python3 REQUIRED COMPONENTS Development)
 find_package(CGAL 5.3 REQUIRED)
 
 
-set(GFX_BUILD_EXAMPLES OFF)
-set(BUILD_DEMOS OFF CACHE BOOL "enable Zep demos")
-set(BUILD_EXTENSIONS OFF CACHE BOOL "enable Zep extensions")
+set(GFX_BUILD_EXAMPLES OFF CACHE BOOL "")
+set(JUST_INSTALL_CEREAL ON CACHE BOOL "")
+set(DOCTEST_WITH_MAIN_IN_STATIC_LIB  OFF CACHE BOOL "")
 include(CMakePackageConfigHelpers)
 
 add_subdirectory(3rdparty/gfx)
@@ -46,7 +49,7 @@ file(GLOB SOURCES
 )
 
 add_library(groot_base
-    OBJECT
+    SHARED
     ${SOURCES}
 )
 
@@ -64,6 +67,8 @@ target_include_directories(groot_base
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+target_compile_definitions(groot_base PUBLIC GROOT_DLL PRIVATE GROOT_EXPORTS_DLL)
+set_target_properties(groot_base PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 add_subdirectory(groot_graph)
 add_subdirectory(groot_app)
