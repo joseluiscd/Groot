@@ -3,7 +3,7 @@ file(GLOB SOURCES
     *.hpp
 )
 
-Python3_add_library(pygroot
+Python3_add_library(pygroot 
     MODULE
 
     ${SOURCES}
@@ -25,3 +25,9 @@ target_link_libraries(pygroot
     Boost::numpy39
 )
 set_target_properties(pygroot PROPERTIES CXX_VISIBILITY_PRESET hidden)
+
+install(TARGETS
+    pygroot
+
+    EXPORT GrootTargets
+)

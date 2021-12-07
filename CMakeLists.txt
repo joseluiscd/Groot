@@ -16,6 +16,7 @@ set(CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
     )
 
+include(GNUInstallDirs)
 
 find_package(glfw3 3.3 REQUIRED)
 find_package(Boost 1.75 REQUIRED COMPONENTS graph python39 numpy39)
@@ -29,6 +30,7 @@ find_package(CGAL 5.3 REQUIRED)
 
 set(GFX_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(JUST_INSTALL_CEREAL ON CACHE BOOL "")
+set(CEREAL_INSTALL ON CACHE BOOL "")
 set(DOCTEST_WITH_MAIN_IN_STATIC_LIB  OFF CACHE BOOL "")
 include(CMakePackageConfigHelpers)
 
@@ -46,6 +48,10 @@ file(GLOB SOURCES
     include/groot/*.hpp
     include/groot/*.h
     src/*.cpp
+)
+file(GLOB PUBLIC_HEADERS
+    include/groot/*.hpp
+    include/groot/*.h
 )
 
 add_library(groot_base
@@ -65,11 +71,25 @@ target_link_libraries(groot_base
 
 target_include_directories(groot_base
     PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/include
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_definitions(groot_base PUBLIC GROOT_DLL PRIVATE GROOT_EXPORTS_DLL)
 set_target_properties(groot_base PROPERTIES CXX_VISIBILITY_PRESET hidden)
+set_target_properties(groot_base PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 add_subdirectory(groot_graph)
 add_subdirectory(groot_app)
 add_subdirectory(groot_python)
+
+
+install(TARGETS
+    cereal
+    doctest
+    groot_base
+
+    EXPORT GrootTargets
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/groot)
+
+export(EXPORT GrootTargets)
+install(EXPORT GrootTargets DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake)
