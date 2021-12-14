@@ -1,9 +1,9 @@
 #pragma once
 
-#include <groot_app/entt.hpp>
-#include <groot_app/components.hpp>
 #include "groot_app/cloud_system.hpp"
 #include "python.hpp"
+#include <groot_app/components.hpp>
+#include <groot_app/entt.hpp>
 
 #include <groot_app/application.hpp>
 #include <groot_app/cloud_io.hpp>
@@ -17,6 +17,16 @@
 #include <groot_app/graph_resample.hpp>
 
 void create_entity_type();
+
+struct AnyComponent {
+};
+
+using DynamicComponent = std::pair<entt::type_info, void*>;
+
+template <>
+struct entt::storage_traits<entt::entity, AnyComponent> {
+    using storage_type = entt::basic_sparse_set<entt::entity>;
+};
 
 template <typename Result>
 Result run_task(async::task<Result>&& task)
@@ -63,41 +73,36 @@ public:
         e.remove<Component>();
     }
 
-    entt::meta_any get_component_runtime(const entt::type_info& type)
+    boost::python::object get_component_runtime(const entt::type_info& type)
     {
-        auto& storage = e.registry()->storage(type);
-        if (!storage->contains(e)) {
-            // No entity
-            return entt::meta_any();
+        AcquireGilGuard guard;
+
+        auto& storage = e.registry()->storage<AnyComponent>(type.hash());
+        if (!storage.contains(e)) {
+            return boost::python::object();
         }
 
-        auto component = storage->get(e);
-
-        assert((bool)component);
-        assert(component.type().info() == type);
-        assert(component.data() != nullptr);
-
-        return component;
+        return boost::python::object(DynamicComponent(type, storage.get(e)));
     }
 
     void set_component_runtime(const entt::type_info& type, boost::python::object component)
     {
-        auto& storage = e.registry()->storage(type);
+        auto& storage = e.registry()->storage<entt::meta_any>(type.hash());
 
         entt::meta_any constructed = entt::resolve(type).construct(component);
         assert((bool)constructed);
 
-        if (storage->contains(e.entity())) {
-            storage->erase(*e.registry(), e.entity());
+        if (storage.contains(e.entity())) {
+            storage.erase(e.entity());
         }
 
-        storage->emplace(e.entity(), constructed.as_ref());
+        storage.emplace(e.entity(), constructed.as_ref());
     }
 
     void remove_component_runtime(const entt::type_info& type)
     {
-        auto& storage = e.registry()->storage(type);
-        storage->erase(*e.registry(), e.entity());
+        auto& storage = e.registry()->storage<void*>(type.hash());
+        storage.remove(e.entity());
     }
 
     void move_component(Entity& target, const entt::type_info& type)
@@ -113,13 +118,15 @@ public:
             return;
         }
 
-        auto& storage = e.registry()->storage(type);
+        auto& storage = e.registry()->storage<AnyComponent>(type.hash());
 
-        if (!storage->contains(e)) {
+        if (!storage.contains(e)) {
             throw std::runtime_error("Entity does not have this component");
         }
 
-        storage->move_to(*e.registry(), e, target.e);
+        storage.remove(target.e);
+        storage.emplace(target.e, storage.get(e));
+        storage.remove(e);
     }
 
     void select()

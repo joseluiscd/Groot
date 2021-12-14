@@ -3,7 +3,6 @@
 #include <boost/python.hpp>
 #include <optional>
 
-
 struct PythonThreadState {
     static void create_if_needed()
     {
@@ -74,3 +73,6 @@ DestroyWithGil<T> destroy_with_gil(const T& obj)
     return DestroyWithGil<T>(obj);
 }
 
+extern "C" {
+PyObject* PyInit_pygroot();
+}

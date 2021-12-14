@@ -1,14 +1,12 @@
 #include "python.hpp"
 #include "entity.hpp"
-#include "registry.hpp"
 #include "python_graph.hpp"
 #include "python_imgui.hpp"
 #include "python_task.hpp"
+#include "registry.hpp"
 
 #include "groot/cgal.hpp"
 #include "groot/cloud.hpp"
-#include <groot_app/open_workspace.hpp>
-#include <groot_app/save_workspace.hpp>
 #include <boost/core/noncopyable.hpp>
 #include <boost/python/list.hpp>
 #include <boost/python/numpy.hpp>
@@ -19,77 +17,83 @@
 #include <entt/meta/pointer.hpp>
 #include <functional>
 #include <groot_app/entt.hpp>
+#include <groot_app/open_workspace.hpp>
+#include <groot_app/save_workspace.hpp>
 #include <groot_graph/plant_graph_compare.hpp>
 
 using namespace entt::literals;
 
 constexpr const entt::id_type convert_to_python = "convert_to_python"_hs;
+constexpr const entt::id_type convert_from_python = "convert_from_python"_hs;
 
+#define RETURN_NONE_IF_NOT(EXPR) if(!static_cast<bool>(EXPR)) { Py_RETURN_NONE; }
+#define RETURN_NULL_IF_NOT(EXPR) if(!static_cast<bool>(EXPR)) { return nullptr; }
 
-struct meta_any_to_python {
-    static PyObject* convert(const entt::meta_any& component)
+struct dynamic_to_python {
+    static PyObject* convert(const DynamicComponent& component)
     {
-        spdlog::error("{}", component.type().info().name());
-        if (!component.type()) {
-            Py_RETURN_NONE;
-        }
+        auto function = entt::resolve(component.first).func(convert_to_python);
+        RETURN_NONE_IF_NOT((bool)function);
+        RETURN_NONE_IF_NOT(function.arity() == 1);
+        RETURN_NONE_IF_NOT(function.is_static());
+        RETURN_NONE_IF_NOT(function.arg(0) == entt::resolve<void*>());
+        RETURN_NONE_IF_NOT(function.ret() == entt::resolve<boost::python::object>());
 
-        assert((bool)component);
-        assert(component.data() != nullptr);
+        entt::meta_any h(std::in_place_type<void*>, component.second);
 
-        auto function = component.type().func(convert_to_python);
-        assert((bool)function);
-        assert(function.arity() == 0);
-        assert(!function.is_static());
-        assert(function.is_const());
-        assert(function.ret() == entt::resolve<boost::python::object>());
-
-        entt::meta_any result_any = function.invoke(component);
-        assert(result_any);
-        spdlog::error("{}", result_any.type().info().name());
-
+        entt::meta_any result_any = function.invoke(entt::meta_handle(), h);
+        RETURN_NONE_IF_NOT(result_any);
         auto result = result_any.cast<boost::python::object>();
 
         return boost::python::incref(result.ptr());
     }
 };
 
-struct meta_any_from_python {
-    meta_any_from_python()
+struct dynamic_from_python {
+    dynamic_from_python()
     {
-        boost::python::converter::registry::push_back(&convertible, &construct, boost::python::type_id<entt::meta_any>());
+        boost::python::converter::registry::push_back(&convertible, &construct, boost::python::type_id<DynamicComponent>());
     }
 
     static void* convertible(PyObject* obj)
     {
         PyObject* type = PyObject_GetAttrString(obj, "type_id");
-        if (type == nullptr) {
-            return nullptr;
-        }
+        RETURN_NULL_IF_NOT(type);
+
         boost::python::extract<entt::type_info> info_extract(type);
-        if (!info_extract.check()) {
-            return nullptr;
-        }
-        return obj;
+        RETURN_NULL_IF_NOT(info_extract.check());
+        entt::type_info info = info_extract;
+
+        boost::python::object object { boost::python::handle<>(obj) };
+        entt::meta_type meta_type = entt::resolve(info);
+        RETURN_NULL_IF_NOT(meta_type);
+
+        entt::meta_func convert_f = meta_type.func(convert_from_python);
+        RETURN_NULL_IF_NOT(convert_f);
+
+        RETURN_NULL_IF_NOT(convert_f.arity() == 1);
+        RETURN_NULL_IF_NOT(convert_f.is_static());
+        RETURN_NULL_IF_NOT(convert_f.arg(0) == entt::resolve<boost::python::object>());
+
+        entt::meta_any constructed = convert_f.invoke(entt::meta_handle(), object);
+        RETURN_NULL_IF_NOT(constructed);
+
+        DynamicComponent dc = constructed.cast<DynamicComponent>();
+        return dc.second;
     }
 
     static void construct(PyObject* obj, boost::python::converter::rvalue_from_python_stage1_data* data)
     {
-        void* storage = ((boost::python::converter::rvalue_from_python_storage<entt::meta_any>*)data)->storage.bytes;
-        boost::python::object object { boost::python::handle<>(obj) };
-        entt::type_info info = boost::python::extract<entt::type_info>(object.attr("type_id"));
+        void* storage = ((boost::python::converter::rvalue_from_python_storage<DynamicComponent>*)data)->storage.bytes;
+        void* object = data->convertible;
 
-        entt::meta_type type = entt::resolve(info);
-        if (!type) {
-            new (storage) entt::meta_any();
-            return;
-        }
+        PyObject* type = PyObject_GetAttrString(obj, "type_id");
 
-        entt::meta_any constructed = type.construct(object);
-        storage = new entt::meta_any(constructed.as_ref());
+        entt::type_info info = boost::python::extract<entt::type_info>(type);
+
+        storage = new DynamicComponent(info, object);
     }
 };
-
 
 boost::python::numpy::ndarray create_numpy_array(std::vector<groot::Point_3>& v)
 {
@@ -120,15 +124,15 @@ boost::python::numpy::ndarray create_numpy_array(Object& v)
 }
 
 template <typename Component>
-boost::python::object convert_to_python_impl(const Component& c)
+boost::python::object convert_to_python_impl(void* c)
 {
-    return boost::python::object(boost::ref(c));
+    return boost::python::object((Component*)c);
 }
 
 template <typename Component>
-Component get_from_python_impl(boost::python::object o)
+DynamicComponent get_from_python_impl(boost::python::object o)
 {
-    return Component(std::move(boost::python::extract<Component&>(o)));
+    return DynamicComponent(entt::type_id<Component>(), (void*) boost::python::extract<Component*>(o));
 }
 
 template <typename Component>
@@ -137,7 +141,7 @@ void declare_python_component(boost::python::scope& scope, const std::string_vie
 
     entt::meta<Component>()
         .type()
-        .template ctor<get_from_python_impl<Component>>()
+        .template func<get_from_python_impl<Component>>(convert_from_python)
         .template func<convert_to_python_impl<Component>, entt::as_ref_t>(convert_to_python);
 
     scope.attr(name.data()) = entt::type_id<Component>();
@@ -153,8 +157,9 @@ BOOST_PYTHON_MODULE(pygroot)
     object types = import("types");
     object module = types.attr("ModuleType");
 
-    to_python_converter<entt::meta_any, meta_any_to_python, false>();
-    meta_any_from_python();
+    to_python_converter<DynamicComponent, dynamic_to_python, false>();
+
+    // meta_any_from_python();
 
     class_<entt::type_info>("TypeInfo", no_init)
         .def("name", &entt::type_info::name)
@@ -230,5 +235,4 @@ BOOST_PYTHON_MODULE(pygroot)
     create_task_module();
     create_entity_type();
     create_registry_type();
-
 }

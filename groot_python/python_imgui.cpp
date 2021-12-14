@@ -2,7 +2,7 @@
 #include <boost/python.hpp>
 #include <gfx/imgui/imgui.h>
 
-struct ImGuiContext {
+struct ImGuiModule {
 };
 
 void create_table_functions()
@@ -26,7 +26,7 @@ void create_imgui_module()
 {
     using namespace boost::python;
 
-    scope current_scope = class_<ImGuiContext>("ImGui", no_init);
+    scope current_scope = class_<ImGuiModule>("ImGui", no_init);
 
     class_<ImVec2>("Vec2", init<float, float>())
         .def(init<>())

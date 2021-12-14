@@ -14,13 +14,6 @@ public:
     Registry()
         : reg()
     {
-        reg.prepare<Visible>();
-
-        reg.prepare<groot::PlantGraph>();
-        reg.prepare<PointCloud>();
-        reg.prepare<PointNormals>();
-        reg.prepare<PointColors>();
-        reg.prepare<Cylinders>();
     }
 
     entt::handle selected()
@@ -80,12 +73,15 @@ public:
     {
         Application app(reg);
         {
-            auto state = PyGILState_Ensure();
+            AcquireGilGuard guard;
             std::invoke(init_func, boost::ref(*this));
-            PyGILState_Release(state);
         }
 
+        ImGuiContext* ctx = reg.ctx<ImGuiContext*>();
+        ImGui::SetCurrentContext(ctx);
+
         app.main_loop([this, &update_func](entt::registry&) {
+            AcquireGilGuard guard;
             std::invoke(update_func, boost::ref(*this));
         });
     }
@@ -101,6 +97,5 @@ public:
         reg.ctx<TaskBroker>().push_task(name, std::move(t.ignore_result()));
     }
 
-private:
     entt::registry reg;
 };
