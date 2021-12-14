@@ -113,10 +113,10 @@ void init(entt::registry& registry)
     auto& system_data = registry.set<SystemData>(std::move(
         gfx::RenderPipeline::Builder()
             .with_shader(gfx::ShaderProgram::Builder()
-                             .register_uniform<Color>()
-                             .register_uniform<PointSize>()
-                             .register_class<gfx::CameraLens>()
-                             .register_class<gfx::CameraRig>()
+                             .register_uniform<Color>("u_color")
+                             .register_uniform<PointSize>("point_size")
+                             .register_class<gfx::CameraLens>("u_pMatrix")
+                             .register_class<gfx::CameraRig>("u_mvMatrix")
                              .with_vertex_shader(vertex_shader_source)
                              .with_fragment_shader(fragment_shader_source)
                              .build())
@@ -208,10 +208,10 @@ const char* vertex_shader_source = "\n"
                                    "layout (location=0) in vec3 in_Position;\n"
                                    "\n"
                                    "out vec4 v_Color;\n"
-                                   "layout (location=kViewMatrix) uniform mat4 u_mvMatrix;\n"
-                                   "layout (location=kProjectionMatrix) uniform mat4 u_pMatrix;\n"
-                                   "layout (location=kColor) uniform vec3 u_color;\n"
-                                   "layout (location=kPointSize) uniform float point_size;\n"
+                                   "uniform mat4 u_mvMatrix;\n"
+                                   "uniform mat4 u_pMatrix;\n"
+                                   "uniform vec3 u_color;\n"
+                                   "uniform float point_size;\n"
                                    "\n"
                                    "void main()\n"
                                    "{\n"

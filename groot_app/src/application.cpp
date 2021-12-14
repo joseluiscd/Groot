@@ -46,6 +46,8 @@ Application::Application(entt::registry& _reg)
     cloud_view_system::init(registry);
     cylinder_view_system::init(registry);
 
+    registry.set<ImGuiContext*>(ImGui::GetCurrentContext());
+
     spdlog::default_logger()->sinks().push_back(app_log);
 }
 

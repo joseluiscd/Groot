@@ -10,15 +10,13 @@
 
 using namespace entt::literals;
 
-DEF_UNIFORM_SEMANTICS(Color, glm::vec3, "kColor");
-DEF_UNIFORM_SEMANTICS(PointSize, float, "kPointSize");
-DEF_UNIFORM_SEMANTICS(VectorSize, float, "kVectorSize");
+GFX_UNIFORM_SEMANTICS(Color, glm::vec3);
+GFX_UNIFORM_SEMANTICS(PointSize, float);
+GFX_UNIFORM_SEMANTICS(VectorSize, float);
 
-extern gfx::VertexArray::Layout point_layout;
-extern gfx::VertexArray::Layout point_color_layout;
-extern gfx::VertexArray::Layout color_layout;
-extern gfx::VertexArray::Layout direction_layout;
-extern gfx::VertexArray::Layout cylinder_layout;
+using ColorUniform = gfx::Uniform<Color>;
+using PointSizeUniform = gfx::Uniform<PointSize>;
+using VectorSizeUniform = gfx::Uniform<VectorSize>;
 
 enum Attribs {
     Position = 0,
@@ -26,6 +24,30 @@ enum Attribs {
     Radius,
     Height,
     ColorAttr,
+};
+
+constexpr const gfx::VertexArray::Layout point_layout = {
+    gfx::attrib<glm::vec3>(Attribs::Position)
+};
+
+constexpr const gfx::VertexArray::Layout color_layout = {
+    gfx::attrib<glm::vec3>(Attribs::ColorAttr)
+};
+
+constexpr const gfx::VertexArray::Layout point_color_layout = {
+    gfx::attrib<glm::vec3>(Attribs::Position),
+    gfx::attrib<glm::vec3>(Attribs::ColorAttr)
+};
+
+constexpr const gfx::VertexArray::Layout direction_layout = {
+    gfx::attrib<glm::vec3>(Attribs::Direction)
+};
+
+constexpr const gfx::VertexArray::Layout cylinder_layout = {
+    gfx::attrib<glm::vec3>(Attribs::Position),
+    gfx::attrib<glm::vec3>(Attribs::Direction),
+    gfx::attrib<float>(Attribs::Radius),
+    gfx::attrib<float>(Attribs::Height)
 };
 
 struct GROOT_LOCAL RenderData {

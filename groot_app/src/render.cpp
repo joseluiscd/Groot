@@ -1,36 +1,14 @@
 #include <groot_app/render.hpp>
 #include <gfx/camera.hpp>
 
-gfx::VertexArray::Layout point_layout = {
-    { Attribs::Position, 3, gfx::Type::Float }
-};
 
-gfx::VertexArray::Layout color_layout = {
-    { Attribs::ColorAttr, 3, gfx::Type::Float }
-};
-
-gfx::VertexArray::Layout point_color_layout = {
-    { Attribs::Position, 3, gfx::Type::Float },
-    { Attribs::ColorAttr, 3, gfx::Type::Float }
-};
-
-gfx::VertexArray::Layout direction_layout = {
-    { Attribs::Direction, 3, gfx::Type::Float } 
-};
-
-gfx::VertexArray::Layout cylinder_layout = {
-    { Attribs::Position, 3, gfx::Type::Float },
-    { Attribs::Direction, 3, gfx::Type::Float },
-    { Attribs::Radius, 1, gfx::Type::Float },
-    { Attribs::Height, 1, gfx::Type::Float }
-};
 
 const char* point_vs = R"(
 layout (location=0) in vec3 in_Position;
 
-layout (location=kViewMatrix) uniform mat4 u_mvMatrix;
-layout (location=kProjectionMatrix) uniform mat4 u_pMatrix;
-layout (location=kPointSize) uniform float point_size;
+uniform mat4 u_mvMatrix;
+uniform mat4 u_pMatrix;
+uniform float point_size;
 
 void main()
 {
@@ -43,7 +21,7 @@ void main()
 const char* point_fs = R"(
 out vec4 out_FragColor;
 
-layout (location=kColor) uniform vec3 u_color;
+uniform vec3 u_color;
 
 void main()
 {
@@ -57,9 +35,9 @@ const char* point_color_vs = R"(
 layout (location=0) in vec3 in_Position;
 layout (location=4) in vec3 in_Color;
 
-layout (location=kViewMatrix) uniform mat4 u_mvMatrix;
-layout (location=kProjectionMatrix) uniform mat4 u_pMatrix;
-layout (location=kPointSize) uniform float point_size;
+uniform mat4 u_mvMatrix;
+uniform mat4 u_pMatrix;
+uniform float point_size;
 
 out vec4 v_Color;
 
@@ -105,9 +83,9 @@ const char* vector_gs = R"(
 layout (points) in;
 layout (line_strip, max_vertices=2) out;
 
-layout (location = kProjectionMatrix) uniform mat4 mProj;
-layout (location = kViewMatrix) uniform mat4 mView;
-layout (location = kVectorSize) uniform float uVectorSize;
+uniform mat4 mProj;
+uniform mat4 mView;
+uniform float uVectorSize;
 
 in VertexData
 {
@@ -133,7 +111,7 @@ void main()
 const char* vector_fs = R"(
 out vec4 f_color;
  
-layout (location=kColor) uniform vec3 u_color;
+uniform vec3 u_color;
 
 void main()
 {
@@ -171,8 +149,8 @@ const char* cylinder_gs = R"(
 layout (points) in;
 layout (triangle_strip, max_vertices=40) out;
 
-layout (location = kProjectionMatrix) uniform mat4 mProj;
-layout (location = kViewMatrix) uniform mat4 mView;
+uniform mat4 mProj;
+uniform mat4 mView;
 
 in VertexData
 {
@@ -234,9 +212,8 @@ out vec4 f_color;
 
 in vec3 v_normal;
 
-layout (location=kColor) uniform vec3 u_color;
-
-layout (location = kViewMatrix) uniform mat4 mView;
+uniform vec3 u_color;
+uniform mat4 mView;
 
 void main()
 {
@@ -272,33 +249,33 @@ void TextRenderDrawList::dump_to_draw_list(ImDrawList* list, glm::vec2 offset, g
 ShaderCollection::ShaderCollection()
     : shaders(
         { gfx::ShaderProgram::Builder("Points")
-                .register_class<gfx::CameraLens>()
-                .register_class<gfx::CameraRig>()
-                .register_uniform<Color>()
-                .register_uniform<PointSize>()
+                .register_class<gfx::CameraLens>("u_pMatrix")
+                .register_class<gfx::CameraRig>("u_mvMatrix")
+                .register_uniform<Color>("u_color")
+                .register_uniform<PointSize>("point_size")
                 .with_vertex_shader(point_vs)
                 .with_fragment_shader(point_fs)
                 .build_shared(),
             gfx::ShaderProgram::Builder("PointsColor")
-                .register_class<gfx::CameraLens>()
-                .register_class<gfx::CameraRig>()
-                .register_uniform<PointSize>()
+                .register_class<gfx::CameraLens>("u_pMatrix")
+                .register_class<gfx::CameraRig>("u_mvMatrix")
+                .register_uniform<PointSize>("point_size")
                 .with_vertex_shader(point_color_vs)
                 .with_fragment_shader(point_color_fs)
                 .build_shared(),
             gfx::ShaderProgram::Builder("Vectors")
-                .register_class<gfx::CameraLens>()
-                .register_class<gfx::CameraRig>()
-                .register_uniform<Color>()
-                .register_uniform<VectorSize>()
+                .register_class<gfx::CameraLens>("mProj")
+                .register_class<gfx::CameraRig>("mView")
+                .register_uniform<VectorSize>("uVectorSize")
+                .register_uniform<Color>("u_color")
                 .with_vertex_shader(vector_vs)
                 .with_geometry_shader(vector_gs)
                 .with_fragment_shader(vector_fs)
                 .build_shared(),
             gfx::ShaderProgram::Builder("Cylinders")
-                .register_class<gfx::CameraLens>()
-                .register_class<gfx::CameraRig>()
-                .register_uniform<Color>()
+                .register_class<gfx::CameraLens>("mProj")
+                .register_class<gfx::CameraRig>("mView")
+                .register_uniform<Color>("u_color")
                 .with_vertex_shader(cylinder_vs)
                 .with_geometry_shader(cylinder_gs)
                 .with_fragment_shader(cylinder_fs)
