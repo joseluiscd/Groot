@@ -5,6 +5,7 @@
 #include <groot_app/render.hpp>
 #include <groot_app/resources.hpp>
 #include <groot_app/viewer_system.hpp>
+#include <spdlog/spdlog.h>
 
 namespace viewer_system {
 
@@ -75,18 +76,46 @@ void deinit(entt::registry& registry)
 }
 
 #define SNAKE_MAP_SIZE 32
-#define SNAKE_FRAMERATE 
+#define SNAKE_FRAMERATE
 
 void snake()
 {
+    static bool snake_mode = false;
+    static bool pre_snake_mode = false;
+    static bool a = false;
+    static bool b = false;
+    static bool c = false;
+
+    if (ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_Tab))
+    && ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_X))
+    && ImGui::IsKeyDown(ImGui::GetKeyIndex(ImGuiKey_A))
+    ) {
+        pre_snake_mode = true;
+    }
+
+    if (pre_snake_mode) {
+        ImGui::Begin("Activate power mode", &pre_snake_mode);
+        ImGui::Checkbox("Enable a", &a);
+        ImGui::Checkbox("Enable b", &b);
+        ImGui::Checkbox("Enable c", &c);
+        ImGui::End();
+
+        if (!a && b && c) {
+            snake_mode = true;
+            pre_snake_mode = false;
+            a = true;
+        }
+    }
+    if (!snake_mode) { 
+        return;
+    }
     ImGuiIO& io = ImGui::GetIO();
 
-    static bool enabled = true;
 
     static glm::ivec2 food_position { rand() % SNAKE_MAP_SIZE, rand() % SNAKE_MAP_SIZE };
-    static std::list<glm::ivec2> snake { {5, 2}, {4, 2}, {3, 2}, {2, 2}};
+    static std::list<glm::ivec2> snake { { 5, 2 }, { 4, 2 }, { 3, 2 }, { 2, 2 } };
     static size_t framerate = 6;
-    static glm::ivec2 direction = {1, 0};
+    static glm::ivec2 direction = { 1, 0 };
     static int snake_table[SNAKE_MAP_SIZE * SNAKE_MAP_SIZE];
 
     static const int key_a = ImGui::GetKeyIndex(ImGuiKey_LeftArrow);
@@ -94,7 +123,24 @@ void snake()
     static const int key_d = ImGui::GetKeyIndex(ImGuiKey_RightArrow);
     static const int key_w = ImGui::GetKeyIndex(ImGuiKey_UpArrow);
 
-    ImGui::Begin("Snake");
+    if (direction.x == 0) {
+        if (ImGui::IsKeyPressed(key_a)) {
+            direction = { -1, 0 };
+        }
+        if (ImGui::IsKeyPressed(key_d)) {
+            direction = { 1, 0 };
+        }
+    }
+
+    if (direction.y == 0) {
+        if (ImGui::IsKeyPressed(key_s)) {
+            direction = { 0, 1 };
+        }
+        if (ImGui::IsKeyPressed(key_w)) {
+            direction = { 0, -1 };
+        }
+    }
+
     if (ImGui::GetFrameCount() % framerate == 0) {
         glm::ivec2 head = snake.front();
 
@@ -113,26 +159,26 @@ void snake()
         }
 
         if (new_head.y < 0) {
-            new_head.y = 0;
+            new_head.y = SNAKE_MAP_SIZE - 1;
         }
 
         snake.push_front(new_head);
 
         for (size_t i = 0; i < SNAKE_MAP_SIZE; ++i) {
             for (size_t j = 0; j < SNAKE_MAP_SIZE; ++j) {
-                snake_table[i * SNAKE_MAP_SIZE + j] = 0;
+                snake_table[j * SNAKE_MAP_SIZE + i] = 0;
             }
         }
 
         for (auto it = snake.begin(); it != snake.end(); ++it) {
-            snake_table[it->x * SNAKE_MAP_SIZE + it->y] = 1; 
+            snake_table[it->y * SNAKE_MAP_SIZE + it->x] = 1;
         }
-        snake_table[food_position.x * SNAKE_MAP_SIZE + food_position.y] = -1;
+        snake_table[food_position.y * SNAKE_MAP_SIZE + food_position.x] = -1;
 
         if (new_head == food_position) {
             bool is_on_snake = false;
             do {
-                food_position = { rand() % SNAKE_MAP_SIZE, rand() % SNAKE_MAP_SIZE};
+                food_position = { rand() % SNAKE_MAP_SIZE, rand() % SNAKE_MAP_SIZE };
                 is_on_snake = false;
                 for (auto it = snake.begin(); it != snake.end(); ++it) {
                     if (*it == food_position) {
@@ -143,38 +189,17 @@ void snake()
         } else {
             snake.pop_back();
         }
-
-        if (direction.y == 0) {
-            if (ImGui::IsKeyPressed(key_a)) {
-                direction = {-1, 0};
-            }
-            if (ImGui::IsKeyPressed(key_d)) {
-                direction = {1, 0};
-            }
-        }
-
-        if (direction.x == 0) {
-            if (ImGui::IsKeyPressed(key_s)) {
-                direction = {0, -1};
-            }
-            if (ImGui::IsKeyPressed(key_w)) {
-                direction = {0, 1};
-            }
-        }
     }
 
-    for (size_t i = 0; i < SNAKE_MAP_SIZE; ++i) {
-        for (size_t j = 0; j < SNAKE_MAP_SIZE; ++j) {
-            int v = snake_table[i * SNAKE_MAP_SIZE + j];
-            ImGui::PushID(i * SNAKE_MAP_SIZE + j);
+    ImGui::Begin("Snake", &snake_mode);
+    for (size_t j = 0; j < SNAKE_MAP_SIZE; ++j) {
+        for (size_t i = 0; i < SNAKE_MAP_SIZE; ++i) {
+            int v = snake_table[j * SNAKE_MAP_SIZE + i];
+            ImGui::PushID(j * SNAKE_MAP_SIZE + i);
             bool activate = false;
             if (v == 0) {
-                ImGui::BeginDisabled();
                 ImGui::Checkbox("", &activate);
-                ImGui::EndDisabled();
-            } else if (v > 0) {
-                ImGui::Checkbox("", &activate);
-            } else if (v < 0) {
+            } else {
                 activate = true;
                 ImGui::Checkbox("", &activate);
             }
