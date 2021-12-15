@@ -1,5 +1,11 @@
-#include <groot_app/application.hpp>
+#include "entt/entity/fwd.hpp"
+#include "gfx/font_awesome.hpp"
+#include <gfx/glad.h>
+#include <gfx/imgui/gfx.hpp>
+#include <gfx/imgui/imgui.h>
+#include <gfx/render_pass.hpp>
 #include <groot_app/app_log.hpp>
+#include <groot_app/application.hpp>
 #include <groot_app/cloud_io.hpp>
 #include <groot_app/cloud_system.hpp>
 #include <groot_app/command.hpp>
@@ -7,8 +13,6 @@
 #include <groot_app/create_graph.hpp>
 #include <groot_app/cylinder_connect.hpp>
 #include <groot_app/cylinder_marching.hpp>
-#include "entt/entity/fwd.hpp"
-#include "gfx/font_awesome.hpp"
 #include <groot_app/graph_cluster.hpp>
 #include <groot_app/graph_io.hpp>
 #include <groot_app/graph_resample.hpp>
@@ -17,11 +21,21 @@
 #include <groot_app/render.hpp>
 #include <groot_app/save_workspace.hpp>
 #include <groot_app/viewer_system.hpp>
-#include <gfx/glad.h>
-#include <gfx/imgui/gfx.hpp>
-#include <gfx/imgui/imgui.h>
-#include <gfx/render_pass.hpp>
 #include <spdlog/spdlog.h>
+
+struct ApplicationProperties {
+    glm::vec4 bg_color { 0.0, 0.1, 0.3, 0.0 };
+
+    void draw_window(bool* open = nullptr);
+};
+
+void ApplicationProperties::draw_window(bool* open)
+{
+    if(ImGui::Begin("Application Properties", open)) {
+        ImGui::ColorEdit4("Background color", &bg_color[0]);
+    }
+    ImGui::End();
+}
 
 Application::Application(entt::registry& _reg)
     : gui_app(gfx::InitOptions {
@@ -38,6 +52,7 @@ Application::Application(entt::registry& _reg)
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();
     registry.set<TaskBroker>();
+    registry.set<ApplicationProperties>();
 
     init_components(registry);
     ShaderCollection::init(registry);
@@ -83,14 +98,9 @@ void Application::draw_background_tasks()
         registry.ctx<TaskBroker>().cycle_tasks([](std::string_view&& task_name) {
             ImGui::Spinner("##spinner", 10.0f, 5.0f);
             ImGui::SameLine();
-            ImGui::Text("%s", task_name.data());
-        }, [](const std::string_view& error) {
-            spdlog::error("{}", error);
-        });
+            ImGui::Text("%s", task_name.data()); }, [](const std::string_view& error) { spdlog::error("{}", error); });
     } else {
-        registry.ctx<TaskBroker>().cycle_tasks([](auto&& _) {}, [](const std::string_view& error) {
-            spdlog::error("{}", error);
-        });
+        registry.ctx<TaskBroker>().cycle_tasks([](auto&& _) {}, [](const std::string_view& error) { spdlog::error("{}", error); });
     }
 
     ImGui::End();
@@ -131,6 +141,8 @@ entt::entity Application::get_selected_entity()
 
 void Application::draw_gui()
 {
+    ApplicationProperties& props = registry.ctx<ApplicationProperties>();
+
     ImGui::BeginMainWindow();
     auto get_selection = [this]() {
         return std::vector<entt::entity>({ this->get_selected_entity() });
@@ -243,6 +255,7 @@ void Application::draw_gui()
         }
 
         if (ImGui::BeginMenu("Window")) {
+            ImGui::MenuItem("Application properties", nullptr, &windows.application_properties);
             ImGui::MenuItem("Background tasks", nullptr, &windows.background_tasks);
             ImGui::MenuItem("Demo window", nullptr, &windows.demo_window);
             ImGui::MenuItem("Logger", nullptr, &windows.console_log);
@@ -261,15 +274,17 @@ void Application::draw_gui()
 
     {
         auto& fbo = registry.ctx<RenderData>().framebuffer;
-        gfx::RenderPass _(fbo, gfx::ClearOperation::color_and_depth({ 0.0, 0.1, 0.3, 0.0 }));
+        gfx::RenderPass _(fbo, gfx::ClearOperation::color_and_depth(props.bg_color));
         glEnable(GL_DEPTH_TEST);
     }
 
     ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
     bool will_render = false;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(1.0f, 1.0f));
     if (ImGui::Begin("3D Viewer")) {
         will_render = true;
     }
+    ImGui::PopStyleVar();
     ImGui::End();
 
     if (will_render) {
@@ -296,6 +311,10 @@ void Application::draw_gui()
     draw_command_gui();
     draw_background_tasks();
     draw_console_log();
+
+    if (windows.application_properties) {
+        props.draw_window(&windows.application_properties);
+    }
 
     if (windows.demo_window)
         ImGui::ShowDemoWindow(&windows.demo_window);

@@ -18,6 +18,7 @@ struct GROOT_LOCAL Windows {
     bool main_viewer = true;
     bool console_log = true;
     bool demo_window = false;
+    bool application_properties = false;
 };
 
 class GROOT_API Application {
