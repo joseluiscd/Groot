@@ -37,6 +37,10 @@ void ApplicationProperties::draw_window(bool* open)
     ImGui::End();
 }
 
+namespace viewer_system{
+void snake();
+}
+
 Application::Application(entt::registry& _reg)
     : gui_app(gfx::InitOptions {
         .title = "Groot Graph Viewer",
@@ -151,6 +155,8 @@ void Application::draw_gui()
     auto get_selected_handle = [this]() {
         return entt::handle(registry, this->get_selected_entity());
     };
+
+    viewer_system::snake();
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {

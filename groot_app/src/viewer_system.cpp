@@ -1,10 +1,10 @@
-#include <groot_app/viewer_system.hpp>
+#include <gfx/imgui/gfx.hpp>
+#include <gfx/imgui/imgui.h>
 #include <groot_app/components.hpp>
 #include <groot_app/entity_editor.hpp>
 #include <groot_app/render.hpp>
 #include <groot_app/resources.hpp>
-#include <gfx/imgui/gfx.hpp>
-#include <gfx/imgui/imgui.h>
+#include <groot_app/viewer_system.hpp>
 
 namespace viewer_system {
 
@@ -36,7 +36,7 @@ void run(entt::registry& registry)
 
         if (ImGui::IsItemHovered()) {
             data.camera->advance(ImGui::GetIO().MouseWheel * 0.2);
-            //data.lens->zoom(1.0 + ImGui::GetIO().MouseWheel * 0.001);
+            // data.lens->zoom(1.0 + ImGui::GetIO().MouseWheel * 0.001);
         }
 
         text.dump_to_draw_list(ImGui::GetWindowDrawList(), ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
@@ -72,6 +72,118 @@ void init(entt::registry& registry)
 void deinit(entt::registry& registry)
 {
     registry.unset<RenderData>();
+}
+
+#define SNAKE_MAP_SIZE 32
+#define SNAKE_FRAMERATE 
+
+void snake()
+{
+    ImGuiIO& io = ImGui::GetIO();
+
+    static bool enabled = true;
+
+    static glm::ivec2 food_position { rand() % SNAKE_MAP_SIZE, rand() % SNAKE_MAP_SIZE };
+    static std::list<glm::ivec2> snake { {5, 2}, {4, 2}, {3, 2}, {2, 2}};
+    static size_t framerate = 6;
+    static glm::ivec2 direction = {1, 0};
+    static int snake_table[SNAKE_MAP_SIZE * SNAKE_MAP_SIZE];
+
+    static const int key_a = ImGui::GetKeyIndex(ImGuiKey_LeftArrow);
+    static const int key_s = ImGui::GetKeyIndex(ImGuiKey_DownArrow);
+    static const int key_d = ImGui::GetKeyIndex(ImGuiKey_RightArrow);
+    static const int key_w = ImGui::GetKeyIndex(ImGuiKey_UpArrow);
+
+    ImGui::Begin("Snake");
+    if (ImGui::GetFrameCount() % framerate == 0) {
+        glm::ivec2 head = snake.front();
+
+        glm::ivec2 new_head = head + direction;
+
+        if (new_head.x >= SNAKE_MAP_SIZE) {
+            new_head.x = 0;
+        }
+
+        if (new_head.x < 0) {
+            new_head.x = SNAKE_MAP_SIZE - 1;
+        }
+
+        if (new_head.y >= SNAKE_MAP_SIZE) {
+            new_head.y = 0;
+        }
+
+        if (new_head.y < 0) {
+            new_head.y = 0;
+        }
+
+        snake.push_front(new_head);
+
+        for (size_t i = 0; i < SNAKE_MAP_SIZE; ++i) {
+            for (size_t j = 0; j < SNAKE_MAP_SIZE; ++j) {
+                snake_table[i * SNAKE_MAP_SIZE + j] = 0;
+            }
+        }
+
+        for (auto it = snake.begin(); it != snake.end(); ++it) {
+            snake_table[it->x * SNAKE_MAP_SIZE + it->y] = 1; 
+        }
+        snake_table[food_position.x * SNAKE_MAP_SIZE + food_position.y] = -1;
+
+        if (new_head == food_position) {
+            bool is_on_snake = false;
+            do {
+                food_position = { rand() % SNAKE_MAP_SIZE, rand() % SNAKE_MAP_SIZE};
+                is_on_snake = false;
+                for (auto it = snake.begin(); it != snake.end(); ++it) {
+                    if (*it == food_position) {
+                        is_on_snake = true;
+                    }
+                }
+            } while (is_on_snake);
+        } else {
+            snake.pop_back();
+        }
+
+        if (direction.y == 0) {
+            if (ImGui::IsKeyPressed(key_a)) {
+                direction = {-1, 0};
+            }
+            if (ImGui::IsKeyPressed(key_d)) {
+                direction = {1, 0};
+            }
+        }
+
+        if (direction.x == 0) {
+            if (ImGui::IsKeyPressed(key_s)) {
+                direction = {0, -1};
+            }
+            if (ImGui::IsKeyPressed(key_w)) {
+                direction = {0, 1};
+            }
+        }
+    }
+
+    for (size_t i = 0; i < SNAKE_MAP_SIZE; ++i) {
+        for (size_t j = 0; j < SNAKE_MAP_SIZE; ++j) {
+            int v = snake_table[i * SNAKE_MAP_SIZE + j];
+            ImGui::PushID(i * SNAKE_MAP_SIZE + j);
+            bool activate = false;
+            if (v == 0) {
+                ImGui::BeginDisabled();
+                ImGui::Checkbox("", &activate);
+                ImGui::EndDisabled();
+            } else if (v > 0) {
+                ImGui::Checkbox("", &activate);
+            } else if (v < 0) {
+                activate = true;
+                ImGui::Checkbox("", &activate);
+            }
+            ImGui::SameLine();
+            ImGui::PopID();
+        }
+        ImGui::NewLine();
+    }
+    ImGui::End();
 }
 
 }
