@@ -62,7 +62,7 @@ public:
 
     static py::object create_none()
     {
-        return py::object();
+        return py::none();
     }
 
     PythonTask& then_python(py::object f, TaskMode mode)

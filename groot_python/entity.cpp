@@ -13,7 +13,10 @@ void create_entity_type(py::module& m)
         .def("destroy", &Entity::destroy)
         .def("remove_component", &Entity::remove_component_runtime)
         .def("move_component", &Entity::move_component)
-        .def("__getitem__", &Entity::get_component_runtime, py::return_value_policy::reference_internal)
+        .def("__getitem__", [](py::object self, const entt::type_info& type){
+            Entity* e = py::cast<Entity*>(self);
+            return e->get_component_runtime(self, type);
+        })
         .def("__setitem__", &Entity::set_component_runtime)
         .def("select", &Entity::select)
         .def("compute_normals", &Entity::compute_normals,

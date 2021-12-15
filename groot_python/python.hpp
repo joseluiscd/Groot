@@ -80,8 +80,7 @@ DestroyWithGil<T> destroy_with_gil(const T& obj)
     return DestroyWithGil<T>(obj);
 }
 
-py::object any_to_python(entt::meta_any component);
-py::object void_ptr_to_python(void* t, const entt::type_info& type);
+py::object any_to_python(py::object parent, void* component, const entt::type_info& type);
 
 extern "C" {
 PyObject* PyInit_pygroot();

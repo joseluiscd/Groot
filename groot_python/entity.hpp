@@ -75,7 +75,7 @@ public:
         e.remove<Component>();
     }
 
-    py::object get_component_runtime(const entt::type_info& type)
+    py::object get_component_runtime(py::object parent, const entt::type_info& type)
     {
         AcquireGilGuard guard;
 
@@ -85,7 +85,7 @@ public:
         }
         void* component = storage.get(e);
 
-        return void_ptr_to_python(component, type);
+        return any_to_python(parent, component, type);
     }
 
     void set_component_runtime(const entt::type_info& type, py::object component)

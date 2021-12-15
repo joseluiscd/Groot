@@ -11,6 +11,7 @@ void create_registry_type(py::module& m)
 
     py::class_<Registry>(m, "Registry",
         "The registry where all data is stored")
+        .def(py::init<>())
         .def_readonly_static("type_id", &Registry::type_id)
         .def("selected", &Registry::selected)
         .def("entities", &Registry::entities)

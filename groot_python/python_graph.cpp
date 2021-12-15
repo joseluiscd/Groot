@@ -88,7 +88,9 @@ void create_plant_graph_component(py::module& m)
 {
 
     py::class_<groot::PlantGraph>(m, "PlantGraph")
-        .def_property_readonly("num_vertices", &boost::num_vertices<groot::PlantGraph>, "Number of vertices in the graph")
+        .def_property_readonly("num_vertices", [](const groot::PlantGraph& s) {
+            return boost::num_vertices(s);
+        }, "Number of vertices in the graph")
         .def_property_readonly(
             "num_edges", [](const groot::PlantGraph& s) { return boost::num_edges(s); }, "Number of edges in the graph")
         .def_property_readonly("vertices", &vertices, "Vertices iterator")
@@ -99,14 +101,14 @@ void create_plant_graph_component(py::module& m)
             "__len__", [](const Vertices& s) { return boost::num_vertices(s.graph); })
         .def("__iter__", [](Vertices& s) {
             return py::make_iterator(s.begin(), s.end());
-        });
+        }, py::keep_alive<0, 1>());
 
     py::class_<Edges>(m, "PlantGraphEdges")
         .def(
             "__len__", +[](const Edges& s) { return boost::num_edges(s.graph); })
         .def("__iter__", [](Edges& s) {
             return py::make_iterator(s.begin(), s.end());
-        });
+        }, py::keep_alive<0, 1>());
 
     py::class_<Vertex>(m, "Vertex")
         .def_property_readonly("point", &Vertex::position);
