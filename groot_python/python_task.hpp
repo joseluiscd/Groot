@@ -11,40 +11,40 @@ enum TaskMode {
     Inline
 };
 
-inline auto call_f(boost::python::object f)
+inline auto call_f(py::object f)
 {
-    return [f = destroy_with_gil(f)](boost::python::object result) {
+    return [f = destroy_with_gil(f)](py::object result) {
         AcquireGilGuard guard;
-        boost::python::object function = *f.obj;
+        py::object function = *f.obj;
         return std::invoke(function, result);
     };
 }
 
-class GROOT_API PythonTask : public async::task<boost::python::object> {
+class GROOT_API PythonTask : public async::task<py::object> {
 public:
-    PythonTask(async::task<boost::python::object>&& _t, boost::python::str _name)
-        : async::task<boost::python::object>(std::move(_t))
+    PythonTask(async::task<py::object>&& _t, py::str _name)
+        : async::task<py::object>(std::move(_t))
         , name(_name)
     {
     }
 
-    PythonTask(async::task<void>&& _t, boost::python::str _name)
-        : async::task<boost::python::object>(std::move(_t.then(async::inline_scheduler(), create_none)))
+    PythonTask(async::task<void>&& _t, py::str _name)
+        : async::task<py::object>(std::move(_t.then(async::inline_scheduler(), create_none)))
         , name(_name)
     {
     }
 
     template <typename Result>
-    PythonTask(async::task<boost::python::object>&& _t, boost::python::str _name)
-        : async::task<boost::python::object>(std::move(_t.then(async::inline_scheduler(), [](Result&& r) {
-            return boost::python::object(std::forward<Result>(r));
+    PythonTask(async::task<py::object>&& _t, py::str _name)
+        : async::task<py::object>(std::move(_t.then(async::inline_scheduler(), [](Result&& r) {
+            return py::object(std::forward<Result>(r));
         })))
         , name(_name)
     {
     }
 
-    PythonTask(boost::python::object func, boost::python::str _name, TaskMode mode)
-        : async::task<boost::python::object>(std::move(spawn(func, mode)))
+    PythonTask(py::object func, py::str _name, TaskMode mode)
+        : async::task<py::object>(std::move(spawn(func, mode)))
         , name(_name)
     {
     }
@@ -52,7 +52,7 @@ public:
     template <typename Result>
     Result get_extract()
     {
-        return boost::python::extract<Result>(this->get());
+        return this->get().cast<Result>();
     }
 
     async::task<void> ignore_result()
@@ -60,12 +60,12 @@ public:
         return this->then(async::inline_scheduler(), []() {});
     }
 
-    static boost::python::object create_none()
+    static py::object create_none()
     {
-        return boost::python::object();
+        return py::object();
     }
 
-    void then_python(boost::python::object f, TaskMode mode)
+    PythonTask& then_python(py::object f, TaskMode mode)
     {
         switch (mode) {
         case TaskMode::Async:
@@ -81,29 +81,30 @@ public:
             *this = PythonTask(std::move(this->then(sync_scheduler(), call_f(f))), this->name);
             break;
         };
+        return *this;
     }
 
     void run_till_completion();
 
-    boost::python::str name;
+    py::str name;
 
 private:
-    static async::task<boost::python::object> spawn_async(boost::python::object f)
+    static async::task<py::object> spawn_async(py::object f)
     {
         return async::spawn(async_scheduler(), f);
     }
 
-    static async::task<boost::python::object> spawn_sync(boost::python::object f)
+    static async::task<py::object> spawn_sync(py::object f)
     {
         return async::spawn(sync_scheduler(), f);
     }
 
-    static async::task<boost::python::object> spawn_inline(boost::python::object f)
+    static async::task<py::object> spawn_inline(py::object f)
     {
         return async::spawn(sync_scheduler(), f);
     }
 
-    static async::task<boost::python::object> spawn(boost::python::object f, TaskMode mode)
+    static async::task<py::object> spawn(py::object f, TaskMode mode)
     {
         switch (mode) {
         case TaskMode::Async:
@@ -118,4 +119,4 @@ private:
     }
 };
 
-void create_task_module();
+void create_task_module(py::module_& m);

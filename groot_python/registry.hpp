@@ -1,16 +1,18 @@
 #pragma once
 
+#include "entity.hpp"
+#include "python.hpp"
+#include "python_task.hpp"
 #include <groot_app/components.hpp>
 #include <groot_app/open_workspace.hpp>
 #include <groot_app/save_workspace.hpp>
-#include "python.hpp"
-#include "python_task.hpp"
-#include "entity.hpp"
 
-void create_registry_type();
+void create_registry_type(py::module_& m);
 
 class Registry {
 public:
+    static entt::type_info type_id;
+
     Registry()
         : reg()
     {
@@ -21,9 +23,9 @@ public:
         return entt::handle(reg, reg.ctx<SelectedEntity>().selected);
     }
 
-    boost::python::list entities()
+    py::list entities()
     {
-        boost::python::list handles;
+        py::list handles;
         reg.each([&](auto entity) {
             handles.append(Entity(reg, entity));
         });
@@ -69,21 +71,34 @@ public:
         return Entity(reg, reg.create());
     }
 
-    void run_viewer(boost::python::object init_func, boost::python::object update_func)
+    void run_viewer(py::object init_func, py::object update_func)
     {
         Application app(reg);
+
         {
             AcquireGilGuard guard;
-            std::invoke(init_func, boost::ref(*this));
+            if (!init_func.is_none()) {
+                init_func(this);
+            }
         }
 
         ImGuiContext* ctx = reg.ctx<ImGuiContext*>();
         ImGui::SetCurrentContext(ctx);
 
-        app.main_loop([this, &update_func](entt::registry&) {
+        bool update_func_none;
+        {
             AcquireGilGuard guard;
-            std::invoke(update_func, boost::ref(*this));
-        });
+            update_func_none = update_func.is_none();
+        }
+
+        if (update_func_none) {
+            app.main_loop();
+        } else {
+            app.main_loop([this, &update_func](entt::registry&) {
+                AcquireGilGuard guard;
+                update_func(this);
+            });
+        }
     }
 
     void run_tasks()
@@ -93,7 +108,7 @@ public:
 
     void schedule_task(PythonTask& t)
     {
-        std::string name = boost::python::extract<std::string>(t.name);
+        std::string name = py::cast<std::string>(t.name);
         reg.ctx<TaskBroker>().push_task(name, std::move(t.ignore_result()));
     }
 

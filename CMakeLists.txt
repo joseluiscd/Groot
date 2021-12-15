@@ -19,12 +19,12 @@ set(CMAKE_MODULE_PATH
 include(GNUInstallDirs)
 
 find_package(glfw3 3.3 REQUIRED)
-find_package(Boost 1.75 REQUIRED COMPONENTS graph python39 numpy39)
+find_package(Boost 1.75 REQUIRED COMPONENTS graph)
 find_package(TBB REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.5 REQUIRED)
 find_package(Eigen3 REQUIRED 3.3)
-find_package(Python3 REQUIRED COMPONENTS Development)
+find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
 find_package(CGAL 5.3 REQUIRED)
 
 
@@ -39,6 +39,7 @@ add_subdirectory(3rdparty/cereal)
 add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/entt)
 add_subdirectory(3rdparty/asyncplusplus)
+add_subdirectory(3rdparty/pybind11)
 
 
 include(CGAL_TBB_support)

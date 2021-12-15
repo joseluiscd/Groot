@@ -1,10 +1,8 @@
 #include "python_graph.hpp"
 #include <boost/iterator/transform_iterator.hpp>
-#include <boost/python.hpp>
-#include <boost/python/iterator.hpp>
 #include <groot_graph/plant_graph.hpp>
 
-using custodian_this = boost::python::with_custodian_and_ward_postcall<0, 1>;
+namespace py = pybind11;
 
 struct Vertex {
     groot::PlantGraph& graph;
@@ -86,30 +84,33 @@ Edges edges(groot::PlantGraph& graph)
     return Edges { graph };
 }
 
-void create_plant_graph_component()
+void create_plant_graph_component(py::module& m)
 {
-    using namespace boost::python;
 
-    class_<groot::PlantGraph>("PlantGraph", no_init)
-        .add_property("num_vertices", &boost::num_vertices<groot::PlantGraph>, "Number of vertices in the graph")
-        .add_property(
-            "num_edges", +[](const groot::PlantGraph& s) { return boost::num_edges(s); }, "Number of edges in the graph")
-        .add_property("vertices", make_function(&vertices, custodian_this()), "Vertices iterator")
-        .add_property("edges", make_function(&edges, custodian_this()), "Edges iterator");
+    py::class_<groot::PlantGraph>(m, "PlantGraph")
+        .def_property_readonly("num_vertices", &boost::num_vertices<groot::PlantGraph>, "Number of vertices in the graph")
+        .def_property_readonly(
+            "num_edges", [](const groot::PlantGraph& s) { return boost::num_edges(s); }, "Number of edges in the graph")
+        .def_property_readonly("vertices", &vertices, "Vertices iterator")
+        .def_property_readonly("edges", &edges, "Edges iterator");
 
-    class_<Vertices>("PlantGraphVertices", no_init)
-        .add_property(
-            "__len__", +[](const Vertices& s) { return boost::num_vertices(s.graph); })
-        .def("__iter__", range<custodian_this>(&Vertices::begin, &Vertices::end));
+    py::class_<Vertices>(m, "PlantGraphVertices")
+        .def(
+            "__len__", [](const Vertices& s) { return boost::num_vertices(s.graph); })
+        .def("__iter__", [](Vertices& s) {
+            return py::make_iterator(s.begin(), s.end());
+        });
 
-    class_<Edges>("PlantGraphEdges", no_init)
-        .add_property(
+    py::class_<Edges>(m, "PlantGraphEdges")
+        .def(
             "__len__", +[](const Edges& s) { return boost::num_edges(s.graph); })
-        .def("__iter__", range<custodian_this>(&Edges::begin, &Edges::end));
+        .def("__iter__", [](Edges& s) {
+            return py::make_iterator(s.begin(), s.end());
+        });
 
-    class_<Vertex>("Vertex", no_init)
-        .add_property("point", &Vertex::position);
+    py::class_<Vertex>(m, "Vertex")
+        .def_property_readonly("point", &Vertex::position);
 
-    class_<Edge>("Edge", no_init)
-        .add_property("length", &Edge::length);
+    py::class_<Edge>(m, "Edge")
+        .def_property_readonly("length", &Edge::length);
 }

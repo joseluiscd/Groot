@@ -11,27 +11,23 @@ void PythonTask::run_till_completion()
     }
 }
 
-void create_task_module()
+void create_task_module(py::module& m)
 {
-    using namespace boost::python;
 
-    object types = import("types");
-    object module = types.attr("ModuleType");
+    using arg = py::arg;
 
-    object task_mod = module("task", "Namespace for tasks");
-    scope().attr("task") = task_mod;
-    scope tasks(task_mod);
-
-    enum_<TaskMode>("TaskMode")
+    py::enum_<TaskMode>(m, "TaskMode")
         .value("Async", TaskMode::Async)
         .value("Sync", TaskMode::Sync)
         .value("Inline", TaskMode::Inline);
 
-    class_<PythonTask, boost::noncopyable>("Task", init<object, str, TaskMode>((arg("function"), arg("name"), arg("mode") = TaskMode::Sync)))
-        .def("then", &PythonTask::then_python, (arg("task"), arg("TaskMode") = TaskMode::Sync),return_self<>())
+    py::class_<PythonTask>(m, "Task")
+        .def(py::init<py::object, py::str, TaskMode>(), arg("function"), arg("name"), arg("mode") = TaskMode::Sync)
+        .def("then", &PythonTask::then_python,
+            arg("task"),
+            arg("TaskMode") = TaskMode::Sync,
+            py::return_value_policy::reference_internal)
         .def("ready", &PythonTask::ready)
         .def("get", &PythonTask::get)
-        .def("run_till_completion", &PythonTask::run_till_completion)
-        ;
-    
+        .def("run_till_completion", &PythonTask::run_till_completion);
 }

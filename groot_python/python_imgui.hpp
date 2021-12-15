@@ -1,5 +1,4 @@
 #pragma once
-#include <boost/python.hpp>
+#include <pybind11/pybind11.h>
 
-
-void create_imgui_module();
+void create_imgui_module(pybind11::module_& m);

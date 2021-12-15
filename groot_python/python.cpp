@@ -8,44 +8,36 @@
 #include "groot/cgal.hpp"
 #include "groot/cloud.hpp"
 #include <boost/core/noncopyable.hpp>
-#include <boost/python/list.hpp>
-#include <boost/python/numpy.hpp>
-#include <boost/python/numpy/dtype.hpp>
-#include <boost/python/numpy/ndarray.hpp>
-#include <boost/python/return_value_policy.hpp>
-#include <boost/python/tuple.hpp>
 #include <entt/meta/pointer.hpp>
 #include <functional>
 #include <groot_app/entt.hpp>
 #include <groot_app/open_workspace.hpp>
 #include <groot_app/save_workspace.hpp>
 #include <groot_graph/plant_graph_compare.hpp>
+#include <pybind11/numpy.h>
 
 using namespace entt::literals;
 
 constexpr const entt::id_type convert_to_python = "convert_to_python"_hs;
 constexpr const entt::id_type convert_from_python = "convert_from_python"_hs;
 
-#define RETURN_NONE_IF_NOT(EXPR) if(!static_cast<bool>(EXPR)) { Py_RETURN_NONE; }
-#define RETURN_NULL_IF_NOT(EXPR) if(!static_cast<bool>(EXPR)) { return nullptr; }
+#define RETURN_NONE_IF_NOT(EXPR)    \
+    if (!static_cast<bool>(EXPR)) { \
+        return py::none();             \
+    }
+#define RETURN_NULL_IF_NOT(EXPR)    \
+    if (!static_cast<bool>(EXPR)) { \
+        return nullptr;             \
+    }
 
+namespace pybind11::detail {
+}
+
+/*
 struct dynamic_to_python {
     static PyObject* convert(const DynamicComponent& component)
     {
-        auto function = entt::resolve(component.first).func(convert_to_python);
-        RETURN_NONE_IF_NOT((bool)function);
-        RETURN_NONE_IF_NOT(function.arity() == 1);
-        RETURN_NONE_IF_NOT(function.is_static());
-        RETURN_NONE_IF_NOT(function.arg(0) == entt::resolve<void*>());
-        RETURN_NONE_IF_NOT(function.ret() == entt::resolve<boost::python::object>());
 
-        entt::meta_any h(std::in_place_type<void*>, component.second);
-
-        entt::meta_any result_any = function.invoke(entt::meta_handle(), h);
-        RETURN_NONE_IF_NOT(result_any);
-        auto result = result_any.cast<boost::python::object>();
-
-        return boost::python::incref(result.ptr());
     }
 };
 
@@ -93,146 +85,154 @@ struct dynamic_from_python {
 
         storage = new DynamicComponent(info, object);
     }
-};
+};*/
 
-boost::python::numpy::ndarray create_numpy_array(std::vector<groot::Point_3>& v)
+template <typename Component>
+py::object component_to_python(Component& c, py::object parent)
 {
-    return boost::python::numpy::from_data(v.data(),
-        boost::python::numpy::dtype::get_builtin<float>(),
-        boost::python::make_tuple(v.size(), 3),
-        boost::python::make_tuple(3 * sizeof(float), sizeof(float)),
-        boost::python::object());
-}
-
-boost::python::numpy::ndarray create_numpy_array(std::vector<groot::Vector_3>& v)
-{
-    return boost::python::numpy::from_data(v.data(),
-        boost::python::numpy::dtype::get_builtin<float>(),
-        boost::python::make_tuple(v.size(), 3),
-        boost::python::make_tuple(3 * sizeof(float), sizeof(float)),
-        boost::python::object());
-}
-
-template <typename Object, typename T, size_t count>
-boost::python::numpy::ndarray create_numpy_array(Object& v)
-{
-    return boost::python::numpy::from_data(&v,
-        boost::python::numpy::dtype::get_builtin<T>(),
-        boost::python::make_tuple(count),
-        boost::python::make_tuple(sizeof(T)),
-        boost::python::object());
+    return py::cast(c, py::return_value_policy::reference_internal, parent);
 }
 
 template <typename Component>
-boost::python::object convert_to_python_impl(void* c)
+Component& component_from_python(py::object& o)
 {
-    return boost::python::object((Component*)c);
+    return py::cast<Component&>(o);
 }
 
 template <typename Component>
-DynamicComponent get_from_python_impl(boost::python::object o)
+Component& from_raw_ptr(void* ptr)
 {
-    return DynamicComponent(entt::type_id<Component>(), (void*) boost::python::extract<Component*>(o));
+    return static_cast<Component&>(ptr);
+}
+
+py::object any_to_python(entt::meta_any component)
+{
+    RETURN_NONE_IF_NOT(component.type());
+
+    auto function = component.type().func(convert_to_python);
+    RETURN_NONE_IF_NOT((bool)function);
+    RETURN_NONE_IF_NOT(function.arity() == 0);
+    RETURN_NONE_IF_NOT(!function.is_static());
+    RETURN_NONE_IF_NOT(function.ret() == entt::resolve<py::object>());
+
+    entt::meta_any result_any = function.invoke(component);
+    RETURN_NONE_IF_NOT(result_any);
+    RETURN_NONE_IF_NOT(result_any.allow_cast<py::object>());
+
+    return result_any.cast<py::object>();
+}
+
+py::object void_ptr_to_python(void* t, const entt::type_info& type)
+{
+    entt::meta_type meta_type = entt::resolve(type);
+    RETURN_NONE_IF_NOT(meta_type);
+
+    entt::meta_any ref = meta_type.construct(t);
+    RETURN_NONE_IF_NOT(ref);
+
+    return any_to_python(ref);
 }
 
 template <typename Component>
-void declare_python_component(boost::python::scope& scope, const std::string_view& name)
+void declare_python_component(py::module_& m, const std::string_view& name)
 {
-
     entt::meta<Component>()
         .type()
-        .template func<get_from_python_impl<Component>>(convert_from_python)
-        .template func<convert_to_python_impl<Component>, entt::as_ref_t>(convert_to_python);
+        .template ctor<void*>(&from_raw_ptr<Component>)
+        .template func<component_to_python<Component>>(convert_from_python)
+        .template func<component_from_python<Component>, entt::as_ref_t>(convert_to_python);
 
-    scope.attr(name.data()) = entt::type_id<Component>();
+    m.add_object(name.data(), entt::type_id<Component>());
 }
 
-BOOST_PYTHON_MODULE(pygroot)
+py::buffer_info create_buffer_info(std::vector<groot::Vector_3>& points)
 {
-    using namespace boost::python;
-    namespace np = boost::python::numpy;
+    return py::buffer_info(
+        (void*)points.data(),
+        sizeof(float),
+        py::format_descriptor<float>::format(),
+        2,
+        (unsigned long[2]) { points.size(), 3 },
+        (unsigned long[2]) { sizeof(float) * 3, sizeof(float) });
+}
 
-    np::initialize();
-    object builtins = import("builtins");
+py::buffer_info create_buffer_info(std::vector<groot::Point_3>& points)
+{
+    return py::buffer_info(
+        (void*)points.data(),
+        sizeof(float),
+        py::format_descriptor<float>::format(),
+        2,
+        (unsigned long[2]) { points.size(), 3 },
+        (unsigned long[2]) { sizeof(float) * 3, sizeof(float) });
+}
+
+PYBIND11_MODULE(pygroot, m)
+{
+    /*object builtins = import("builtins");
     object types = import("types");
     object module = types.attr("ModuleType");
+    */
 
-    to_python_converter<DynamicComponent, dynamic_to_python, false>();
+    // to_python_converter<DynamicComponent, dynamic_to_python, false>();
 
     // meta_any_from_python();
 
-    class_<entt::type_info>("TypeInfo", no_init)
+    py::class_<entt::type_info>(m, "TypeInfo")
         .def("name", &entt::type_info::name)
         .def("id", &entt::type_info::index)
         .def("hash", &entt::type_info::hash);
 
     {
-        object components_mod = module("components", "Namespace for all component types");
-        scope().attr("components") = components_mod;
-        scope components(components_mod);
+        py::module_ components = m.def_submodule("components", "Namespace for all component types");
 
+        /*
         declare_python_component<groot::PlantGraph>(components, "PlantGraph");
         declare_python_component<PointNormals>(components, "PointNormals");
         declare_python_component<PointColors>(components, "PointColors");
         declare_python_component<PointCurvature>(components, "PointCurvature");
         declare_python_component<Cylinders>(components, "Cylinders");
+        */
     }
 
-    class_<Name>("Name", no_init)
-        .def_readonly("type_id", entt::type_id<Name>())
-        .add_property(
-            "name", +[](const Name& n) { return n.name; }, +[](Name& n, const std::string& newname) { n.name = newname; })
-        .def(
-            "__str__", +[](Name& n) { return n.name; });
+    py::class_<PointCloud>(m, "PointCloud")
+        //.def_property_readonly("type_id", entt::type_id<PointCloud>())
+        .def_buffer([](PointCloud& c) {
+            return create_buffer_info(c.cloud);
+        });
 
-    class_<PointCloud>("PointCloud", no_init)
-        .def_readonly("type_id", entt::type_id<PointCloud>())
-        .def(
-            "points", +[](PointCloud& c) { return create_numpy_array(c.cloud); });
+    py::class_<PointNormals>(m, "PointNormals")
+        //.def_property_readonly("type_id", entt::type_id<PointNormals>())
+        .def_buffer([](PointNormals& n) {
+            return create_buffer_info(n.normals);
+        });
 
-    class_<PointNormals>("PointNormals", no_init)
-        .def_readonly("type_id", entt::type_id<PointNormals>())
+    py::class_<Cylinders>(m, "Cylinders")
+        //.def_property_readonly("type_id", entt::type_id<Cylinders>())
+        .def("__len__", [](const Cylinders& c) { return c.cylinders.size(); })
         .def(
-            "normals", +[](PointNormals& c) { return create_numpy_array(c.normals); });
+            "__getitem__", [](Cylinders& c, size_t i) -> groot::CylinderWithPoints& { return c.cylinders.at(i); },
+            py::return_value_policy::reference_internal);
 
-    class_<Cylinders>("Cylinders", no_init)
-        .def_readonly("type_id", entt::type_id<Cylinders>())
-        .def(
-            "__len__", +[](const Cylinders& c) { return c.cylinders.size(); })
-        .def(
-            "__getitem__", +[](Cylinders& c, size_t i) -> groot::CylinderWithPoints& { return c.cylinders.at(i); },
-            return_internal_reference<1>());
-
-    class_<groot::CylinderWithPoints>("CylinderWithPoints", no_init)
-        .def_readonly("type_id", entt::type_id<groot::CylinderWithPoints>())
-        .def(
-            "points", +[](groot::CylinderWithPoints& c) {
-                return create_numpy_array(c.points);
-            })
+    py::class_<groot::CylinderWithPoints>(m, "CylinderWithPoints")
+        //.def_property_readonly("type_id", entt::type_id<groot::CylinderWithPoints>())
+        .def_buffer([](groot::CylinderWithPoints& c) {
+            return create_buffer_info(c.points);
+        })
         .def_readwrite("cylinder", &groot::CylinderWithPoints::cylinder);
 
-    class_<groot::Cylinder>("Cylinder", no_init)
-        .def_readonly("type_id", entt::type_id<groot::Cylinder>())
+    py::class_<groot::Cylinder>(m, "Cylinder")
+        //.def_property_readonly("type_id", entt::type_id<groot::Cylinder>())
         .def_readwrite("center", &groot::Cylinder::center)
         .def_readwrite("direction", &groot::Cylinder::direction)
         .def_readwrite("radius", &groot::Cylinder::radius)
         .def_readwrite("middle_height", &groot::Cylinder::middle_height);
 
-    class_<groot::Point_3>("Point_3", init<float, float, float>())
-        .def_readwrite("x", (float groot::Point_3::*)&glm::vec3::x)
-        .def_readwrite("y", (float groot::Point_3::*)&glm::vec3::y)
-        .def_readwrite("z", (float groot::Point_3::*)&glm::vec3::z)
-        .def("as_numpy", &create_numpy_array<groot::Point_3, float, 3>);
+    create_plant_graph_component(m);
+    create_task_module(m);
+    create_entity_type(m);
+    create_registry_type(m);
 
-    class_<groot::Vector_3>("Vector_3", init<float, float, float>())
-        .def_readwrite("x", (float groot::Vector_3::*)&glm::vec3::x)
-        .def_readwrite("y", (float groot::Vector_3::*)&glm::vec3::y)
-        .def_readwrite("z", (float groot::Vector_3::*)&glm::vec3::z)
-        .def("as_numpy", &create_numpy_array<groot::Vector_3, float, 3>);
-
-    create_plant_graph_component();
-    create_imgui_module();
-    create_task_module();
-    create_entity_type();
-    create_registry_type();
+    py::module_ imgui = m.def_submodule("ImGui", "ImGui operations");
+    create_imgui_module(imgui);
 }

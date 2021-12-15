@@ -2,15 +2,16 @@
 #include <groot_app/entt.hpp>
 #include <groot_graph/plant_graph_compare.hpp>
 
-void create_registry_type()
+entt::type_info Registry::type_id = entt::type_id<Registry>();
+
+void create_registry_type(py::module& m)
 {
-    using namespace boost::python;
+    using arg = py::arg;
+    py::module_ builtins = py::module_::import("builtins");
 
-    object builtins = import("builtins");
-
-    class_<Registry, boost::noncopyable>("Registry",
+    py::class_<Registry>(m, "Registry",
         "The registry where all data is stored")
-        .def_readonly("type_id", entt::type_id<Registry>())
+        .def_readonly_static("type_id", &Registry::type_id)
         .def("selected", &Registry::selected)
         .def("entities", &Registry::entities)
         .def("load", &Registry::load)
@@ -21,10 +22,10 @@ void create_registry_type()
         .def("schedule_task", &Registry::schedule_task)
         .def("run_tasks", &Registry::run_tasks)
         .def("run_viewer", &Registry::run_viewer,
-            (arg("init_func") = builtins.attr("id"),
-                arg("update_func") = builtins.attr("id")));
+            arg("init_func") = py::none(),
+            arg("update_func") = py::none());
 
-    def(
+    m.def(
         "compute_cardenas_et_al", +[](Entity e, float radius) {
             auto&& task = async::spawn(sync_scheduler(), [e]() {
                 PointCloud* cloud = require_components<PointCloud>(e.e);
@@ -38,9 +39,9 @@ void create_registry_type()
 
             return new PythonTask { std::move(task), "Cardenas et al." };
         },
-        return_value_policy<manage_new_object>());
+        py::return_value_policy::take_ownership);
 
-    def(
+    m.def(
         "evaluate_difference", +[](Entity e, Entity f, bool create_entity) -> PythonTask* {
             ReleaseGilGuard guard;
 
@@ -57,14 +58,14 @@ void create_registry_type()
                 if (create_entity) {
                     entt::entity e = reg.create();
                     reg.emplace<groot::PlantGraph>(e, std::move(std::get<0>(v)));
-                    return object(boost::python::make_tuple(Entity(reg, e), std::get<1>(v)));
+                    return py::object(py::make_tuple(Entity(reg, e), std::get<1>(v)));
                 } else {
-                    return object(v);
+                    return py::cast(v);
                 }
             });
 
             return new PythonTask { std::move(task), "Evaluate difference. Returns value if create_entity == False. Returns (entity, value) if create_entity == True" };
         },
-        (arg("entity1"), arg("entity2"), arg("create_entity") = false), return_value_policy<manage_new_object>());
-
+        arg("entity1"), arg("entity2"), arg("create_entity") = false,
+        py::return_value_policy::take_ownership);
 }

@@ -16,7 +16,7 @@
 #include <groot_app/graph_io.hpp>
 #include <groot_app/graph_resample.hpp>
 
-void create_entity_type();
+void create_entity_type(py::module_& m);
 
 struct AnyComponent {
 };
@@ -41,6 +41,8 @@ Result run_task(async::task<Result>&& task)
 
 class Entity {
 public:
+    static entt::type_info type_id;
+
     Entity(entt::registry& _reg, entt::entity _e)
         : e(_reg, _e)
     {
@@ -73,23 +75,24 @@ public:
         e.remove<Component>();
     }
 
-    boost::python::object get_component_runtime(const entt::type_info& type)
+    py::object get_component_runtime(const entt::type_info& type)
     {
         AcquireGilGuard guard;
 
         auto& storage = e.registry()->storage<AnyComponent>(type.hash());
         if (!storage.contains(e)) {
-            return boost::python::object();
+            return py::none();
         }
+        void* component = storage.get(e);
 
-        return boost::python::object(DynamicComponent(type, storage.get(e)));
+        return void_ptr_to_python(component, type);
     }
 
-    void set_component_runtime(const entt::type_info& type, boost::python::object component)
+    void set_component_runtime(const entt::type_info& type, py::object component)
     {
         auto& storage = e.registry()->storage<entt::meta_any>(type.hash());
 
-        entt::meta_any constructed = entt::resolve(type).construct(component);
+        entt::meta_any constructed = entt::resolve(type).construct(component.ptr());
         assert((bool)constructed);
 
         if (storage.contains(e.entity())) {
@@ -207,7 +210,7 @@ public:
         cmd.run(*e.registry());
     }
 
-    boost::python::list split_cloud(float voxel_size)
+    py::list split_cloud(float voxel_size)
     {
         ReleaseGilGuard guard;
 
@@ -218,7 +221,7 @@ public:
         {
             AcquireGilGuard gil;
 
-            boost::python::list result;
+            py::list result;
             for (auto i : cmd.result) {
                 result.append(Entity(i));
             }
