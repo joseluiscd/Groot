@@ -81,18 +81,28 @@ void deinit(entt::registry& registry)
 #include <GLFW/glfw3.h>
 void python()
 {
-    static bool snake_mode = true;
+    static bool snake_mode = false;
     static bool pre_snake_mode = false;
-    static bool a = rand() % 2;
-    static bool b = rand() % 2;
-    static bool c = rand() % 2;
-    static bool d = rand() % 2;
-    static bool e = rand() % 2;
-    static bool f = rand() % 2;
-    static bool g = rand() % 2;
-    static bool h = rand() % 2;
-    static bool i = rand() % 2;
-    static bool j = rand() % 2;
+
+    static bool a = true;
+    static bool b = false;
+    static bool c = false;
+    static bool d = true;
+    static bool e = false;
+    static bool f = true;
+    static bool g = true;
+    static bool h = true;
+    static bool i = false;
+    static bool j = true;
+
+    static glm::ivec2 food { 5, 5 };
+    static glm::ivec2 snake[SNAKE_MAP_SIZE * SNAKE_MAP_SIZE] = { { 2, 2 }, { 3, 2 }, { 4, 2 }, { 5, 2 } };
+    static int head = 3;
+    static int tail = 0;
+    static size_t framerate = 6;
+    static glm::ivec2 direction = { 1, 0 };
+    static const int tile_size { 16 };
+    static bool lost = false;
 
     ImGuiIO& io = ImGui::GetIO();
 
@@ -102,13 +112,13 @@ void python()
 
     if (pre_snake_mode) {
         ImGui::Begin("Activate python mode", &pre_snake_mode);
-        ImGui::Checkbox("Enable Checkbox automatic operations", &d);
+        ImGui::Checkbox("Enable Graphics advanced pipeline", &d);
         ImGui::Checkbox("Enable Semantic segmentation", &e);
         ImGui::Checkbox("Enable Tree clustering", &f);
-        ImGui::Checkbox("Enable Ground detection", &b);
+        ImGui::Checkbox("Enable Ground point removal", &b);
         ImGui::Checkbox("Enable Python bindings", &a);
-        ImGui::Checkbox("Enable GEU interoperability", &g);
-        ImGui::Checkbox("Enable Olive tree special mode", &h);
+        ImGui::Checkbox("Enable GEU compatibility layer", &g);
+        ImGui::Checkbox("Enable Olive tree mode", &h);
         ImGui::Checkbox("Enable Point cloud normalization", &i);
         ImGui::Checkbox("Enable Fruit detection", &c);
         ImGui::Checkbox("Enable Interface for experimental applications", &j);
@@ -127,18 +137,20 @@ void python()
             h = rand() % 2;
             i = rand() % 2;
             j = rand() % 2;
+
+            lost = false;
+            head = 3;
+            tail = 0;
+            direction = { 1, 0 };
+            snake[0] = { 2, 2 };
+            snake[1] = { 3, 2 };
+            snake[2] = { 4, 2 };
+            snake[3] = { 5, 2 };
         }
     }
     if (!snake_mode) {
         return;
     }
-
-    static glm::ivec2 food_position { rand() % SNAKE_MAP_SIZE, rand() % SNAKE_MAP_SIZE };
-    static std::list<glm::ivec2> snake { { 5, 2 }, { 4, 2 }, { 3, 2 }, { 2, 2 } };
-    static size_t framerate = 6;
-    static glm::ivec2 direction = { 1, 0 };
-    static const int tile_size { 16 };
-    static bool lost = false;
 
     int lr = (direction.x == 0) * (int(ImGui::IsKeyPressed(GLFW_KEY_RIGHT, false)) - int(ImGui::IsKeyPressed(GLFW_KEY_LEFT, false)));
     int ud = (direction.y == 0) * (int(ImGui::IsKeyPressed(GLFW_KEY_DOWN, false)) - int(ImGui::IsKeyPressed(GLFW_KEY_UP, false)));
@@ -150,42 +162,57 @@ void python()
     direction.y = int(0 < direction.y) - int(direction.y < 0);
 
     if (ImGui::GetFrameCount() % framerate == 0 && !lost) {
-        glm::ivec2 head = snake.front();
-
-        glm::ivec2 new_head = head + direction;
+        glm::ivec2 new_head = snake[head] + direction;
 
         new_head.x = (new_head.x + SNAKE_MAP_SIZE) % SNAKE_MAP_SIZE;
         new_head.y = (new_head.y + SNAKE_MAP_SIZE) % SNAKE_MAP_SIZE;
 
-        if (new_head == food_position) {
-            food_position = { rand() % SNAKE_MAP_SIZE, rand() % SNAKE_MAP_SIZE };
-        } else if (std::find(snake.begin(), snake.end(), new_head) != snake.end()) {
-            lost = true;
+        if (new_head == food) {
+            food = { rand() % SNAKE_MAP_SIZE, rand() % SNAKE_MAP_SIZE };
         } else {
-            snake.pop_back();
+            tail = (tail + 1) % (SNAKE_MAP_SIZE * SNAKE_MAP_SIZE);
         }
-        snake.push_front(new_head);
+        head = (head + 1) % (SNAKE_MAP_SIZE * SNAKE_MAP_SIZE);
+        snake[head] = new_head;
     }
 
-    if(ImGui::Begin("Python Snake", &snake_mode, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking)) {
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (ImGui::Begin("Python Snake", &snake_mode, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking)) {
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
         ImVec2 cursor = window->DC.CursorPos;
         const ImRect rect { { cursor.x, cursor.y }, { cursor.x + tile_size * SNAKE_MAP_SIZE, cursor.y + tile_size * SNAKE_MAP_SIZE } };
         ImGui::ItemSize(rect);
         ImGui::ItemAdd(rect, window->GetID("snake_map"));
 
-        for (auto it = snake.begin(); it != snake.end(); ++it) {
-            int x = it->x;
-            int y = it->y;
+        glm::ivec2& snake_head_pos = snake[head];
+        for (int it = tail; it != head; it = (it + 1) % (SNAKE_MAP_SIZE * SNAKE_MAP_SIZE)) {
+            glm::ivec2& pos = snake[it];
+            int x = pos.x;
+            int y = pos.y;
+
+            lost = lost || (snake_head_pos == pos);
 
             ImVec2 pos_min { cursor.x + x * tile_size, cursor.y + y * tile_size };
-            ImVec2 pos_max { cursor.x + (x + 1) * tile_size, cursor.y + (y + 1) * tile_size };
+            ImVec2 pos_max { pos_min.x + tile_size, pos_min.y + tile_size };
 
             window->DrawList->AddRectFilled(pos_min, pos_max, ImGui::GetColorU32(ImGuiCol_Button), 4.0, 0);
         }
+        ImVec2 pos_min { cursor.x + snake_head_pos.x * tile_size, cursor.y + snake_head_pos.y * tile_size };
+        ImVec2 pos_max { pos_min.x + tile_size, pos_min.y + tile_size };
+        window->DrawList->AddRectFilled(pos_min, pos_max, ImGui::GetColorU32(ImGuiCol_Button), 4.0, 0);
 
-        ImVec2 food_center { cursor.x + (0.5f + food_position.x) * tile_size, cursor.y + (0.5f + food_position.y) * tile_size };
+        ImVec2 food_center { cursor.x + (0.5f + food.x) * tile_size, cursor.y + (0.5f + food.y) * tile_size };
         window->DrawList->AddCircleFilled(food_center, tile_size / 2.0f, ImGui::GetColorU32(ImGuiCol_ButtonActive));
+
+        if (ImGui::Button("Restart")) {
+            lost = false;
+            head = 3;
+            tail = 0;
+            direction = { 1, 0 };
+            snake[0] = { 2, 2 };
+            snake[1] = { 3, 2 };
+            snake[2] = { 4, 2 };
+            snake[3] = { 5, 2 };
+        }
     }
     ImGui::End();
 }
