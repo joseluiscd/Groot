@@ -38,7 +38,7 @@ void ApplicationProperties::draw_window(bool* open)
 }
 
 namespace viewer_system{
-void snake();
+void python();
 }
 
 Application::Application(entt::registry& _reg)
@@ -156,7 +156,7 @@ void Application::draw_gui()
         return entt::handle(registry, this->get_selected_entity());
     };
 
-    viewer_system::snake();
+    viewer_system::python();
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
