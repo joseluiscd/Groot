@@ -90,6 +90,11 @@ Component& component_from_python(py::object& o)
     return py::cast<Component&>(o);
 }
 
+template<>
+struct entt::is_equality_comparable<py::object> {
+    static constexpr const bool value = false;
+};
+
 py::object any_to_python(py::object parent, void* component, const entt::type_info& type)
 {
     entt::meta_type meta_type = entt::resolve(type);
