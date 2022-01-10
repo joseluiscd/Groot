@@ -1,16 +1,15 @@
-#include <groot_app/graph_viewer_system.hpp>
-#include <groot_app/components.hpp>
-#include <groot_app/entity_editor.hpp>
-#include "entt/entity/fwd.hpp"
-#include <groot_app/render.hpp>
-#include <groot_app/resources.hpp>
-#include <boost/graph/detail/adjacency_list.hpp>
 #include <gfx/buffer.hpp>
 #include <gfx/debug_draw.hpp>
+#include <gfx/glad.h>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <groot_app/components.hpp>
+#include <groot_app/entity_editor.hpp>
+#include <groot_app/graph_viewer_system.hpp>
+#include <groot_app/render.hpp>
+#include <groot_app/resources.hpp>
 #include <groot_graph/plant_graph.hpp>
 
 namespace graph_viewer_system {
@@ -24,6 +23,8 @@ struct GraphViewerComponent {
     bool show_points = true;
     bool show_lines = true;
     bool show_ids = false;
+
+    float line_width = 1.0f;
 
     gfx::VertexArray point_vao;
     gfx::VertexArray line_vao;
@@ -129,8 +130,8 @@ void init(entt::registry& registry)
             .update<groot::PlantGraph>());
 
     registry
-            .on_destroy<groot::PlantGraph>()
-            .connect<&entt::registry::remove<GraphViewerComponent>>();
+        .on_destroy<groot::PlantGraph>()
+        .connect<&entt::registry::remove<GraphViewerComponent>>();
 
     auto& entity_editor = registry.ctx<EntityEditor>();
     entity_editor.registerComponent<GraphViewerComponent>("Plant Graph View", true);
@@ -151,7 +152,7 @@ void run(entt::registry& registry)
     glm::mat4 view_proj_matrix = view_data.camera->get_matrix();
 
     data.update_graph.each([&registry](entt::entity entity) {
-        if (! registry.all_of<GraphViewerComponent>(entity)) {
+        if (!registry.all_of<GraphViewerComponent>(entity)) {
             registry.emplace<GraphViewerComponent>(entity);
         }
         update_viewer_component(registry, entity);
@@ -167,7 +168,7 @@ void run(entt::registry& registry)
         glm::vec3 root;
         if (graph.m_property->root_index >= boost::num_vertices(graph)) {
             root = glm::vec3(+INFINITY, +INFINITY, +INFINITY);
-        } else  {
+        } else {
             root = *reinterpret_cast<glm::vec3*>(&graph[graph.m_property->root_index].position);
         }
 
@@ -187,6 +188,7 @@ void run(entt::registry& registry)
         if (graph_view.show_lines) {
             pipe
                 .bind(graph_view.color_line)
+                .raw_render([&graph_view]() { glLineWidth(graph_view.line_width); })
                 .draw(graph_view.line_vao);
         }
         pipe.end_pipeline();
@@ -254,6 +256,7 @@ void ComponentEditorWidget<graph_viewer_system::GraphViewerComponent>(entt::regi
     ImGui::Checkbox("Show edges", &t.show_lines);
     if (t.show_lines) {
         ImGui::ColorEdit3("Line color", glm::value_ptr(*t.color_line));
+        ImGui::DragFloat("Line Width", &t.line_width, 0.05, INFINITY);
     }
 
     ImGui::Checkbox("Show vertex IDs", &t.show_ids);
