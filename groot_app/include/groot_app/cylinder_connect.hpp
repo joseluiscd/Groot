@@ -6,7 +6,7 @@
 #include <groot_app/components.hpp>
 
 
-class GROOT_API CylinderConnection : public CommandGui {
+class GROOT_APP_API CylinderConnection : public CommandGui {
 public:
     CylinderConnection(entt::handle&& handle);
     CylinderConnection(entt::registry& _reg)

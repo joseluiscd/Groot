@@ -41,15 +41,20 @@ namespace viewer_system{
 void python();
 }
 
+gfx::InitOptions get_options()
+{
+    gfx::InitOptions options;
+    options.title = "Groot Graph Viewer";
+    options.maximized = true;
+    options.resizable = true;
+    options.imgui = true;
+    options.debug_draw = true;
+    options.debug_context = true;
+    return options;
+};
+
 Application::Application(entt::registry& _reg)
-    : gui_app(gfx::InitOptions {
-        .title = "Groot Graph Viewer",
-        .maximized = true,
-        .resizable = true,
-        .imgui = true,
-        .debug_draw = true,
-        .debug_context = true,
-    })
+    : gui_app(get_options())
     , registry(_reg)
     , app_log(new AppLog)
 {

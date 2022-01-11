@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <gfx/imgui/imfilebrowser.h>
 
-class GROOT_API SaveWorkspace : public CommandGui {
+class GROOT_APP_API SaveWorkspace : public CommandGui {
 public:
     SaveWorkspace(entt::registry& reg);
     CommandState execute() override;

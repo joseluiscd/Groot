@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <groot_app/cylinder_marching.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/render.hpp>

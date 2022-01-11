@@ -11,6 +11,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_INLINES_HIDDEN ON)
+set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
@@ -19,12 +21,12 @@ set(CMAKE_MODULE_PATH
 include(GNUInstallDirs)
 
 find_package(glfw3 3.3 REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Development)
 find_package(Boost 1.75 REQUIRED COMPONENTS graph)
 find_package(TBB REQUIRED)
 find_package(glm REQUIRED)
 find_package(spdlog 1.5 REQUIRED)
 find_package(Eigen3 REQUIRED 3.3)
-find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
 find_package(CGAL 5.3 REQUIRED)
 
 
@@ -75,7 +77,7 @@ target_include_directories(groot_base
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>/include
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_compile_definitions(groot_base PUBLIC GROOT_DLL PRIVATE GROOT_EXPORTS_DLL)
+target_compile_definitions(groot_base PUBLIC GROOT_DLL PRIVATE GROOT_DLL_EXPORTS)
 set_target_properties(groot_base PROPERTIES CXX_VISIBILITY_PRESET hidden)
 set_target_properties(groot_base PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 

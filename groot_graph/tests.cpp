@@ -8,10 +8,10 @@
 TEST_CASE("cylinder inclusion test")
 {
     groot::Cylinder c1 = {
-        .center = groot::Point_3(0.0, 0.0, 0.0),
-        .direction = groot::Vector_3(1.0, 0.0, 0.0),
-        .radius = 0.5,
-        .middle_height = 0.5,
+        groot::Point_3(0.0, 0.0, 0.0),
+        groot::Vector_3(1.0, 0.0, 0.0),
+        0.5,
+        0.5,
     };
     //Points in the cylinder
     groot::Point_3 p1(0.0, 0.0, 0.0);

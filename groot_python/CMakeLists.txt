@@ -8,20 +8,14 @@ add_library(pygroot_lib
 
     ${SOURCES}
 )
-target_compile_definitions(pygroot_lib
-    PUBLIC
-    GROOT_DLL
 
-    PRIVATE
-    GROOT_EXPORTS_DLL
-)
 target_link_libraries(pygroot_lib
     PUBLIC
     groot_base
     groot_graph
     groot_app
    
-    pybind11::module
+    pybind11::pybind11
 )
 target_include_directories(pygroot_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(pygroot_lib PROPERTIES CXX_VISIBILITY_PRESET hidden)

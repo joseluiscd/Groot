@@ -1,6 +1,10 @@
 #include <entity.hpp>
 #include <registry.hpp>
 
+extern "C" {
+extern PyObject* PyInit_pygroot();
+}
+
 int main(int argc, char**argv)
 {
     PyImport_AppendInittab("pygroot", PyInit_pygroot);

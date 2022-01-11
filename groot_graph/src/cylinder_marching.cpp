@@ -11,10 +11,10 @@
 #include <groot/cloud.hpp>
 #include <groot_graph/cylinder_marching.hpp>
 #include <iterator>
+#include <shared_mutex>
 #include <spdlog/spdlog.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_for_each.h>
-#include <spdlog/spdlog.h>
 
 namespace groot {
 
@@ -112,7 +112,7 @@ void CurvatureCylinder::create_shape(const std::vector<size_t>& indices)
     cylinder.center = point(indices[0]) - cylinder.radius * n;
     cylinder.middle_height = 0.5;
 }
- 
+
 void CurvatureCylinder::squared_distance(const std::vector<size_t>& indices, std::vector<float>& distances) const
 {
     for (size_t i = 0; i < indices.size(); i++) {
@@ -277,7 +277,7 @@ void compute_differential_quantities(cgal::Point_3* cloud, Curvature* q_out, siz
 
     tbb::parallel_for((size_t)0, count, [&](size_t i) {
         KNeighbour knn(kdtree, cloud[i], k);
-        std::vector<cgal::Point_3> nn(k+1);
+        std::vector<cgal::Point_3> nn(k + 1);
         nn[0] = cloud[i];
 
         Monge_via_jet_fitting monge_fitting;

@@ -1,8 +1,15 @@
 #pragma once
 
 #include <groot/groot.hpp>
-#include <groot/aabb.hpp>
 #include <vector>
+#include <glm/glm.hpp>
+
+struct AABB {
+    glm::vec3 min;
+    glm::vec3 max;
+
+    //bool ray_cast(const AGRay3D &r, AGVector3D *result = 0);
+};
 
 template <typename T>
 class GROOT_API Grid {

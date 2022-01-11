@@ -1,6 +1,6 @@
 #pragma once
 
-#include <groot/groot.hpp>
+#include <groot_app/groot_app.hpp>
 #include "gfx/imgui/imgui.h"
 #include <groot_app/entt.hpp>
 #include <gfx/camera.hpp>
@@ -50,7 +50,7 @@ constexpr const gfx::VertexArray::Layout cylinder_layout = {
     gfx::attrib<float>(Attribs::Height)
 };
 
-struct GROOT_LOCAL RenderData {
+struct GROOT_APP_LOCAL RenderData {
     gfx::Framebuffer framebuffer;
     std::unique_ptr<gfx::CameraRig> camera;
     std::unique_ptr<gfx::PerspectiveCameraLens> lens;
@@ -62,7 +62,7 @@ struct GROOT_LOCAL RenderData {
     RenderData& operator=(const RenderData&) = delete;
 };
 
-struct GROOT_LOCAL TextRenderDrawList {
+struct GROOT_APP_LOCAL TextRenderDrawList {
     std::string text_buffer;
     std::vector<glm::vec2> positions;
     std::vector<size_t> begin;
@@ -71,7 +71,7 @@ struct GROOT_LOCAL TextRenderDrawList {
     void dump_to_draw_list(ImDrawList* list, glm::vec2 offset = { 0, 0 }, glm::vec2 size = { 1, 1 });
 };
 
-class GROOT_LOCAL ShaderCollection {
+class GROOT_APP_LOCAL ShaderCollection {
 public:
     ShaderCollection();
     static void init(entt::registry& reg);

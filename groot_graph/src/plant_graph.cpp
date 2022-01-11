@@ -1,7 +1,5 @@
 #include <CGAL/Delaunay_triangulation_3.h>
 #include <CGAL/Fuzzy_sphere.h>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/copy.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>

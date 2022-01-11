@@ -9,10 +9,10 @@
 #include <groot/cgal.hpp>
 #include <optional>
 
-GROOT_API async::task<entt::entity> import_ply_command(entt::registry& reg, const std::string_view& file);
-GROOT_API async::task<void> export_ply_command(entt::handle e, const std::string_view& file);
+GROOT_APP_API async::task<entt::entity> import_ply_command(entt::registry& reg, const std::string_view& file);
+GROOT_APP_API async::task<void> export_ply_command(entt::handle e, const std::string_view& file);
 
-class GROOT_LOCAL ImportPLYGui : public Gui {
+class GROOT_APP_LOCAL ImportPLYGui : public Gui {
 public:
     ImportPLYGui();
     void schedule_commands(entt::registry& reg) override;
@@ -23,7 +23,7 @@ private:
     std::string input_file;
 };
 
-class GROOT_LOCAL ExportPLYGui : public Gui {
+class GROOT_APP_LOCAL ExportPLYGui : public Gui {
 public:
     ExportPLYGui(entt::handle h);
 

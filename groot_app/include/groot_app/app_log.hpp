@@ -1,12 +1,12 @@
 #pragma once
 
-#include <groot/groot.hpp>
+#include <groot_app/groot_app.hpp>
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
 #include <gfx/imgui/imgui.h>
 
 /// Modified AppLog from ImGui
-struct GROOT_LOCAL AppLog : public spdlog::sinks::base_sink<std::mutex> {
+struct GROOT_APP_LOCAL AppLog : public spdlog::sinks::base_sink<std::mutex> {
     AppLog()
     {
     }

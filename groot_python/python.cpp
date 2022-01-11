@@ -132,8 +132,8 @@ py::buffer_info create_buffer_info(std::vector<groot::Vector_3>& points)
         sizeof(float),
         py::format_descriptor<float>::format(),
         2,
-        (unsigned long[2]) { points.size(), 3 },
-        (unsigned long[2]) { sizeof(float) * 3, sizeof(float) });
+        py::array::ShapeContainer({points.size(), (size_t)3}),
+        py::array::ShapeContainer({ sizeof(float) * 3, sizeof(float) }));
 }
 
 py::buffer_info create_buffer_info(std::vector<groot::Point_3>& points)
@@ -143,8 +143,8 @@ py::buffer_info create_buffer_info(std::vector<groot::Point_3>& points)
         sizeof(float),
         py::format_descriptor<float>::format(),
         2,
-        (unsigned long[2]) { points.size(), 3 },
-        (unsigned long[2]) { sizeof(float) * 3, sizeof(float) });
+        py::array::ShapeContainer({points.size(), (size_t)3}),
+        py::array::ShapeContainer({ sizeof(float) * 3, sizeof(float) }));
 }
 
 PYBIND11_MODULE(pygroot, m)

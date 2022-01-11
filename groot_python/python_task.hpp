@@ -20,7 +20,7 @@ inline auto call_f(py::object f)
     };
 }
 
-class GROOT_API PythonTask : public async::task<py::object> {
+class PythonTask : public async::task<py::object> {
 public:
     PythonTask(async::task<py::object>&& _t, py::str _name)
         : async::task<py::object>(std::move(_t))

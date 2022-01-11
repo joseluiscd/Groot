@@ -103,11 +103,11 @@ CommandState CreateGraph::execute()
     switch (selected_method) {
     case kKnn:
         spdlog::info("Running knn search...");
-        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { .k = (int)k, .radius = (float)radius, .search = groot::SearchType::kKnnSearch });
+        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { (int)k, (float)radius, groot::SearchType::kKnnSearch });
         break;
     case kRadius:
         spdlog::info("Running radius search...");
-        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { .k = (int)k, .radius = (float)radius, .search = groot::SearchType::kRadiusSearch });
+        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { (int)k, (float)radius, groot::SearchType::kRadiusSearch });
         break;
     case kDelaunay:
         spdlog::info("Building 3D Delaunay...");

@@ -1,14 +1,14 @@
 #pragma once
 
-#include <groot/groot.hpp>
+#include <groot_graph/groot_graph.hpp>
 #include <cereal/cereal.hpp>
 #include <groot_graph/plant_graph.hpp>
 #include <groot_graph/cylinder_marching.hpp>
 
 namespace groot {
 
-GROOT_API void write_to_file(const PlantGraph& g, std::ostream& output);
-GROOT_API PlantGraph read_from_file(std::istream& input);
+GROOT_GRAPH_API void write_to_file(const PlantGraph& g, std::ostream& output);
+GROOT_GRAPH_API PlantGraph read_from_file(std::istream& input);
 
 template <class Archive>
 void serialize(Archive& ar, VertexProperties& props)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <groot/groot.hpp>
+#include <groot_app/groot_app.hpp>
 #include <groot_app/command.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -22,19 +22,19 @@ enum class GuiResult {
     RunAndKeepOpen,
 };
 
-class GROOT_LOCAL CommandGui : public Command {
+class GROOT_APP_LOCAL CommandGui : public Command {
 public:
     virtual GuiState draw_gui() = 0;
 };
 
-class GROOT_LOCAL Gui {
+class GROOT_APP_LOCAL Gui {
 public:
     virtual void schedule_commands(entt::registry& reg) = 0;
     virtual GuiResult draw_gui() = 0;
     virtual ~Gui() { }
 };
 
-class GROOT_API DialogGui : public Gui {
+class GROOT_APP_API DialogGui : public Gui {
 public:
     virtual ~DialogGui() { }
     virtual GuiResult draw_gui() override;
@@ -42,7 +42,7 @@ public:
     virtual std::string_view name() const = 0;
 };
 
-class GROOT_API GuiAdapter : public Gui {
+class GROOT_APP_API GuiAdapter : public Gui {
 public:
     template <typename CmdGui>
     GuiAdapter(CmdGui* _gui)

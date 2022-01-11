@@ -1,15 +1,15 @@
 #pragma once
 
-#include <groot/groot.hpp>
+#include <groot_app/groot_app.hpp>
 #include <async++.h>
 #include <groot_app/entt.hpp>
 
-GROOT_API async::threadpool_scheduler& async_scheduler();
-GROOT_API async::fifo_scheduler& sync_scheduler();
+GROOT_APP_API async::threadpool_scheduler& async_scheduler();
+GROOT_APP_API async::fifo_scheduler& sync_scheduler();
 
 inline void discard() { }
 
-class GROOT_LOCAL TaskBroker {
+class GROOT_APP_LOCAL TaskBroker {
 public:
     TaskBroker()
         : tasks()

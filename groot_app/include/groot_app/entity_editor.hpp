@@ -6,10 +6,10 @@
 #include <set>
 #include <string>
 
+#include <gfx/imgui/imgui.h>
 #include <groot/assert.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/entt.hpp>
-#include <gfx/imgui/imgui.h>
 
 namespace MM {
 
@@ -21,20 +21,20 @@ inline void EntityWidget(EntityType& e, RegistryType& reg, bool dropTarget = fal
     ImGui::PushID(static_cast<int>(entt::to_integral(e)));
 
     if (reg.valid(e)) {
-		const char * name;
-		char namebuff[32];
-		auto& selected = reg.template ctx<SelectedEntity>().selected;
+        const char* name;
+        char namebuff[32];
+        auto& selected = reg.template ctx<SelectedEntity>().selected;
         bool visible = reg.template all_of<Visible>(e);
 
         if (reg.template all_of<Name>(e)) {
-			name = reg.template get<Name>(e).name.c_str();
+            name = reg.template get<Name>(e).name.c_str();
         } else {
-			sprintf(namebuff, "Entity %x", entt::to_integral(e));
-			name = namebuff;
+            snprintf(namebuff, 32, "Entity %x\0", entt::to_integral(e));
+            name = namebuff;
         }
 
         ImGui::PushID("###Checkbox");
-        ImGui::PushID((void*) e);
+        ImGui::PushID((void*)e);
         if (ImGui::Checkbox("###CB", &visible)) {
             if (visible) {
                 reg.template emplace<Visible>(e);
@@ -46,9 +46,9 @@ inline void EntityWidget(EntityType& e, RegistryType& reg, bool dropTarget = fal
         ImGui::PopID();
 
         ImGui::SameLine();
-		if (ImGui::Selectable(name, selected == e)){
-			selected = e;
-		}
+        if (ImGui::Selectable(name, selected == e)) {
+            selected = e;
+        }
 
     } else {
         ImGui::Text("Invalid Entity");
@@ -113,8 +113,7 @@ public:
             widget,
             ComponentAddAction<Component>,
             ComponentRemoveAction<Component>,
-            alt_color
-        });
+            alt_color });
     }
 
     template <class Component>
@@ -124,7 +123,6 @@ public:
     }
 
     void renderEditor(Registry& registry, EntityType& e, bool disable_delete = false);
-    
 
     void renderEntityList(Registry& registry, std::set<ComponentTypeID>& comp_list);
 };

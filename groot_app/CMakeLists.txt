@@ -33,7 +33,7 @@ target_include_directories(groot_app
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_compile_definitions(groot_app PUBLIC GROOT_DLL GROOT_EXPORTS_DLL)
+target_compile_definitions(groot_app PUBLIC GROOT_APP_DLL PRIVATE GROOT_APP_DLL_EXPORTS)
 set_target_properties(groot_app PROPERTIES CXX_VISIBILITY_PRESET hidden)
 set_target_properties(groot_app PROPERTIES PUBLIC_HEADER "${HEADERS}")
 

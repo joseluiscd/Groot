@@ -5,7 +5,7 @@
 #include <groot_app/entt.hpp>
 #include <groot_graph/cylinder_marching.hpp>
 
-class GROOT_API CylinderMarching : public CommandGui {
+class GROOT_APP_API CylinderMarching : public CommandGui {
 public:
     CylinderMarching(entt::registry& reg);
     CylinderMarching(entt::handle&& handle);
@@ -24,14 +24,14 @@ private:
 public:
     //Params
     int min_points = 20;
-    float epsilon = 0.03;
-    float sampling = 0.06;
-    float normal_deviation = 25.0;
-    float overlook_probability = 0.01;
+    float epsilon = 0.03f;
+    float sampling = 0.06f;
+    float normal_deviation = 25.0f;
+    float overlook_probability = 0.01f;
     float voxel_size = 1.0f;
 };
 
-class GROOT_API CylinderFilter : public CommandGui {
+class GROOT_APP_API CylinderFilter : public CommandGui {
 public:
     CylinderFilter(entt::registry& reg);
     CylinderFilter(entt::handle&& handle);
@@ -57,7 +57,7 @@ public:
     float length_range[2] = { 0.0, 1.0 };
 };
 
-class GROOT_API CylinderPointFilter : public CommandGui {
+class GROOT_APP_API CylinderPointFilter : public CommandGui {
 public:
     CylinderPointFilter(entt::handle&& handle);
     CylinderPointFilter(entt::registry& _reg)
@@ -85,8 +85,8 @@ private:
 
 namespace cylinder_view_system {
 
-GROOT_LOCAL void init(entt::registry& reg);
-GROOT_LOCAL void deinit(entt::registry& reg);
-GROOT_LOCAL void run(entt::registry& reg);
+GROOT_APP_LOCAL void init(entt::registry& reg);
+GROOT_APP_LOCAL void deinit(entt::registry& reg);
+GROOT_APP_LOCAL void run(entt::registry& reg);
 
 }

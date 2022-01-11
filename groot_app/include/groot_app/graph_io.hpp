@@ -8,10 +8,10 @@
 #include <groot/cgal.hpp>
 #include <optional>
 
-GROOT_API async::task<entt::entity> import_graph_command(entt::registry& reg, const std::string_view& file);
-GROOT_API async::task<void> export_graph_command(entt::handle e, const std::string_view& file);
+GROOT_APP_API async::task<entt::entity> import_graph_command(entt::registry& reg, const std::string_view& file);
+GROOT_APP_API async::task<void> export_graph_command(entt::handle e, const std::string_view& file);
 
-class GROOT_LOCAL ImportGraphGui : public Gui {
+class GROOT_APP_LOCAL ImportGraphGui : public Gui {
 public:
     ImportGraphGui();
     void schedule_commands(entt::registry& reg) override;
@@ -22,7 +22,7 @@ private:
     std::string input_file;
 };
 
-class GROOT_LOCAL ExportGraphGui : public Gui {
+class GROOT_APP_LOCAL ExportGraphGui : public Gui {
 public:
     ExportGraphGui(entt::handle h);
 

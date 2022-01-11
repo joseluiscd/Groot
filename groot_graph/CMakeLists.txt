@@ -20,8 +20,8 @@ target_link_libraries(
     groot_base
 )
 target_compile_definitions(groot_graph
-    PUBLIC GROOT_DLL
-    PRIVATE GROOT_EXPORTS_DLL
+    PUBLIC GROOT_DLL GROOT_GRAPH_DLL
+    PRIVATE GROOT_GRAPH_DLL_EXPORTS
 )
 
 add_executable(groot_graph_test
