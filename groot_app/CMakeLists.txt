@@ -43,7 +43,10 @@ target_link_libraries(groot_app_test groot_app)
 add_executable(groot main.cpp)
 target_link_libraries(groot groot_app)
 set_target_properties(groot PROPERTIES CXX_VISIBILITY_PRESET hidden)
-
+if(MSVC)
+    set_target_properties(groot PROPERTIES LINK_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+    set_target_properties(groot PROPERTIES LINK_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+endif()
 install(TARGETS
     groot_app
     groot
