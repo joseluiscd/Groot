@@ -8,8 +8,7 @@ namespace groot {
 
 CloudData load_PLY(const char* filename)
 {
-
-    std::ifstream file(filename);
+    std::ifstream file(filename, std::ios::binary);
 
     tinyply::PlyFile ply;
     ply.parse_header(file);
