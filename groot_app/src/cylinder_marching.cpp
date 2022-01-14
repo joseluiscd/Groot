@@ -43,11 +43,11 @@ GuiState CylinderMarching::draw_gui()
         ImGui::InputInt("Min points", &min_points);
         ImGui::Separator();
 
-        ImGui::InputFloat("Epsilon", &epsilon, 0.05, 0.1);
-        ImGui::InputFloat("Sampling resolution", &sampling, 0.05, 0.1);
-        ImGui::InputFloat("Normal Threshold", &normal_deviation, 1.0, 5.0);
-        ImGui::InputFloat("Missing probability", &overlook_probability, 0.01, 0.1);
-        ImGui::InputFloat("Voxel size", &voxel_size, 0.1, 0.5);
+        ImGui::InputFloat("Epsilon", &epsilon, 0.05f, 0.1f);
+        ImGui::InputFloat("Sampling resolution", &sampling, 0.05f, 0.1f);
+        ImGui::InputFloat("Normal Threshold", &normal_deviation, 1.0f, 5.0f);
+        ImGui::InputFloat("Missing probability", &overlook_probability, 0.01f, 0.1f);
+        ImGui::InputFloat("Voxel size", &voxel_size, 0.1f, 0.5f);
 
         ImGui::Separator();
 

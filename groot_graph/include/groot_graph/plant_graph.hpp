@@ -60,7 +60,7 @@ struct GROOT_GRAPH_LOCAL EdgeProperties {
 
 struct GROOT_GRAPH_LOCAL PlantProperties {
     float max_root_distance = 0.0;
-    size_t root_index;
+    size_t root_index = 0;
 };
 
 template <typename T>

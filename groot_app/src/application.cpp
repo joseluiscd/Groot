@@ -21,6 +21,7 @@
 #include <groot_app/render.hpp>
 #include <groot_app/save_workspace.hpp>
 #include <groot_app/viewer_system.hpp>
+#include <groot_app/screenshot.hpp>
 #include <spdlog/spdlog.h>
 
 struct ApplicationProperties {
@@ -185,6 +186,11 @@ void Application::draw_gui()
 
             if (ImGui::MenuItem(ICON_FA_TRASH "\tClear Workspace")) {
                 registry.clear();
+            }
+            ImGui::Separator();
+
+            if (ImGui::MenuItem(ICON_FA_IMAGE "\tSave 3D window screenshot")) {
+                take_screenshot(registry);
             }
 
             ImGui::EndMenu();

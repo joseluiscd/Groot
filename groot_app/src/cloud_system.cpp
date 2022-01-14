@@ -127,7 +127,7 @@ GuiState SplitCloud::draw_gui()
     bool show = true;
     ImGui::OpenPopup("Split Cloud in Voxels");
     if (ImGui::BeginPopupModal("Split Cloud in Voxels", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        ImGui::InputFloat("Voxel size", &this->voxel_size, 0.5, 0.1);
+        ImGui::InputFloat("Voxel size", &this->voxel_size, 0.5f, 0.1f);
         ImGui::Separator();
 
         if (ImGui::Button("Run")) {
@@ -228,8 +228,8 @@ PointViewComponent::PointViewComponent()
 
 struct NormalViewComponent {
     NormalViewComponent(PointViewComponent& points);
-    NormalViewComponent(NormalViewComponent&& other) = default;
-    NormalViewComponent& operator=(NormalViewComponent&& other) = default;
+    NormalViewComponent(NormalViewComponent&& other) noexcept = default;
+    NormalViewComponent& operator=(NormalViewComponent&& other) noexcept = default;
 
     gfx::VertexArray vao;
     gfx::Buffer<glm::vec3> directions;
@@ -240,8 +240,8 @@ struct NormalViewComponent {
 
 struct CurvatureViewComponent {
     CurvatureViewComponent(PointViewComponent& points);
-    CurvatureViewComponent(CurvatureViewComponent&& other) = default;
-    CurvatureViewComponent& operator=(CurvatureViewComponent&& other) = default;
+    CurvatureViewComponent(CurvatureViewComponent&& other) noexcept = default;
+    CurvatureViewComponent& operator=(CurvatureViewComponent&& other) noexcept = default;
 
     gfx::VertexArray vao;
     gfx::Buffer<glm::vec3> directions;
@@ -359,13 +359,13 @@ void init(entt::registry& reg)
     auto& shaders = reg.ctx<ShaderCollection>();
     auto& system_data = reg.set<SystemData>(SystemData {
         gfx::RenderPipeline::Builder()
-            .with_shader(shaders.get_shader(ShaderCollection::Points))
+            .with_shader(shaders.get_shader(ShaderCollection::ShaderID::Points))
             .build(),
         gfx::RenderPipeline::Builder()
-            .with_shader(shaders.get_shader(ShaderCollection::PointsColor))
+            .with_shader(shaders.get_shader(ShaderCollection::ShaderID::PointsColor))
             .build(),
         gfx::RenderPipeline::Builder()
-            .with_shader(shaders.get_shader(ShaderCollection::Vectors))
+            .with_shader(shaders.get_shader(ShaderCollection::ShaderID::Vectors))
             .build(),
         {
             // Destroy the views
@@ -487,7 +487,7 @@ void ComponentEditorWidget<cloud_view_system::PointViewComponent>(entt::registry
 {
     auto& t = reg.get<cloud_view_system::PointViewComponent>(e);
 
-    ImGui::DragFloat("Point size", &*t.size, 0.05, 0.0, INFINITY);
+    ImGui::DragFloat("Point size", &*t.size, 0.05f, 0.0f, INFINITY);
 
     if (t.cloud_has_colors) {
         ImGui::Checkbox("Show uniform color", &t.uniform_color);
@@ -505,7 +505,7 @@ void ComponentEditorWidget<cloud_view_system::NormalViewComponent>(entt::registr
     auto& t = reg.get<cloud_view_system::NormalViewComponent>(e);
 
     ImGui::ColorEdit3("Line color", glm::value_ptr(*t.color));
-    ImGui::DragFloat("Line size", &*t.vector_size, 0.01, 0.0, INFINITY);
+    ImGui::DragFloat("Line size", &*t.vector_size, 0.01f, 0.0f, INFINITY);
 }
 
 template <>

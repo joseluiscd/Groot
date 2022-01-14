@@ -96,7 +96,6 @@ CommandState CreateGraph::execute()
 {
     bool is_delaunay = false;
     bool is_alpha_shape = false;
-    groot::SearchType search_val;
 
     groot::PlantGraph graph;
     

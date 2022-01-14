@@ -7,12 +7,13 @@
 
 /// Modified AppLog from ImGui
 struct GROOT_APP_LOCAL AppLog : public spdlog::sinks::base_sink<std::mutex> {
+    ImGuiTextBuffer buffer;
+    bool ScrollToBottom = true;
+
     AppLog()
+        : buffer()
     {
     }
-
-    ImGuiTextBuffer buffer;
-    bool ScrollToBottom;
 
     void clear() { buffer.clear(); }
 

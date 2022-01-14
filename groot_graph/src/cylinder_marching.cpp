@@ -260,7 +260,7 @@ std::vector<CylinderWithPoints> merge_cylinders(const std::vector<CylinderWithPo
     std::vector<CylinderWithPoints> result;
     for (const CylinderWithPoints& c1 : a) {
         for (const CylinderWithPoints& c2 : b) {
-            if (cylinders_similar(c1.cylinder, c2.cylinder, 0.9, 0.9, 0.9)) {
+            if (cylinders_similar(c1.cylinder, c2.cylinder, 0.9f, 0.9f, 0.9f)) {
                 result.push_back(merge_cylinders(c1, c2));
             }
         }

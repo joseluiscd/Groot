@@ -8,7 +8,10 @@ namespace groot {
 
 CloudData load_PLY(const char* filename)
 {
-    std::ifstream file(filename, std::ios::binary);
+    static_assert(sizeof(cgal::Vector_3) == (3 * sizeof(float)), "cgal::Vector_3 must be 3 floats without padding");
+    static_assert(sizeof(cgal::Point_3) == (3 * sizeof(float)), "cgal::Point_3 must be 3 floats without padding");
+
+	std::ifstream file(filename, std::ios::binary);
 
     tinyply::PlyFile ply;
     ply.parse_header(file);
@@ -78,7 +81,7 @@ std::pair<std::vector<cgal::Point_3>, std::vector<cgal::Vector_3>> load_PLY_old(
     std::shared_ptr<tinyply::PlyData> normals;
     try {
         normals = ply.request_properties_from_element("vertex", {"nx", "ny", "nz"});
-    } catch (const std::exception& e) {}
+    } catch (const std::exception&) {}
 
     ply.read(file);
 

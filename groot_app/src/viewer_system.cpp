@@ -59,7 +59,7 @@ void init(entt::registry& registry)
     };
 
     data.framebuffer
-        .add_color_buffer(glm::ivec2(2048, 2048), gfx::TextureType::Rgba, 4)
+        .add_color_buffer(glm::ivec2(2048, 2048), gfx::TextureFormat::Rgba, 4)
         .set_depth_buffer(glm::ivec2(2048, 2048), 4);
 
     data.camera

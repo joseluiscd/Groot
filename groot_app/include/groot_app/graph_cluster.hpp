@@ -42,9 +42,9 @@ private:
         CentroidType_COUNT
     };
 
-    IntervalType selected_interval_type = FixedIntervalCount;
+    IntervalType selected_interval_type = IntervalType::FixedIntervalCount;
 
-    CentroidType selected_centroid_type = CentroidMedian;
+    CentroidType selected_centroid_type = CentroidType::CentroidMedian;
 
     static constexpr const char* centroid_type_labels[] = {
         "Median",

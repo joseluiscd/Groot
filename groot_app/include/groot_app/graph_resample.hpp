@@ -8,7 +8,7 @@
 #include <boost/iterator/transform_iterator.hpp>
 
 struct GraphResampleArgs {
-    float sample_length = 0.3;
+    float sample_length = 0.3f;
 };
 
 GROOT_APP_API async::task<entt::entity> graph_resample_command(entt::handle h, float sample_length);
