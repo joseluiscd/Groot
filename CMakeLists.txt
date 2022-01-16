@@ -14,6 +14,12 @@ set(CMAKE_CXX_VISIBILITY_INLINES_HIDDEN ON)
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic")
+endif()
+
 set(CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
     )
@@ -21,7 +27,7 @@ set(CMAKE_MODULE_PATH
 include(GNUInstallDirs)
 
 find_package(glfw3 3.3 REQUIRED)
-find_package(Python3 REQUIRED COMPONENTS Development)
+find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
 find_package(Boost 1.75 REQUIRED COMPONENTS graph)
 find_package(TBB REQUIRED)
 find_package(glm REQUIRED)

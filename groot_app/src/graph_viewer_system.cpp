@@ -111,7 +111,7 @@ void update_viewer_component(entt::registry& registry, entt::entity entity)
 
 void init(entt::registry& registry)
 {
-    auto& system_data = registry.set<SystemData>(std::move(
+    auto& system_data = registry.set<SystemData>(
         gfx::RenderPipeline::Builder()
             .with_shader(gfx::ShaderProgram::Builder()
                              .register_uniform<Color>("u_color")
@@ -121,7 +121,7 @@ void init(entt::registry& registry)
                              .with_vertex_shader(vertex_shader_source)
                              .with_fragment_shader(fragment_shader_source)
                              .build())
-            .build()));
+            .build());
 
     system_data.update_graph.connect(
         registry,
@@ -160,7 +160,9 @@ void run(entt::registry& registry)
 
     const auto view = registry.view<GraphViewerComponent, Visible>();
     for (const auto entity : view) {
-        auto [graph, graph_view] = registry.get<groot::PlantGraph, GraphViewerComponent>(entity);
+        groot::PlantGraph& graph = registry.get<groot::PlantGraph>(entity);
+        GraphViewerComponent& graph_view = registry.get<GraphViewerComponent>(entity);
+
         gfx::DebugDraw::Builder dd;
 
         dd.set_color(graph_view.root_color);

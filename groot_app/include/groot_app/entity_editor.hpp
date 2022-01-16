@@ -29,7 +29,7 @@ inline void EntityWidget(EntityType& e, RegistryType& reg, bool dropTarget = fal
         if (reg.template all_of<Name>(e)) {
             name = reg.template get<Name>(e).name.c_str();
         } else {
-            snprintf(namebuff, 32, "Entity %x\0", entt::to_integral(e));
+            snprintf(namebuff, 32, "Entity %x", entt::to_integral(e));
             name = namebuff;
         }
 

@@ -103,8 +103,8 @@ void RecenterCloud::on_finish(entt::registry& reg)
 
 SplitCloud::SplitCloud(entt::handle&& _handle)
     : reg(*_handle.registry())
-    , grid(0, 0, 0)
     , normals()
+    , grid(0, 0, 0)
 {
     target = _handle.entity();
 
@@ -143,7 +143,7 @@ GuiState SplitCloud::draw_gui()
 
 CommandState SplitCloud::execute()
 {
-    this->grid = std::move(groot::voxel_grid(this->cloud->cloud.data(), cloud->cloud.size(), voxel_size));
+    this->grid = groot::voxel_grid(this->cloud->cloud.data(), cloud->cloud.size(), voxel_size);
     for (size_t i = 0; i < this->grid.voxels.size(); i++) {
         if (!this->grid.voxels[i].empty()) {
             PointCloud& current_cloud = this->result_clouds.emplace_back();

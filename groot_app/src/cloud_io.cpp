@@ -47,7 +47,7 @@ async::task<entt::entity> import_ply_command(entt::registry& reg, const std::str
             throw std::runtime_error("Cannot open file");
         }
 
-        groot::CloudData&& data = groot::load_PLY(input_file.c_str());
+        groot::CloudData data = groot::load_PLY(input_file.c_str());
         spdlog::info("Loaded PLY file with {} points!", data.points.size());
         return data;
     }).then(sync_scheduler(), [&reg, input_file = std::string(file)](groot::CloudData&& data) {
