@@ -9,6 +9,23 @@
 
 void create_registry_type(py::module_& m);
 
+
+class AsyncViewer;
+
+inline auto create_entity(entt::registry& reg)
+{
+    return [&](entt::entity e) {
+        return Entity(reg, e);
+    };
+}
+
+template <typename T>
+inline py::object convert_python(T&& obj)
+{
+    AcquireGilGuard guard;
+    return py::cast(obj);
+}
+
 class Registry {
 public:
     static entt::type_info type_id;
@@ -50,12 +67,14 @@ public:
         cmd.run(reg);
     }
 
-    Entity load_ply(const std::string& filename)
+    PythonTask load_ply(const std::string& filename)
     {
         ReleaseGilGuard guard;
-        auto&& task = import_ply_command(reg, filename);
-
-        return Entity(reg, run_task(std::move(task)));
+        return PythonTask {
+            import_ply_command(reg, filename)
+                .then(create_entity(reg))
+                .then(convert_python<Entity>)
+        };
     }
 
     Entity load_graph(const std::string& filename)
@@ -70,6 +89,8 @@ public:
     {
         return Entity(reg, reg.create());
     }
+
+    AsyncViewer* create_viewer();
 
     void run_viewer(py::object init_func, py::object update_func)
     {
@@ -106,11 +127,47 @@ public:
         sync_scheduler().run_all_tasks();
     }
 
-    void schedule_task(PythonTask& t)
+    void schedule_task(PythonTask& t, const std::string& name)
     {
-        std::string name = py::cast<std::string>(t.name);
-        reg.ctx<TaskBroker>().push_task(name, std::move(t.ignore_result()));
+        reg.ctx<TaskBroker>().push_task(name, t.ignore_result());
     }
 
     entt::registry reg;
 };
+
+class AsyncViewer {
+public:
+    AsyncViewer(Registry& _reg)
+        : app(_reg.reg)
+        , reg(_reg)
+    {
+        ImGuiContext* ctx = reg.reg.ctx<ImGuiContext*>();
+        ImGui::SetCurrentContext(ctx);
+    }
+
+    void step(py::object update_func)
+    {
+        if (update_func.is_none()) {
+            app.step_gui();
+        } else {
+            app.step_gui([&](entt::registry&) {
+                AcquireGilGuard guard;
+                update_func(reg);
+            });
+        }
+    }
+
+    bool should_close()
+    {
+        return app.should_close();
+    }
+
+private:
+    Application app;
+    Registry& reg;
+};
+
+inline AsyncViewer* Registry::create_viewer()
+{
+    return new AsyncViewer { *this };
+}

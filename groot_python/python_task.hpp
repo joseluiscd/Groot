@@ -22,30 +22,26 @@ inline auto call_f(py::object f)
 
 class PythonTask : public async::task<py::object> {
 public:
-    PythonTask(async::task<py::object>&& _t, py::str _name)
+    PythonTask(async::task<py::object>&& _t)
         : async::task<py::object>(std::move(_t))
-        , name(_name)
     {
     }
 
-    PythonTask(async::task<void>&& _t, py::str _name)
-        : async::task<py::object>(std::move(_t.then(async::inline_scheduler(), create_none)))
-        , name(_name)
+    PythonTask(async::task<void>&& _t)
+        : async::task<py::object>(_t.then(async::inline_scheduler(), create_none))
     {
     }
 
     template <typename Result>
-    PythonTask(async::task<py::object>&& _t, py::str _name)
+    PythonTask(async::task<py::object>&& _t)
         : async::task<py::object>(std::move(_t.then(async::inline_scheduler(), [](Result&& r) {
             return py::object(std::forward<Result>(r));
         })))
-        , name(_name)
     {
     }
 
-    PythonTask(py::object func, py::str _name, TaskMode mode)
-        : async::task<py::object>(std::move(spawn(func, mode)))
-        , name(_name)
+    PythonTask(py::object func, TaskMode mode)
+        : async::task<py::object>(spawn(func, mode))
     {
     }
 
@@ -69,24 +65,22 @@ public:
     {
         switch (mode) {
         case TaskMode::Async:
-            *this = PythonTask(std::move(this->then(async_scheduler(), call_f(f))), this->name);
+            *this = PythonTask(this->then(async_scheduler(), call_f(f)));
             break;
         case TaskMode::Sync:
-            *this = PythonTask(std::move(this->then(sync_scheduler(), call_f(f))), this->name);
+            *this = PythonTask(this->then(sync_scheduler(), call_f(f)));
             break;
         case TaskMode::Inline:
-            *this = PythonTask(std::move(this->then(async::inline_scheduler(), call_f(f))), this->name);
+            *this = PythonTask(this->then(async::inline_scheduler(), call_f(f)));
             break;
         default:
-            *this = PythonTask(std::move(this->then(sync_scheduler(), call_f(f))), this->name);
+            *this = PythonTask(this->then(sync_scheduler(), call_f(f)));
             break;
         };
         return *this;
     }
 
     void run_till_completion();
-
-    py::str name;
 
 private:
     static async::task<py::object> spawn_async(py::object f)

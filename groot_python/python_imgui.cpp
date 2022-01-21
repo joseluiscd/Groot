@@ -21,6 +21,46 @@ void create_table_functions(py::module_& m)
     m.def("EndTable", &ImGui::EndTable);
     m.def("TableNextColumn", &ImGui::TableNextColumn);
     m.def("TableNextRow", &ImGui::TableNextRow, "row_flags"_a = 0, "min_height"_a = 0.0f);
+    m.def("TableSetupColumn", &ImGui::TableSetupColumn, "label"_a, "flags"_a = 0, "init_width_or_weight"_a = 0.0f, "user_id"_a = 0);
+    m.def("TableHeadersRow", &ImGui::TableHeadersRow);
+
+    py::enum_<ImGuiTableFlags_>(m, "TableFlags")
+        .value("None", ImGuiTableFlags_None)
+        .value("Resizable", ImGuiTableFlags_Resizable)
+        .value("Reorderable", ImGuiTableFlags_Reorderable)
+        .value("Hideable", ImGuiTableFlags_Hideable)
+        .value("Sortable", ImGuiTableFlags_Sortable)
+        .value("NoSavedSettings", ImGuiTableFlags_NoSavedSettings)
+        .value("ContextMenuInBody", ImGuiTableFlags_ContextMenuInBody)
+        .value("RowBg", ImGuiTableFlags_RowBg)
+        .value("BordersInnerH", ImGuiTableFlags_BordersInnerH)
+        .value("BordersOuterH", ImGuiTableFlags_BordersOuterH)
+        .value("BordersInnerV", ImGuiTableFlags_BordersInnerV)
+        .value("BordersOuterV", ImGuiTableFlags_BordersOuterV)
+        .value("BordersH", ImGuiTableFlags_BordersH)
+        .value("BordersV", ImGuiTableFlags_BordersV)
+        .value("BordersInner", ImGuiTableFlags_BordersInner)
+        .value("BordersOuter", ImGuiTableFlags_BordersOuter)
+        .value("Borders", ImGuiTableFlags_Borders)
+        .value("NoBordersInBody", ImGuiTableFlags_NoBordersInBody)
+        .value("NoBordersInBodyUntilResize", ImGuiTableFlags_NoBordersInBodyUntilResize)
+        .value("SizingFixedFit", ImGuiTableFlags_SizingFixedFit)
+        .value("SizingFixedSame", ImGuiTableFlags_SizingFixedSame)
+        .value("SizingStretchProp", ImGuiTableFlags_SizingStretchProp)
+        .value("SizingStretchSame", ImGuiTableFlags_SizingStretchSame)
+        .value("NoHostExtendX", ImGuiTableFlags_NoHostExtendX)
+        .value("NoHostExtendY", ImGuiTableFlags_NoHostExtendY)
+        .value("NoKeepColumnsVisible", ImGuiTableFlags_NoKeepColumnsVisible)
+        .value("PreciseWidths", ImGuiTableFlags_PreciseWidths)
+        .value("NoClip", ImGuiTableFlags_NoClip)
+        .value("PadOuterX", ImGuiTableFlags_PadOuterX)
+        .value("NoPadOuterX", ImGuiTableFlags_NoPadOuterX)
+        .value("NoPadInnerX", ImGuiTableFlags_NoPadInnerX)
+        .value("ScrollX", ImGuiTableFlags_ScrollX)
+        .value("ScrollY", ImGuiTableFlags_ScrollY)
+        .value("SortMulti", ImGuiTableFlags_SortMulti)
+        .value("SortTristate", ImGuiTableFlags_SortTristate)
+        ;
 }
 
 void create_imgui_module(py::module_& m)
@@ -93,6 +133,8 @@ void create_imgui_module(py::module_& m)
         "label"_a, "shortcut"_a = "", "selected"_a = false, "enabled"_a = true, "returns (clicked, state)");
 
     m.def("Separator", &ImGui::Separator);
+
+    m.def("LogToClipboard", &ImGui::LogToClipboard, "auto_open_depth"_a = -1);
 
     create_table_functions(m);
 }

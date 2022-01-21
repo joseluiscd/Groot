@@ -90,7 +90,7 @@ Component& component_from_python(py::object& o)
     return py::cast<Component&>(o);
 }
 
-template<>
+template <>
 struct entt::is_equality_comparable<py::object> {
     static constexpr const bool value = false;
 };
@@ -132,7 +132,7 @@ py::buffer_info create_buffer_info(std::vector<groot::Vector_3>& points)
         sizeof(float),
         py::format_descriptor<float>::format(),
         2,
-        py::array::ShapeContainer({points.size(), (size_t)3}),
+        py::array::ShapeContainer({ points.size(), (size_t)3 }),
         py::array::ShapeContainer({ sizeof(float) * 3, sizeof(float) }));
 }
 
@@ -143,11 +143,11 @@ py::buffer_info create_buffer_info(std::vector<groot::Point_3>& points)
         sizeof(float),
         py::format_descriptor<float>::format(),
         2,
-        py::array::ShapeContainer({points.size(), (size_t)3}),
+        py::array::ShapeContainer({ points.size(), (size_t)3 }),
         py::array::ShapeContainer({ sizeof(float) * 3, sizeof(float) }));
 }
 
-PYBIND11_MODULE(pygroot, m)
+void create_pygroot_module(py::module_& m)
 {
     /*object builtins = import("builtins");
     object types = import("types");
@@ -163,7 +163,7 @@ PYBIND11_MODULE(pygroot, m)
         .def("id", &entt::type_info::index)
         .def("hash", &entt::type_info::hash);
 
-    py::module_ components = m.def_submodule("components", "Namespace for all component types");
+    py::module_ components = m.def_submodule("components", R"(Components module)");
 
     declare_python_component<groot::PlantGraph>(components, "PlantGraph");
     declare_python_component<PointNormals>(components, "PointNormals");
@@ -221,4 +221,9 @@ PYBIND11_MODULE(pygroot, m)
 
     py::module_ imgui = m.def_submodule("ImGui", "ImGui operations");
     create_imgui_module(imgui);
+}
+
+PYBIND11_MODULE(pygroot, m)
+{
+    create_pygroot_module(m);
 }

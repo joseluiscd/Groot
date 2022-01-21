@@ -1,6 +1,5 @@
-#include "entt/entity/fwd.hpp"
-#include "gfx/font_awesome.hpp"
 #include <gfx/glad.h>
+#include <gfx/font_awesome.hpp>
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
@@ -20,8 +19,8 @@
 #include <groot_app/open_workspace.hpp>
 #include <groot_app/render.hpp>
 #include <groot_app/save_workspace.hpp>
-#include <groot_app/viewer_system.hpp>
 #include <groot_app/screenshot.hpp>
+#include <groot_app/viewer_system.hpp>
 #include <spdlog/spdlog.h>
 
 struct ApplicationProperties {
@@ -32,13 +31,13 @@ struct ApplicationProperties {
 
 void ApplicationProperties::draw_window(bool* open)
 {
-    if(ImGui::Begin("Application Properties", open)) {
+    if (ImGui::Begin("Application Properties", open)) {
         ImGui::ColorEdit4("Background color", &bg_color[0]);
     }
     ImGui::End();
 }
 
-namespace viewer_system{
+namespace viewer_system {
 void python();
 }
 
@@ -318,9 +317,9 @@ void Application::draw_gui()
     ImGui::End();
 
     auto selected = registry.ctx<SelectedEntity>().selected;
+    bool bg_tasks_empty = registry.ctx<TaskBroker>().empty();
 
     if (ImGui::Begin("Entity properties")) {
-        bool bg_tasks_empty = registry.ctx<TaskBroker>().empty();
         entity_editor.renderEditor(registry, selected, !bg_tasks_empty);
     }
     ImGui::End();
@@ -344,6 +343,28 @@ void Application::draw_console_log()
     if (windows.console_log) {
         app_log->draw("Log", &windows.console_log);
     }
+}
+
+bool Application::should_close()
+{
+    return gui_app.should_close();
+}
+
+void Application::step_gui()
+{
+    gui_app.step([&]() {
+        draw_gui();
+        gui_app.draw_gui();
+    });
+}
+
+void Application::step_gui(std::function<void(entt::registry&)> update)
+{
+    gui_app.step([&]() {
+        draw_gui();
+        update(registry);
+        gui_app.draw_gui();
+    });
 }
 
 void Application::main_loop()

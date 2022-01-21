@@ -26,6 +26,12 @@ public:
     Application(entt::registry& reg);
     ~Application();
 
+    Application(const Application&) = delete;
+    Application(Application&&) = delete;
+
+    Application& operator=(const Application&) = delete;
+    Application& operator=(Application&&) = delete;
+
     void open_window(Gui* gui);
 
     template <typename T, typename... Args>
@@ -33,7 +39,7 @@ public:
     {
         try {
             open_window(new T(std::forward<Args...>(args)...));
-        } catch (std::runtime_error err) {
+        } catch (std::runtime_error& err) {
             show_error(std::string(err.what()));
         }
     }
@@ -43,7 +49,7 @@ public:
     {
         try {
             open_window(make_gui_adapter<T>(std::forward<Args...>(args)...));
-        } catch (std::runtime_error err) {
+        } catch (std::runtime_error& err) {
             show_error(std::string(err.what()));
         }
     }
@@ -54,6 +60,10 @@ public:
     GROOT_APP_LOCAL void draw_command_gui();
     GROOT_APP_LOCAL void draw_background_tasks();
     GROOT_APP_LOCAL void draw_console_log();
+
+    bool should_close();
+    void step_gui();
+    void step_gui(std::function<void(entt::registry&)> update);
 
     void main_loop();
     void main_loop(std::function<void(entt::registry&)> update);

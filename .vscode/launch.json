@@ -5,6 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Python Test",
+            "program": "${workspaceFolder}/build/groot_python/groot_python3",
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "name": "Cylinder Marching Script",
             "type": "lldb",
             "request": "launch",
@@ -25,6 +33,13 @@
             "type": "lldb",
             "request": "launch",
             "program": "build/groot_app/groot",
+            "cwd": "${workspaceFolder}",
+        },
+        {
+            "name": "Uniforms",
+            "type": "lldb",
+            "request": "launch",
+            "program": "3rdparty/gfx/build/examples/uniforms/uniforms",
             "cwd": "${workspaceFolder}",
         },
     ]

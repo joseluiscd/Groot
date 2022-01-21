@@ -22,51 +22,62 @@ void create_registry_type(py::module& m)
         .def("new_entity", &Registry::new_entity)
         .def("schedule_task", &Registry::schedule_task)
         .def("run_tasks", &Registry::run_tasks)
+        .def("create_viewer", &Registry::create_viewer, py::return_value_policy::take_ownership)
         .def("run_viewer", &Registry::run_viewer,
             arg("init_func") = py::none(),
             arg("update_func") = py::none());
 
+    py::class_<AsyncViewer>(m, "Viewer", "Viewer")
+        .def("step", &AsyncViewer::step)
+        .def("should_close", &AsyncViewer::should_close);
+
     m.def(
         "compute_cardenas_et_al", +[](Entity e, float radius) {
-            auto&& task = async::spawn(sync_scheduler(), [e]() {
-                PointCloud* cloud = require_components<PointCloud>(e.e);
-                return cloud;
-            }).then(async_scheduler(), [radius](PointCloud* cloud) {
-                  groot::PlantGraph graph = groot::from_cardenas_et_al(cloud->cloud.data(), cloud->cloud.size(), radius);
-                  return graph;
-              }).then(sync_scheduler(), [e](groot::PlantGraph&& graph) {
-                e.e.emplace_or_replace<groot::PlantGraph>(std::move(graph));
-            });
-
-            return new PythonTask { std::move(task), "Cardenas et al." };
+            return new PythonTask {
+                async::spawn(sync_scheduler(), [e]() {
+                    PointCloud* cloud = require_components<PointCloud>(e.e);
+                    return cloud;
+                }).then(async_scheduler(), [radius](PointCloud* cloud) {
+                      groot::PlantGraph graph = groot::from_cardenas_et_al(cloud->cloud.data(), cloud->cloud.size(), radius);
+                      return graph;
+                  }).then(sync_scheduler(), [e](groot::PlantGraph&& graph) {
+                    e.e.emplace_or_replace<groot::PlantGraph>(std::move(graph));
+                })
+            };
         },
         py::return_value_policy::take_ownership);
 
     m.def(
-        "evaluate_difference", +[](Entity e, Entity f, bool create_entity) -> PythonTask* {
+        "compute_difference", +[](Entity e, Entity f) -> PythonTask* {
             ReleaseGilGuard guard;
+            return new PythonTask {
+                async::spawn(sync_scheduler(), [e, f]() {
+                    groot::PlantGraph* g1 = require_components<groot::PlantGraph>(e.e);
+                    groot::PlantGraph* g2 = require_components<groot::PlantGraph>(f.e);
 
-            auto&& task = async::spawn(sync_scheduler(), [e, f]() {
-                groot::PlantGraph* g1 = require_components<groot::PlantGraph>(e.e);
-                groot::PlantGraph* g2 = require_components<groot::PlantGraph>(f.e);
-
-                return std::make_pair(g1, g2);
-            }).then(async_scheduler(), [](std::pair<groot::PlantGraph*, groot::PlantGraph*>&& graphs) {
-                  groot::PlantGraph diff = groot::plant_graph_nn(*graphs.first, *graphs.second);
-                  return std::make_tuple(diff, groot::plant_graph_nn_score(diff));
-              }).then(sync_scheduler(), [create_entity, &reg = *e.e.registry()](std::tuple<groot::PlantGraph, float>&& v) {
-                AcquireGilGuard guard;
-                if (create_entity) {
+                    return std::make_pair(g1, g2);
+                }).then(async_scheduler(), [](std::pair<groot::PlantGraph*, groot::PlantGraph*>&& graphs) {
+                      return groot::plant_graph_nn(*graphs.first, *graphs.second);
+                  }).then(sync_scheduler(), [&reg = *e.e.registry()](groot::PlantGraph&& v) {
+                    AcquireGilGuard guard;
                     entt::entity e = reg.create();
-                    reg.emplace<groot::PlantGraph>(e, std::move(std::get<0>(v)));
-                    return py::object(py::make_tuple(Entity(reg, e), std::get<1>(v)));
-                } else {
-                    return py::cast(v);
-                }
-            });
-
-            return new PythonTask { std::move(task), "Evaluate difference. Returns value if create_entity == False. Returns (entity, value) if create_entity == True" };
+                    reg.emplace<groot::PlantGraph>(e, std::move(v));
+                    return py::cast(Entity(reg, e));
+                })
+            };
         },
-        arg("entity1"), arg("entity2"), arg("create_entity") = false,
+        arg("entity1"), arg("entity2"), py::return_value_policy::take_ownership);
+    m.def(
+        "evaluate_difference_mse", [](Entity e) -> PythonTask* {
+            ReleaseGilGuard guard;
+            return new PythonTask {
+                async::spawn(sync_scheduler(), [e]() {
+                    return require_components<groot::PlantGraph>(e.e);
+                }).then(async_scheduler(), [](groot::PlantGraph* g) {
+                    py::gil_scoped_acquire guard;
+                    return py::cast(groot::plant_graph_nn_score_mse(*g));
+                })
+            };
+        },
         py::return_value_policy::take_ownership);
 }

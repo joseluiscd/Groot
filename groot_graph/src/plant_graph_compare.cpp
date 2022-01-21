@@ -184,7 +184,7 @@ PlantGraphCompareResult plant_graph_compare(const PlantGraphCompareParams& p, co
     return result;
 }
 
-float plant_graph_nn_score(const groot::PlantGraph& g)
+float plant_graph_nn_score_mse(const groot::PlantGraph& g)
 {
     float sum = 0.0;
 
