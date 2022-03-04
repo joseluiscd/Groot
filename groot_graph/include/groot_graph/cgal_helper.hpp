@@ -10,6 +10,7 @@
 #include <CGAL/Alpha_shape_3.h>
 #include <CGAL/Alpha_shape_vertex_base_3.h>
 #include <CGAL/Alpha_shape_cell_base_3.h>
+#include <CGAL/Incremental_neighbor_search.h>
 #include <groot/cgal.hpp>
 #include <groot_graph/plant_graph.hpp>
 #include <tuple>
@@ -35,7 +36,6 @@ typedef CGAL::Search_traits_adapter<Point3Vertex,
 
 typedef CGAL::Kd_tree<SearchTraits> KdTree;
 typedef CGAL::K_neighbor_search<SearchTraits> KNeighbour;
-
-
+typedef CGAL::Incremental_neighbor_search<SearchTraits> IncrementalKNN;
 
 }

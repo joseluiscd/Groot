@@ -6,6 +6,7 @@
 #include <groot_graph/cylinder_marching.hpp>
 #include <string>
 #include <groot_graph/plant_graph.hpp>
+#include <groot/disjoint_sets.hpp>
 
 struct Name {
     std::string name;
@@ -45,6 +46,10 @@ struct AABB {
 
 struct PlantGraphNodePoints {
     groot::PropertyMap<std::vector<groot::Point_3>> points;
+};
+
+struct ConnectedComponents {
+    groot::DisjointSets components;
 };
 
 void init_components(entt::registry& reg);

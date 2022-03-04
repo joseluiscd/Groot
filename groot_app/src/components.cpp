@@ -1,9 +1,10 @@
-#include <groot_app/components.hpp>
-#include <groot_app/entity_editor.hpp>
 #include "gfx/imgui/imgui.h"
 #include "groot/cloud_load.hpp"
-#include <groot_app/resources.hpp>
 #include <gfx/imgui/imgui_stdlib.h>
+#include <groot_app/components.hpp>
+#include <groot_app/entity_editor.hpp>
+#include <groot_app/resources.hpp>
+#include <groot_graph/connectivity_repair.hpp>
 
 void check_normals_cloud(entt::registry& reg, entt::entity entity)
 {
@@ -22,11 +23,16 @@ void init_components(entt::registry& reg)
     entity_editor.registerComponent<Cylinders>("Cylinders");
     entity_editor.registerComponent<groot::PlantGraph>("PlantGraph");
     entity_editor.registerComponent<PlantGraphNodePoints>("PlantNodePoints");
+    entity_editor.registerComponent<ConnectedComponents>("Connected Components");
 
     // Ensure that the normals are always "valid"
     reg.on_construct<PointNormals>().connect<&check_normals_cloud>();
     reg.on_update<PointNormals>().connect<&check_normals_cloud>();
     reg.on_update<PointCloud>().connect<&check_normals_cloud>();
+
+    // No connected components if no graph
+    reg.on_destroy<groot::PlantGraph>().connect<&entt::registry::remove<ConnectedComponents>>();
+    reg.on_update<groot::PlantGraph>().connect<&entt::registry::remove<ConnectedComponents>>();
 }
 
 namespace MM {
@@ -143,6 +149,37 @@ void ComponentEditorWidget<PlantGraphNodePoints>(entt::registry& reg, entt::regi
             }
             ImGui::TreePop();
         }
+    }
+}
+
+template <>
+void ComponentAddAction<ConnectedComponents>(entt::registry& reg, entt::entity e)
+{
+    if (reg.all_of<groot::PlantGraph>(e)) {
+        const auto& graph = reg.get<groot::PlantGraph>(e);
+        reg.emplace<ConnectedComponents>(e, groot::compute_connected_components(graph));
+    }
+}
+
+template <>
+void ComponentEditorWidget<ConnectedComponents>(entt::registry& reg, entt::entity e)
+{
+    static int query_component = 0;
+    static ssize_t query_result = -1;
+
+    auto& cc = reg.get<ConnectedComponents>(e);
+    ImGui::Text("Count: %zu\n", cc.components.component_count());
+    ImGui::Text("Vertices: %zu\n", cc.components.num_vertices());
+    if (ImGui::InputInt("Vertex component", &query_component)) {
+        if (0 <= query_component && (size_t)query_component < cc.components.num_vertices()) {
+            query_result = cc.components.find(query_component);
+        } else {
+            query_result = -1;
+        }
+    }
+
+    if (query_result > 0) {
+        ImGui::Text("Component: %zu", query_result);
     }
 }
 
