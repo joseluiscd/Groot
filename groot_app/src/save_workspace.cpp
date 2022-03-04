@@ -6,8 +6,8 @@
 #include <spdlog/spdlog.h>
 
 SaveWorkspace::SaveWorkspace(entt::registry& _reg)
-    : file_dialog(ImGuiFileBrowserFlags_CloseOnEsc | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename)
-    , reg(_reg)
+    : reg(_reg)
+    , file_dialog(ImGuiFileBrowserFlags_CloseOnEsc | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename)
 {
     file_dialog.SetTitle("Graph Save");
     file_dialog.SetTypeFilters({ ".ggf" });
