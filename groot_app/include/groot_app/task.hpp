@@ -15,6 +15,9 @@ class TaskBuilder;
 template <typename T>
 TaskBuilder<T> create_task(async::task<T>&& t);
 
+/**
+* Create tasks for the TaskBroker.
+*/
 template <typename Result>
 class TaskBuilder {
 public:
@@ -28,6 +31,11 @@ public:
     {
     }
 
+    /**
+    * @brief Add a continuation for the current task.
+    * @param s Async++ scheduler to use for this task. Determines where it is run.
+    * @param f Function with the task (Async++).
+    */
     template <typename F, typename S>
     inline auto then(S&& s, F&& f)
     {
@@ -35,18 +43,28 @@ public:
             this->task.then(std::forward<S>(s), std::forward<F>(f)));
     }
 
+    /**
+    * @brief Run a task in the in the main thread.
+    */
     template <typename F>
     inline auto then_sync(F&& f)
     {
         return this->then(sync_scheduler(), std::forward<F>(f));
     }
 
+    /**
+    * @brief Run a task in the asynchronous scheduler (background thread pool).
+    */
     template <typename F>
     inline auto then_async(F&& f)
     {
         return this->then(async_scheduler(), std::forward<F>(f));
     }
 
+    
+    /**
+    * @brief Run a task in the inline scheduler (right now in current thread).
+    */
     template <typename F>
     inline auto then_inline(F&& f)
     {
@@ -68,18 +86,24 @@ private:
     async::task<Result> task;
 };
 
+/// Create a task builder with the `t` task.
 template <typename T>
 inline TaskBuilder<T> create_task(async::task<T>&& t)
 {
     return TaskBuilder<T>(std::move(t));
 }
 
+/// Create an empty task.
 inline TaskBuilder<void> create_task()
 {
     return TaskBuilder<void>();
 }
 
 
+/**
+* @brief Class to manage the results of tasks and ensure they are run and finished.
+* Contains all active tasks.
+*/
 class GROOT_APP_LOCAL TaskBroker {
 public:
     TaskBroker()
