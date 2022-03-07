@@ -94,9 +94,6 @@ const groot::point_finder::PointFinder& choose_point_finder(int m)
 
 CommandState CreateGraph::execute()
 {
-    bool is_delaunay = false;
-    bool is_alpha_shape = false;
-
     groot::PlantGraph graph;
     
     switch (selected_method) {

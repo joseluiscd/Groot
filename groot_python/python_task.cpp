@@ -24,10 +24,6 @@ void create_task_module(py::module& m)
 {
     using arg = py::arg;
 
-    m.def("run_task", [](){
-        sync_scheduler().try_run_one_task();
-    });
-
     py::enum_<TaskMode>(m, "TaskMode")
         .value("Async", TaskMode::Async)
         .value("Sync", TaskMode::Sync)
@@ -48,7 +44,7 @@ void create_task_module(py::module& m)
             },
             py::return_value_policy::reference_internal)
         .def("__next__", [](PythonTask& task) {
-            sync_scheduler().run_all_tasks();
+            sync_scheduler().try_run_one_task();
 
             if (task.ready()) {
                 PY_RETURN(task.get());
