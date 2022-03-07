@@ -167,7 +167,7 @@ void Application::draw_gui()
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "\tOpen Workspace")) {
-                open_new_window_adaptor<OpenWorkspace>();
+                open_new_window<OpenWorkspace>();
             }
 
             if (ImGui::MenuItem(ICON_FA_SAVE "\tSave Workspace")) {

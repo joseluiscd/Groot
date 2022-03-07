@@ -9,7 +9,6 @@
 
 void create_registry_type(py::module_& m);
 
-
 class AsyncViewer;
 
 inline auto create_entity(entt::registry& reg)
@@ -54,9 +53,7 @@ public:
     {
         ReleaseGilGuard guard;
 
-        OpenWorkspace cmd;
-        cmd.set_file(filename);
-        cmd.run(reg);
+        run_task(open_workspace_command(reg, filename));
     }
 
     void save(const std::string& filename)

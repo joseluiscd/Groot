@@ -5,19 +5,14 @@
 #include <filesystem>
 #include <gfx/imgui/imfilebrowser.h>
 
-class GROOT_APP_API OpenWorkspace : public CommandGui {
+GROOT_APP_API async::task<void> open_workspace_command(entt::registry& reg, const std::string& filename);
+
+class GROOT_APP_LOCAL OpenWorkspace : public Gui {
 public:
     OpenWorkspace();
-    CommandState execute() override;
-    GuiState draw_gui() override;
-    void on_finish(entt::registry& reg) override;
 
-    OpenWorkspace& set_file(const std::filesystem::path& path)
-    {
-        selected_file = path;
-        return *this;
-    }
-
+    void schedule_commands(entt::registry& reg) override;
+    GuiResult draw_gui() override;
 
 private:
     ImGui::FileBrowser file_dialog;
