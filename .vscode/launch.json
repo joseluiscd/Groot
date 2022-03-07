@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "Python Test",
-            "program": "${workspaceFolder}/build/groot_python/groot_python3",
+            "program": "${workspaceFolder}/build/groot_python3",
             "args": [],
             "cwd": "${workspaceFolder}"
         },
@@ -32,7 +32,7 @@
             "name": "Viewer",
             "type": "lldb",
             "request": "launch",
-            "program": "build/groot_app/groot",
+            "program": "build/groot",
             "cwd": "${workspaceFolder}",
         },
         {

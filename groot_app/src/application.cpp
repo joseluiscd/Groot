@@ -219,7 +219,7 @@ void Application::draw_gui()
             }
 
             if (ImGui::MenuItem(ICON_FA_CUBES "\tSplit Voxels...")) {
-                open_new_window_adaptor<SplitCloud>(registry);
+                open_new_window<SplitCloudGui>(get_selected_handle());
             }
 
             ImGui::EndMenu();

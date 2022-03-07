@@ -27,6 +27,9 @@ public:
     virtual GuiState draw_gui() = 0;
 };
 
+/**
+* Interface that manages the Gui Window.
+*/
 class GROOT_APP_LOCAL Gui {
 public:
     virtual void schedule_commands(entt::registry& reg) = 0;
@@ -34,10 +37,16 @@ public:
     virtual ~Gui() { }
 };
 
+/**
+* Simple Dialog Interface. Manages the Gui.
+* Override the `draw_dialog` method.
+*/
 class GROOT_APP_API DialogGui : public Gui {
 public:
     virtual ~DialogGui() { }
     virtual GuiResult draw_gui() override;
+
+    /// Draw the dialog contents. No need to create windows, just widgets.
     virtual void draw_dialog() = 0;
     virtual std::string_view name() const = 0;
 };

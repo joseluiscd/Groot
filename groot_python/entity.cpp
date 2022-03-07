@@ -1,4 +1,5 @@
 #include "entity.hpp"
+#include "python_task.hpp"
 
 entt::type_info Entity::type_id = entt::type_id<Entity>();
 
@@ -33,7 +34,24 @@ void create_entity_type(py::module& m)
             arg("radius_max") = 99.0,
             arg("length_min") = 0.0,
             arg("length_max") = 99.0)
-        .def("split_cloud", &Entity::split_cloud)
+        .def("split_cloud", [](Entity e, float voxel_size) {
+                ReleaseGilGuard guard;
+
+                return new PythonTask {
+                    split_cloud_command(e.e, voxel_size)
+                        .then(sync_scheduler(), [](std::vector<entt::handle>&& result){
+                            py::gil_scoped_acquire guard;
+                            py::list result_list;
+
+                            for (auto i : result) {
+                                result_list.append(Entity(i));
+                            }
+                            return (py::object) result_list;
+                        })
+                };
+            },
+            arg("voxel_size") = 1.0,
+            py::return_value_policy::take_ownership)
         .def("rebuild_cloud_from_cylinders", &Entity::rebuild_cloud_from_cylinders)
         .def("build_graph_from_cylinders", &Entity::build_graph_from_cylinders)
         .def("graph_cluster", &Entity::graph_cluster)

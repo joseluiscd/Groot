@@ -24,7 +24,7 @@ struct GROOT_API VoxelGrid {
         assert(y < y_size);
         assert(z < z_size);
 
-        return voxels[z * x_size * y_size + y * x_size];
+        return voxels[z * x_size * y_size + y * x_size + x];
     }
 
     const std::vector<size_t>& operator()(size_t x, size_t y, size_t z) const
@@ -33,7 +33,7 @@ struct GROOT_API VoxelGrid {
         assert(y < y_size);
         assert(z < z_size);
 
-        return voxels[z * x_size * y_size + y * x_size];
+        return voxels[z * x_size * y_size + y * x_size + x];
     }
 };
 

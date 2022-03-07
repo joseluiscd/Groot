@@ -7,6 +7,7 @@
 #include <groot/cgal.hpp>
 
 GROOT_APP_API async::task<void> compute_normals_command(entt::handle e, size_t k, float radius);
+GROOT_APP_API async::task<std::vector<entt::handle>> split_cloud_command(entt::handle h, float voxel_size);
 
 class GROOT_APP_LOCAL ComputeNormals : public DialogGui {
 public:
@@ -46,40 +47,22 @@ private:
     int selected;
 };
 
-class GROOT_APP_API SplitCloud : public CommandGui {
-public:
-    SplitCloud(entt::handle&& handle);
-    SplitCloud(entt::registry& _reg)
-        : SplitCloud(entt::handle {
-            _reg,
-            _reg.ctx<SelectedEntity>().selected })
-    {
-    }
 
-    GuiState draw_gui() override;
-    CommandState execute() override;
-    void on_finish(entt::registry& reg) override;
+class GROOT_APP_LOCAL SplitCloudGui : public DialogGui {
+public:
+    SplitCloudGui(entt::handle h)
+        : target(h)
+    {}
+
+    void draw_dialog() override;
+    std::string_view name() const override { return "Split cloud in voxels"; }
+    void schedule_commands(entt::registry& reg) override;
 
 private:
-    entt::registry& reg;
-    PointCloud* cloud;
-    std::optional<PointNormals*> normals;
-    std::optional<PointColors*> colors;
+    entt::handle target;
 
-    entt::entity target;
-
-    groot::VoxelGrid grid;
-
-    std::vector<PointCloud> result_clouds;
-    std::vector<PointNormals> result_normals;
-    std::vector<PointColors> result_colors;
-
-public:
     // Parameters
     float voxel_size = 1.0;
-
-    // Result
-    std::vector<entt::handle> result;
 };
 
 namespace cloud_view_system {

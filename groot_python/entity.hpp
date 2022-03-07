@@ -210,24 +210,7 @@ public:
         cmd.run(*e.registry());
     }
 
-    py::list split_cloud(float voxel_size)
-    {
-        ReleaseGilGuard guard;
-
-        SplitCloud cmd { entt::handle(e) };
-        cmd.voxel_size = voxel_size;
-        cmd.run(*e.registry());
-
-        {
-            AcquireGilGuard gil;
-
-            py::list result;
-            for (auto i : cmd.result) {
-                result.append(Entity(i));
-            }
-            return result;
-        }
-    }
+   
 
     void rebuild_cloud_from_cylinders()
     {

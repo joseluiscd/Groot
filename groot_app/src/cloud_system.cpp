@@ -1,15 +1,14 @@
-#include <groot_app/cloud_system.hpp>
-#include <groot_app/components.hpp>
-#include "entt/entity/fwd.hpp"
-#include <groot_app/render.hpp>
-#include <groot_app/resources.hpp>
-#include <groot_app/viewer_system.hpp>
 #include <gfx/buffer.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <groot/cloud.hpp>
+#include <groot_app/cloud_system.hpp>
+#include <groot_app/components.hpp>
+#include <groot_app/render.hpp>
+#include <groot_app/resources.hpp>
+#include <groot_app/viewer_system.hpp>
 #include <groot_graph/cylinder_marching.hpp>
 #include <spdlog/spdlog.h>
 
@@ -36,7 +35,7 @@ void ComputeNormals::draw_dialog()
     }
 }
 
-void ComputeNormals::schedule_commands(entt::registry &reg)
+void ComputeNormals::schedule_commands(entt::registry& reg)
 {
     reg.ctx<TaskBroker>().push_task("Computing Cloud Normals", compute_normals_command(entt::handle(reg, target), k, radius));
 }
@@ -50,8 +49,8 @@ async::task<void> compute_normals_command(entt::handle e, size_t k, float radius
 
         return &e.get<PointCloud>();
     }).then(async_scheduler(), [k, radius](PointCloud* cloud) {
-        return PointNormals { groot::compute_normals(cloud->cloud.data(), cloud->cloud.size(), k, radius) };
-    }).then(sync_scheduler(), [e](PointNormals&& normals) {
+          return PointNormals { groot::compute_normals(cloud->cloud.data(), cloud->cloud.size(), k, radius) };
+      }).then(sync_scheduler(), [e](PointNormals&& normals) {
         e.emplace_or_replace<PointNormals>(std::move(normals));
     });
 }
@@ -101,90 +100,109 @@ void RecenterCloud::on_finish(entt::registry& reg)
     reg.emplace_or_replace<PointCloud>(target, std::move(centered));
 }
 
-SplitCloud::SplitCloud(entt::handle&& _handle)
-    : reg(*_handle.registry())
-    , normals()
-    , grid(0, 0, 0)
+struct SplitCloudCommandData {
+    std::string name;
+    PointCloud* cloud;
+    PointNormals* normals;
+    PointColors* colors;
+};
+
+struct SplitCloudResultData {
+    std::vector<PointCloud> clouds {};
+    std::vector<PointNormals> normals {};
+    std::vector<PointColors> colors {};
+    std::vector<std::string> names {};
+};
+
+async::task<std::vector<entt::handle>> split_cloud_command(entt::handle h, float voxel_size)
 {
-    target = _handle.entity();
+    return create_task()
+        .then_sync(
+            [h]() -> SplitCloudCommandData {
+                SplitCloudCommandData data;
 
-    if (reg.valid(target) && reg.all_of<PointCloud>(target)) {
-        this->cloud = &reg.get<PointCloud>(target);
-    } else {
-        throw std::runtime_error("Selected entity must have PointCloud");
-    }
+                Name* maybe_name = h.try_get<Name>();
 
-    if (reg.all_of<PointNormals>(target)) {
-        this->normals = &reg.get<PointNormals>(target);
-    }
-    if (reg.all_of<PointColors>(target)) {
-        this->colors = &reg.get<PointColors>(target);
-    }
-}
+                data.cloud = require_components<PointCloud>(h);
+                data.normals = h.try_get<PointNormals>();
+                data.colors = h.try_get<PointColors>();
+                data.name = maybe_name ? maybe_name->name : "cloud";
 
-GuiState SplitCloud::draw_gui()
-{
-    bool show = true;
-    ImGui::OpenPopup("Split Cloud in Voxels");
-    if (ImGui::BeginPopupModal("Split Cloud in Voxels", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        ImGui::InputFloat("Voxel size", &this->voxel_size, 0.5f, 0.1f);
-        ImGui::Separator();
+                return data;
+            })
+        .then_async(
+            [voxel_size](SplitCloudCommandData&& data) {
+                PointCloud* cloud = data.cloud;
+                PointNormals* normals = data.normals;
+                PointColors* colors = data.colors;
+                std::string name = std::move(data.name);
 
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunAsync;
-        }
+                SplitCloudResultData result {};
 
-        ImGui::EndPopup();
-    }
+                groot::VoxelGrid grid = groot::voxel_grid(cloud->cloud.data(), cloud->cloud.size(), voxel_size);
+                for (size_t i = 0; i < grid.voxels.size(); i++) {
 
-    return show ? GuiState::Editing : GuiState::Close;
-}
+                    if (!grid.voxels[i].empty()) {
+                        std::stringstream namestream { name };
+                        namestream << "_" << i;
+                        result.names.emplace_back(namestream.str());
 
-CommandState SplitCloud::execute()
-{
-    this->grid = groot::voxel_grid(this->cloud->cloud.data(), cloud->cloud.size(), voxel_size);
-    for (size_t i = 0; i < this->grid.voxels.size(); i++) {
-        if (!this->grid.voxels[i].empty()) {
-            PointCloud& current_cloud = this->result_clouds.emplace_back();
-            for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
-                current_cloud.cloud.push_back(cloud->cloud[this->grid.voxels[i][j]]);
-            }
+                        PointCloud& current_cloud = result.clouds.emplace_back();
+                        for (size_t j = 0; j < grid.voxels[i].size(); j++) {
+                            current_cloud.cloud.push_back(cloud->cloud[grid.voxels[i][j]]);
+                        }
 
-            if (normals) {
-                PointNormals& current_normals = this->result_normals.emplace_back();
-                for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
-                    current_normals.normals.push_back((*normals)->normals[this->grid.voxels[i][j]]);
+                        if (normals) {
+                            PointNormals& current_normals = result.normals.emplace_back();
+                            for (size_t j = 0; j < grid.voxels[i].size(); j++) {
+                                current_normals.normals.push_back(normals->normals[grid.voxels[i][j]]);
+                            }
+                        }
+
+                        if (colors) {
+                            PointColors& current_colors = result.colors.emplace_back();
+                            for (size_t j = 0; j < grid.voxels[i].size(); j++) {
+                                current_colors.colors.push_back(colors->colors[grid.voxels[i][j]]);
+                            }
+                        }
+                    }
                 }
-            }
+                return result;
+            })
+        .then_sync(
+            [&reg = *h.registry()](SplitCloudResultData&& result) {
+                std::vector<entt::handle> entities;
+                for (size_t i = 0; i < result.clouds.size(); i++) {
+                    entt::entity entity = reg.create();
 
-            if (colors) {
-                PointColors& current_colors = this->result_colors.emplace_back();
-                for (size_t j = 0; j < this->grid.voxels[i].size(); j++) {
-                    current_colors.colors.push_back((*colors)->colors[this->grid.voxels[i][j]]);
+                    reg.emplace<Name>(entity, result.names[i]);
+
+                    reg.emplace<PointCloud>(entity, std::move(result.clouds[i]));
+                    if (!result.normals.empty()) {
+                        reg.emplace<PointNormals>(entity, std::move(result.normals[i]));
+                    }
+
+                    if (!result.colors.empty()) {
+                        reg.emplace<PointColors>(entity, std::move(result.colors[i]));
+                    }
+
+                    entities.emplace_back(reg, entity);
                 }
-            }
-        }
-    }
-
-    return CommandState::Ok;
+                return entities;
+            })
+        .build();
 }
 
-void SplitCloud::on_finish(entt::registry& reg)
+void SplitCloudGui::draw_dialog()
 {
-    for (size_t i = 0; i < result_clouds.size(); i++) {
-        entt::entity entity = reg.create();
-        reg.emplace<PointCloud>(entity, std::move(result_clouds[i]));
-        if (normals) {
-            reg.emplace<PointNormals>(entity, std::move(result_normals[i]));
-        }
+    ImGui::InputFloat("Voxel size", &this->voxel_size, 0.5f, 0.1f);
+}
 
-        if (colors) {
-            reg.emplace<PointColors>(entity, std::move(result_colors[i]));
-        }
-
-        result.emplace_back(reg, entity);
-    }
+void SplitCloudGui::schedule_commands(entt::registry& reg)
+{
+    reg.ctx<TaskBroker>().push_task(
+        "Splitting cloud",
+        split_cloud_command(target, voxel_size));
 }
 
 namespace cloud_view_system {
@@ -357,7 +375,7 @@ void create_curvature_view(entt::registry& reg, entt::entity entity)
 void init(entt::registry& reg)
 {
     auto& shaders = reg.ctx<ShaderCollection>();
-    auto& system_data = reg.set<SystemData>(SystemData {
+    reg.set<SystemData>(SystemData {
         gfx::RenderPipeline::Builder()
             .with_shader(shaders.get_shader(ShaderCollection::ShaderID::Points))
             .build(),

@@ -22,8 +22,11 @@ void PythonTask::run_till_completion()
 
 void create_task_module(py::module& m)
 {
-
     using arg = py::arg;
+
+    m.def("run_task", [](){
+        sync_scheduler().try_run_one_task();
+    });
 
     py::enum_<TaskMode>(m, "TaskMode")
         .value("Async", TaskMode::Async)
