@@ -24,17 +24,20 @@ void GuiAdapter::schedule_commands(entt::registry& reg)
 {
     std::string name(gui->name());
 
-    auto&& task = async::spawn(async_scheduler(), [gui = std::exchange(gui, nullptr)]() {
-        std::unique_ptr<CommandGui> cmd(gui);
-        if (cmd->execute() == CommandState::Error) {
-            throw std::runtime_error(cmd->error_string);
-        };
-        return cmd;
-    }).then(sync_scheduler(), [&reg](std::unique_ptr<CommandGui>&& cmd) {
-        cmd->on_finish(reg);
-    });
-
-    reg.ctx<TaskBroker>().push_task(name, std::move(task));
+    reg.ctx<TaskBroker>().push_task(
+        name,
+        create_task()
+            .then_async([gui = std::exchange(gui, nullptr)]() {
+                std::unique_ptr<CommandGui> cmd(gui);
+                if (cmd->execute() == CommandState::Error) {
+                    throw std::runtime_error(cmd->error_string);
+                };
+                return cmd;
+            })
+            .then_sync([&reg](std::unique_ptr<CommandGui>&& cmd) {
+                cmd->on_finish(reg);
+            })
+            .build());
 }
 
 GuiResult GuiAdapter::draw_gui()

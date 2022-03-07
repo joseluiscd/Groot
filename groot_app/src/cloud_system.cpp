@@ -42,17 +42,20 @@ void ComputeNormals::schedule_commands(entt::registry& reg)
 
 async::task<void> compute_normals_command(entt::handle e, size_t k, float radius)
 {
-    return async::spawn(sync_scheduler(), [e]() {
-        if (!e.valid() || !e.all_of<PointCloud>()) {
-            throw std::runtime_error("Selected entity must have PointCloud");
-        }
+    return create_task()
+        .then_sync([e]() {
+            if (!e.valid() || !e.all_of<PointCloud>()) {
+                throw std::runtime_error("Selected entity must have PointCloud");
+            }
 
-        return &e.get<PointCloud>();
-    }).then(async_scheduler(), [k, radius](PointCloud* cloud) {
-          return PointNormals { groot::compute_normals(cloud->cloud.data(), cloud->cloud.size(), k, radius) };
-      }).then(sync_scheduler(), [e](PointNormals&& normals) {
-        e.emplace_or_replace<PointNormals>(std::move(normals));
-    });
+            return &e.get<PointCloud>();
+        })
+        .then_async([k, radius](PointCloud* cloud) {
+            return PointNormals { groot::compute_normals(cloud->cloud.data(), cloud->cloud.size(), k, radius) };
+        })
+        .then_sync([e](PointNormals&& normals) {
+            e.emplace_or_replace<PointNormals>(std::move(normals));
+        });
 }
 
 RecenterCloud::RecenterCloud(entt::registry& _reg)
@@ -117,80 +120,76 @@ struct SplitCloudResultData {
 async::task<std::vector<entt::handle>> split_cloud_command(entt::handle h, float voxel_size)
 {
     return create_task()
-        .then_sync(
-            [h]() -> SplitCloudCommandData {
-                SplitCloudCommandData data;
+        .then_sync([h]() -> SplitCloudCommandData {
+            SplitCloudCommandData data;
 
-                Name* maybe_name = h.try_get<Name>();
+            Name* maybe_name = h.try_get<Name>();
 
-                data.cloud = require_components<PointCloud>(h);
-                data.normals = h.try_get<PointNormals>();
-                data.colors = h.try_get<PointColors>();
-                data.name = maybe_name ? maybe_name->name : "cloud";
+            data.cloud = require_components<PointCloud>(h);
+            data.normals = h.try_get<PointNormals>();
+            data.colors = h.try_get<PointColors>();
+            data.name = maybe_name ? maybe_name->name : "cloud";
 
-                return data;
-            })
-        .then_async(
-            [voxel_size](SplitCloudCommandData&& data) {
-                PointCloud* cloud = data.cloud;
-                PointNormals* normals = data.normals;
-                PointColors* colors = data.colors;
-                std::string name = std::move(data.name);
+            return data;
+        })
+        .then_async([voxel_size](SplitCloudCommandData&& data) {
+            PointCloud* cloud = data.cloud;
+            PointNormals* normals = data.normals;
+            PointColors* colors = data.colors;
+            std::string name = std::move(data.name);
 
-                SplitCloudResultData result {};
+            SplitCloudResultData result {};
 
-                groot::VoxelGrid grid = groot::voxel_grid(cloud->cloud.data(), cloud->cloud.size(), voxel_size);
-                for (size_t i = 0; i < grid.voxels.size(); i++) {
+            groot::VoxelGrid grid = groot::voxel_grid(cloud->cloud.data(), cloud->cloud.size(), voxel_size);
+            for (size_t i = 0; i < grid.voxels.size(); i++) {
 
-                    if (!grid.voxels[i].empty()) {
-                        std::stringstream namestream { name };
-                        namestream << "_" << i;
-                        result.names.emplace_back(namestream.str());
+                if (!grid.voxels[i].empty()) {
+                    std::stringstream namestream { name };
+                    namestream << "_" << i;
+                    result.names.emplace_back(namestream.str());
 
-                        PointCloud& current_cloud = result.clouds.emplace_back();
+                    PointCloud& current_cloud = result.clouds.emplace_back();
+                    for (size_t j = 0; j < grid.voxels[i].size(); j++) {
+                        current_cloud.cloud.push_back(cloud->cloud[grid.voxels[i][j]]);
+                    }
+
+                    if (normals) {
+                        PointNormals& current_normals = result.normals.emplace_back();
                         for (size_t j = 0; j < grid.voxels[i].size(); j++) {
-                            current_cloud.cloud.push_back(cloud->cloud[grid.voxels[i][j]]);
+                            current_normals.normals.push_back(normals->normals[grid.voxels[i][j]]);
                         }
+                    }
 
-                        if (normals) {
-                            PointNormals& current_normals = result.normals.emplace_back();
-                            for (size_t j = 0; j < grid.voxels[i].size(); j++) {
-                                current_normals.normals.push_back(normals->normals[grid.voxels[i][j]]);
-                            }
-                        }
-
-                        if (colors) {
-                            PointColors& current_colors = result.colors.emplace_back();
-                            for (size_t j = 0; j < grid.voxels[i].size(); j++) {
-                                current_colors.colors.push_back(colors->colors[grid.voxels[i][j]]);
-                            }
+                    if (colors) {
+                        PointColors& current_colors = result.colors.emplace_back();
+                        for (size_t j = 0; j < grid.voxels[i].size(); j++) {
+                            current_colors.colors.push_back(colors->colors[grid.voxels[i][j]]);
                         }
                     }
                 }
-                return result;
-            })
-        .then_sync(
-            [&reg = *h.registry()](SplitCloudResultData&& result) {
-                std::vector<entt::handle> entities;
-                for (size_t i = 0; i < result.clouds.size(); i++) {
-                    entt::entity entity = reg.create();
+            }
+            return result;
+        })
+        .then_sync([&reg = *h.registry()](SplitCloudResultData&& result) {
+            std::vector<entt::handle> entities;
+            for (size_t i = 0; i < result.clouds.size(); i++) {
+                entt::entity entity = reg.create();
 
-                    reg.emplace<Name>(entity, result.names[i]);
+                reg.emplace<Name>(entity, result.names[i]);
 
-                    reg.emplace<PointCloud>(entity, std::move(result.clouds[i]));
-                    if (!result.normals.empty()) {
-                        reg.emplace<PointNormals>(entity, std::move(result.normals[i]));
-                    }
-
-                    if (!result.colors.empty()) {
-                        reg.emplace<PointColors>(entity, std::move(result.colors[i]));
-                    }
-
-                    entities.emplace_back(reg, entity);
+                reg.emplace<PointCloud>(entity, std::move(result.clouds[i]));
+                if (!result.normals.empty()) {
+                    reg.emplace<PointNormals>(entity, std::move(result.normals[i]));
                 }
-                return entities;
-            })
-        .build();
+
+                if (!result.colors.empty()) {
+                    reg.emplace<PointColors>(entity, std::move(result.colors[i]));
+                }
+
+                entities.emplace_back(reg, entity);
+            }
+            return entities;
+        });
 }
 
 void SplitCloudGui::draw_dialog()
