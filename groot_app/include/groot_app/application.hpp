@@ -45,7 +45,7 @@ public:
     }
 
     template <typename T, typename... Args>
-    void open_new_window_adaptor(Args&&... args)
+    [[deprecated("Use the new interface for the command")]] void open_new_window_adaptor(Args&&... args)
     {
         try {
             open_window(make_gui_adapter<T>(std::forward<Args...>(args)...));
