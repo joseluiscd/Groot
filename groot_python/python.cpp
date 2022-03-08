@@ -11,8 +11,6 @@
 #include <entt/meta/pointer.hpp>
 #include <functional>
 #include <groot_app/entt.hpp>
-#include <groot_app/open_workspace.hpp>
-#include <groot_app/save_workspace.hpp>
 #include <groot_graph/plant_graph_compare.hpp>
 #include <pybind11/numpy.h>
 

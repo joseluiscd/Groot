@@ -1,5 +1,5 @@
-#include <gfx/glad.h>
 #include <gfx/font_awesome.hpp>
+#include <gfx/glad.h>
 #include <gfx/imgui/gfx.hpp>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
@@ -14,14 +14,13 @@
 #include <groot_app/cylinder_marching.hpp>
 #include <groot_app/graph_cluster.hpp>
 #include <groot_app/graph_io.hpp>
-#include <groot_app/graph_resample.hpp>
 #include <groot_app/graph_repair.hpp>
+#include <groot_app/graph_resample.hpp>
 #include <groot_app/graph_viewer_system.hpp>
-#include <groot_app/open_workspace.hpp>
 #include <groot_app/render.hpp>
-#include <groot_app/save_workspace.hpp>
 #include <groot_app/screenshot.hpp>
 #include <groot_app/viewer_system.hpp>
+#include <groot_app/workspace_io.hpp>
 #include <spdlog/spdlog.h>
 
 struct ApplicationProperties {
@@ -171,7 +170,7 @@ void Application::draw_gui()
             }
 
             if (ImGui::MenuItem(ICON_FA_SAVE "\tSave Workspace")) {
-                open_new_window_adaptor<SaveWorkspace>(registry);
+                open_new_window<SaveWorkspace>();
             }
 
             ImGui::Separator();
@@ -255,17 +254,15 @@ void Application::draw_gui()
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tResample Graph")) {
                 open_new_window<GraphResampleGui>(get_selection());
             }
-            if(ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute connected components")) {
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute connected components")) {
                 registry.ctx<TaskBroker>().push_task(
                     "Computing connected components",
-                    graph_compute_connected_components(get_selected_handle())
-                );
+                    graph_compute_connected_components(get_selected_handle()));
             }
             if (ImGui::MenuItem(ICON_FA_HAMMER "\tRepair connectivity")) {
                 registry.ctx<TaskBroker>().push_task(
                     "Graph repair",
-                    graph_repair_command(get_selected_handle())
-                );
+                    graph_repair_command(get_selected_handle()));
             }
             ImGui::EndMenu();
         }

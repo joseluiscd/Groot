@@ -4,8 +4,7 @@
 #include "python.hpp"
 #include "python_task.hpp"
 #include <groot_app/components.hpp>
-#include <groot_app/open_workspace.hpp>
-#include <groot_app/save_workspace.hpp>
+#include <groot_app/workspace_io.hpp>
 
 void create_registry_type(py::module_& m);
 
@@ -59,9 +58,7 @@ public:
     void save(const std::string& filename)
     {
         ReleaseGilGuard guard;
-        SaveWorkspace cmd { reg };
-        cmd.set_file(filename);
-        cmd.run(reg);
+        run_task(save_workspace_command(reg, filename));
     }
 
     PythonTask load_ply(const std::string& filename)
