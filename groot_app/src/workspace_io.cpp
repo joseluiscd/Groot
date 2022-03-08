@@ -45,59 +45,25 @@ async::task<void> save_workspace_command(const entt::registry& reg, const std::s
 }
 
 OpenWorkspace::OpenWorkspace()
-    : file_dialog()
+    : FileDialogGui(FileDialogType::Open, "Open Workspace", { ".groot_workspace"} )
 {
-    file_dialog.SetTitle("Open Workspace");
-    file_dialog.SetTypeFilters({ ".groot_workspace" });
-    file_dialog.Open();
 }
 
-GuiResult OpenWorkspace::draw_gui()
-{
-    file_dialog.Display();
-
-    if (file_dialog.HasSelected()) {
-        selected_file = file_dialog.GetSelected();
-        file_dialog.ClearSelected();
-        return GuiResult::RunAndClose;
-    } else if (!file_dialog.IsOpened()) {
-        return GuiResult::Close;
-    } else {
-        return GuiResult::KeepOpen;
-    }
-}
-
-void OpenWorkspace::schedule_commands(entt::registry& reg)
+void OpenWorkspace::schedule_commands(entt::registry& reg, const std::string& filename)
 {
     reg.ctx<TaskBroker>().push_task(
         "Opening workspace",
-        open_workspace_command(reg, selected_file));
+        open_workspace_command(reg, filename));
 }
 
 SaveWorkspace::SaveWorkspace()
-    : file_dialog(ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename)
+    : FileDialogGui(FileDialogType::Save, "Save Workspace", { ".groot_workspace"} )
 {
-    file_dialog.SetTitle("Graph Save");
-    file_dialog.SetTypeFilters({ ".groot_workspace" });
-    file_dialog.Open();
 }
 
-GuiResult SaveWorkspace::draw_gui()
-{
-    if (file_dialog.HasSelected()) {
-        selected_file = file_dialog.GetSelected();
-        file_dialog.ClearSelected();
-        return GuiResult::RunAndClose;
-    } else if (!file_dialog.IsOpened()) {
-        return GuiResult::Close;
-    } else {
-        return GuiResult::KeepOpen;
-    }
-}
-
-void SaveWorkspace::schedule_commands(entt::registry& reg)
+void SaveWorkspace::schedule_commands(entt::registry& reg, const std::string& filename)
 {
     reg.ctx<TaskBroker>().push_task(
         "Saving workspace",
-        save_workspace_command(reg, selected_file));
+        save_workspace_command(reg, filename));
 }

@@ -1,41 +1,19 @@
-#include <gfx/imgui/imfilebrowser.h>
 #include <groot_app/components.hpp>
 #include <groot_app/graph_io.hpp>
 #include <groot_graph/plant_graph_io.hpp>
 #include <spdlog/spdlog.h>
 
-const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
-const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
-
 ImportGraphGui::ImportGraphGui()
-    : open(open_flags)
+    : FileDialogGui(FileDialogType::Open, "Open OBJ Graph", { ".obj" })
 {
-    open.SetTitle("Open OBJ Graph");
-    open.SetTypeFilters({ ".obj" });
-    open.Open();
 }
 
-void ImportGraphGui::schedule_commands(entt::registry& reg)
+void ImportGraphGui::schedule_commands(entt::registry& reg, const std::string& filename)
 {
     reg.ctx<TaskBroker>()
         .push_task(
             "Loading Plant Graph",
-            import_graph_command(reg, this->input_file));
-}
-
-GuiResult ImportGraphGui::draw_gui()
-{
-    open.Display();
-
-    if (open.HasSelected()) {
-        input_file = open.GetSelected().string();
-        open.ClearSelected();
-        return GuiResult::RunAndClose;
-    } else if (!open.IsOpened()) {
-        return GuiResult::Close;
-    } else {
-        return GuiResult::KeepOpen;
-    }
+            import_graph_command(reg, filename));
 }
 
 async::task<entt::entity> import_graph_command(entt::registry& reg, const std::string_view& file)
@@ -61,37 +39,20 @@ async::task<entt::entity> import_graph_command(entt::registry& reg, const std::s
 }
 
 ExportGraphGui::ExportGraphGui(entt::handle handle)
-    : save(save_flags)
+    : FileDialogGui(FileDialogType::Save, "Save OBJ Graph", { ".obj" })
     , target(handle)
 {
-    save.SetTitle("Open OBJ Graph");
-    save.SetTypeFilters({ ".obj" });
-    save.Open();
-
     require_components<groot::PlantGraph>(target);
 }
 
-GuiResult ExportGraphGui::draw_gui()
-{
-    save.Display();
-
-    if (save.HasSelected()) {
-        output_file = save.GetSelected().string();
-        save.ClearSelected();
-        return GuiResult::RunAndClose;
-    } else if (!save.IsOpened()) {
-        return GuiResult::Close;
-    } else {
-        return GuiResult::KeepOpen;
-    }
-}
-void ExportGraphGui::schedule_commands(entt::registry& reg)
+void ExportGraphGui::schedule_commands(entt::registry& reg, const std::string& filename)
 {
     reg.ctx<TaskBroker>()
         .push_task(
             "Saving Plant Graph",
-            export_graph_command(target, this->output_file));
+            export_graph_command(target, filename));
 }
+
 async::task<void> export_graph_command(entt::handle e, const std::string_view& file)
 {
     return create_task()

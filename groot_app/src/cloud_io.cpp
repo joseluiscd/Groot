@@ -1,41 +1,19 @@
-#include <gfx/imgui/imfilebrowser.h>
 #include <groot/cloud_load.hpp>
 #include <groot_app/cloud_io.hpp>
 #include <groot_app/components.hpp>
 #include <spdlog/spdlog.h>
 
-const int open_flags = ImGuiFileBrowserFlags_CloseOnEsc;
-const int save_flags = open_flags | ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EnterNewFilename;
-
 ImportPLYGui::ImportPLYGui()
-    : open(open_flags)
+    : FileDialogGui(FileDialogType::Open, "Open PLY Cloud", { ".ply" })
 {
-    open.SetTitle("Open PLY Cloud");
-    open.SetTypeFilters({ ".ply" });
-    open.Open();
 }
 
-void ImportPLYGui::schedule_commands(entt::registry& reg)
+void ImportPLYGui::schedule_commands(entt::registry& reg, const std::string& filename)
 {
     reg.ctx<TaskBroker>()
         .push_task(
             "Loading PLY",
-            import_ply_command(reg, this->input_file));
-}
-
-GuiResult ImportPLYGui::draw_gui()
-{
-    open.Display();
-
-    if (open.HasSelected()) {
-        input_file = open.GetSelected().string();
-        open.ClearSelected();
-        return GuiResult::RunAndClose;
-    } else if (!open.IsOpened()) {
-        return GuiResult::Close;
-    } else {
-        return GuiResult::KeepOpen;
-    }
+            import_ply_command(reg, filename));
 }
 
 async::task<entt::entity> import_ply_command(entt::registry& reg, const std::string_view& file)
@@ -69,39 +47,19 @@ async::task<entt::entity> import_ply_command(entt::registry& reg, const std::str
 }
 
 ExportPLYGui::ExportPLYGui(entt::handle handle)
-    : save(save_flags)
-    , target(handle)
+    : FileDialogGui(FileDialogType::Save, "Save PLY Cloud", { ".ply" })
 {
-    save.SetTitle("Open PLY Cloud");
-    save.SetTypeFilters({ ".ply" });
-    save.Open();
-
-    if (!target.valid() || !target.all_of<PointCloud>()) {
-        throw std::runtime_error("Selected entity must have PointCloud");
-    }
+    require_components<PointCloud>(handle);
 }
 
-GuiResult ExportPLYGui::draw_gui()
-{
-    save.Display();
-
-    if (save.HasSelected()) {
-        output_file = save.GetSelected().string();
-        save.ClearSelected();
-        return GuiResult::RunAndClose;
-    } else if (!save.IsOpened()) {
-        return GuiResult::Close;
-    } else {
-        return GuiResult::KeepOpen;
-    }
-}
-void ExportPLYGui::schedule_commands(entt::registry& reg)
+void ExportPLYGui::schedule_commands(entt::registry& reg, const std::string& filename)
 {
     reg.ctx<TaskBroker>()
         .push_task(
             "Saving PLY",
-            export_ply_command(target, this->output_file));
+            export_ply_command(target, filename));
 }
+
 async::task<void> export_ply_command(entt::handle e, const std::string_view& file)
 {
     return create_task()

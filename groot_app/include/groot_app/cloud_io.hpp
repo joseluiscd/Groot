@@ -4,7 +4,6 @@
 #include <groot_app/command_gui.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/entt.hpp>
-#include <gfx/imgui/imfilebrowser.h>
 #include <gfx/imgui/imgui.h>
 #include <groot/cgal.hpp>
 #include <optional>
@@ -12,26 +11,18 @@
 GROOT_APP_API async::task<entt::entity> import_ply_command(entt::registry& reg, const std::string_view& file);
 GROOT_APP_API async::task<void> export_ply_command(entt::handle e, const std::string_view& file);
 
-class GROOT_APP_LOCAL ImportPLYGui : public Gui {
+class GROOT_APP_LOCAL ImportPLYGui : public FileDialogGui {
 public:
     ImportPLYGui();
-    void schedule_commands(entt::registry& reg) override;
-    GuiResult draw_gui() override;
-
-private:
-    ImGui::FileBrowser open;
-    std::string input_file;
+    void schedule_commands(entt::registry& reg, const std::string& filename) override;
 };
 
-class GROOT_APP_LOCAL ExportPLYGui : public Gui {
+class GROOT_APP_LOCAL ExportPLYGui : public FileDialogGui {
 public:
     ExportPLYGui(entt::handle h);
 
-    void schedule_commands(entt::registry& reg) override;
-    GuiResult draw_gui() override;
+    void schedule_commands(entt::registry& reg, const std::string& filename) override;
 
 private:
-    ImGui::FileBrowser save;
     entt::handle target;
-    std::string output_file = "";
 };
