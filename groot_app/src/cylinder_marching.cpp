@@ -1,68 +1,102 @@
 #define _USE_MATH_DEFINES
-#include <groot_app/cylinder_marching.hpp>
-#include <groot_app/components.hpp>
-#include <groot_app/render.hpp>
-#include <groot_app/resources.hpp>
 #include <future>
 #include <gfx/imgui/imgui.h>
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <groot_app/components.hpp>
+#include <groot_app/cylinder_marching.hpp>
+#include <groot_app/render.hpp>
+#include <groot_app/resources.hpp>
 #include <groot_graph/cylinder_marching.hpp>
 #include <iterator>
 #include <queue>
 
-CylinderMarching::CylinderMarching(entt::registry& _reg)
-    : CylinderMarching(entt::handle {
-        _reg,
-        _reg.ctx<SelectedEntity>().selected })
+async::task<void> cylinder_marching_command(entt::handle h, const groot::Ransac::Parameters& params, float voxel_size)
 {
+    return create_task()
+        .then_sync([h]() {
+            return require_components<PointCloud, PointNormals>(h);
+        })
+        .then_async([params, voxel_size](std::tuple<PointCloud*, PointNormals*>&& input) {
+            PointCloud* cloud = std::get<0>(input);
+            PointNormals* normals = std::get<1>(input);
+
+            return groot::compute_cylinders_voxelized_curvature(
+                cloud->cloud.data(),
+                normals->normals.data(),
+                cloud->cloud.size(),
+                voxel_size, params);
+        })
+        .then_sync([h](std::vector<groot::CylinderWithPoints>&& result) {
+            h.emplace_or_replace<Cylinders>(std::move(result));
+        });
 }
 
-CylinderMarching::CylinderMarching(entt::handle&& handle)
-    : reg(*handle.registry())
+async::task<void> cylinder_filter_command(entt::handle h, const CylinderFilterParams& params)
 {
-    target = handle.entity();
+    return create_task()
+        .then_sync([h]() {
+            return require_components<Cylinders>(h);
+        })
+        .then_async([params](const Cylinders* cylinders) {
+            Cylinders new_cylinders;
 
-    if (reg.valid(target) && reg.all_of<PointCloud, PointNormals>(target)) {
-        cloud = &reg.get<PointCloud>(target);
-        normals = &reg.get<PointNormals>(target);
+            for (auto it = cylinders->cylinders.begin(); it != cylinders->cylinders.end(); ++it) {
+                const float radius = it->cylinder.radius;
+                const float length = it->cylinder.middle_height * 2;
 
-    } else {
-        throw std::runtime_error("Selected entity must have PointCloud and PointNormals");
-    }
+                if ((!params.radius
+                        || (params.radius_range[0] < radius && radius < params.radius_range[1]))
+                    && (!params.length
+                        || (params.length_range[0] < length && length < params.length_range[1]))) {
+
+                    new_cylinders.cylinders.push_back(*it);
+                }
+            }
+
+            return new_cylinders;
+        })
+        .then_sync([h](Cylinders&& cylinders) {
+            h.emplace_or_replace<Cylinders>(std::move(cylinders));
+        });
 }
 
-GuiState CylinderMarching::draw_gui()
+async::task<void> cylinder_point_filter_command(entt::handle h)
 {
-    bool show = true;
-    ImGui::OpenPopup("Cylinder marching");
-    if (ImGui::BeginPopupModal("Cylinder marching", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
+    // TODO: Take into account Normals and colors
+    return create_task()
+        .then_sync([h]() {
+            return require_components<Cylinders>(h);
+        })
+        .then_async([](const Cylinders* cylinders) {
+            PointCloud cloud;
+            for (size_t i = 0; i < cylinders->cylinders.size(); i++) {
+                const groot::CylinderWithPoints& cylinder = cylinders->cylinders[i];
 
-        ImGui::Separator();
-        ImGui::InputInt("Min points", &min_points);
-        ImGui::Separator();
-
-        ImGui::InputFloat("Epsilon", &epsilon, 0.05f, 0.1f);
-        ImGui::InputFloat("Sampling resolution", &sampling, 0.05f, 0.1f);
-        ImGui::InputFloat("Normal Threshold", &normal_deviation, 1.0f, 5.0f);
-        ImGui::InputFloat("Missing probability", &overlook_probability, 0.01f, 0.1f);
-        ImGui::InputFloat("Voxel size", &voxel_size, 0.1f, 0.5f);
-
-        ImGui::Separator();
-
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunAsync;
-        }
-
-        ImGui::EndPopup();
-    }
-
-    return show ? GuiState::Editing : GuiState::Close;
+                std::copy(cylinder.points.begin(), cylinder.points.end(), std::back_inserter(cloud.cloud));
+            }
+            return cloud;
+        })
+        .then_sync([h](PointCloud&& cloud) {
+            h.emplace_or_replace<PointCloud>(std::move(cloud));
+        });
 }
 
-CommandState CylinderMarching::execute()
+void CylinderMarching::draw_dialog()
+{
+    ImGui::Separator();
+    ImGui::InputInt("Min points", &min_points);
+    ImGui::Separator();
+
+    ImGui::InputFloat("Epsilon", &epsilon, 0.05f, 0.1f);
+    ImGui::InputFloat("Sampling resolution", &sampling, 0.05f, 0.1f);
+    ImGui::InputFloat("Normal Threshold", &normal_deviation, 1.0f, 5.0f);
+    ImGui::InputFloat("Missing probability", &overlook_probability, 0.01f, 0.1f);
+    ImGui::InputFloat("Voxel size", &voxel_size, 0.1f, 0.5f);
+}
+
+void CylinderMarching::schedule_commands(entt::registry& reg)
 {
     groot::Ransac::Parameters params;
     params.cluster_epsilon = sampling;
@@ -71,110 +105,36 @@ CommandState CylinderMarching::execute()
     params.normal_threshold = std::cos(normal_deviation * M_PI / 180.0);
     params.probability = overlook_probability;
 
-    result = groot::compute_cylinders_voxelized_curvature(cloud->cloud.data(), normals->normals.data(), cloud->cloud.size(), voxel_size, params);
-    return CommandState::Ok;
+    return reg.ctx<TaskBroker>().push_task(
+        "Detecting Cylinders",
+        cylinder_marching_command(target, params, voxel_size));
 }
 
-void CylinderMarching::on_finish(entt::registry& reg)
+void CylinderFilter::draw_dialog()
 {
-    reg.emplace_or_replace<Cylinders>(target, std::move(result));
-}
+    ImGui::Checkbox("Filter by radius", &params.radius);
 
-CylinderFilter::CylinderFilter(entt::registry& _reg)
-    : CylinderFilter(entt::handle {
-        _reg,
-        _reg.ctx<SelectedEntity>().selected })
-{
-}
-
-CylinderFilter::CylinderFilter(entt::handle&& handle)
-    : reg(*handle.registry())
-{
-    target = handle.entity();
-    cylinders = require_components<Cylinders>(handle);
-}
-GuiState CylinderFilter::draw_gui()
-{
-    bool show = true;
-    ImGui::OpenPopup("Cylinder filter");
-    if (ImGui::BeginPopupModal("Cylinder filter", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        ImGui::Checkbox("Filter by radius", &filter_radius);
-
-        if (filter_radius) {
-            ImGui::InputFloat2("Radius range", radius_range);
-            if (radius_range[1] < radius_range[0]) {
-                radius_range[1] = radius_range[0];
-            }
-        }
-
-        ImGui::Checkbox("Filter by length", &filter_length);
-        if (filter_length) {
-            ImGui::InputFloat2("Length range", length_range);
-            if (length_range[1] < length_range[0]) {
-                length_range[1] = length_range[0];
-            }
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunAsync;
-        }
-
-        ImGui::EndPopup();
-    }
-
-    return show ? GuiState::Editing : GuiState::Close;
-}
-
-CommandState CylinderFilter::execute()
-{
-    for (auto it = cylinders->cylinders.begin(); it != cylinders->cylinders.end(); ++it) {
-        const float radius = it->cylinder.radius;
-        const float length = it->cylinder.middle_height * 2;
-
-        if ((!filter_radius
-                || (radius_range[0] < radius && radius < radius_range[1]))
-            && (!filter_length
-                || (length_range[0] < length && length < length_range[1]))) {
-
-            new_cylinders.push_back(*it);
+    if (params.radius) {
+        ImGui::InputFloat2("Radius range", params.radius_range);
+        if (params.radius_range[1] < params.radius_range[0]) {
+            params.radius_range[1] = params.radius_range[0];
         }
     }
-    return CommandState::Ok;
-}
 
-void CylinderFilter::on_finish(entt::registry& reg)
-{
-    reg.emplace_or_replace<Cylinders>(target, std::move(new_cylinders));
-}
-
-CylinderPointFilter::CylinderPointFilter(entt::handle&& handle)
-    : reg(*handle.registry())
-{
-    target = handle.entity();
-    if (reg.valid(target) && reg.all_of<Cylinders>(target)) {
-        cylinders = &reg.get<Cylinders>(target);
-    } else {
-        throw std::runtime_error("Selected entity must have Cylinders component");
+    ImGui::Checkbox("Filter by length", &params.length);
+    if (params.length) {
+        ImGui::InputFloat2("Length range", params.length_range);
+        if (params.length_range[1] < params.length_range[0]) {
+            params.length_range[1] = params.length_range[0];
+        }
     }
 }
 
-CommandState CylinderPointFilter::execute()
+void CylinderFilter::schedule_commands(entt::registry& reg)
 {
-    for (size_t i = 0; i < cylinders->cylinders.size(); i++) {
-        groot::CylinderWithPoints& cylinder = cylinders->cylinders[i];
-
-        std::copy(cylinder.points.begin(), cylinder.points.end(), std::back_inserter(cloud.cloud));
-    }
-    return CommandState::Ok;
+    reg.ctx<TaskBroker>().push_task("Filtering Cylinders", cylinder_filter_command(target, params));
 }
 
-void CylinderPointFilter::on_finish(entt::registry& reg)
-{
-    reg.emplace_or_replace<PointCloud>(target, std::move(cloud));
-}
 
 namespace cylinder_view_system {
 

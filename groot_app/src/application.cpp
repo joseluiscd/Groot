@@ -269,13 +269,16 @@ void Application::draw_gui()
 
         if (ImGui::BeginMenu("Cylinders")) {
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCylinders...")) {
-                open_new_window_adaptor<CylinderMarching>(registry);
+                open_new_window<CylinderMarching>(get_selected_handle());
             }
             if (ImGui::MenuItem(ICON_FA_FILTER "\tFilter Cylinders...")) {
-                open_new_window_adaptor<CylinderFilter>(registry);
+                open_new_window<CylinderFilter>(get_selected_handle());
             }
             if (ImGui::MenuItem(ICON_FA_CUBE "\tBuild cloud from cylinders")) {
-                open_new_window_adaptor<CylinderPointFilter>(registry);
+                registry.ctx<TaskBroker>().push_task(
+                    "Building cloud from cylinders",
+                    cylinder_point_filter_command(get_selected_handle())
+                );
             }
             ImGui::EndMenu();
         }

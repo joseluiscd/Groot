@@ -181,15 +181,15 @@ public:
         float voxel_size)
     {
         ReleaseGilGuard guard;
+        groot::Ransac::Parameters params;
 
-        CylinderMarching cmd { entt::handle(e) };
-        cmd.min_points = min_points;
-        cmd.epsilon = epsilon;
-        cmd.sampling = sampling;
-        cmd.normal_deviation = normal_deviation;
-        cmd.overlook_probability = overlook_probability;
-        cmd.voxel_size = voxel_size;
-        cmd.run(*e.registry());
+        params.min_points = min_points;
+        params.epsilon = epsilon;
+        params.cluster_epsilon = sampling;
+        params.normal_threshold = std::cos(normal_deviation * M_PI / 180.0);
+        params.probability = overlook_probability;
+
+        run_task(cylinder_marching_command(e, params, voxel_size));
     }
 
     void cylinder_filter(
@@ -199,15 +199,16 @@ public:
         float length_max)
     {
         ReleaseGilGuard guard;
+        CylinderFilterParams params;
 
-        CylinderFilter cmd { entt::handle(e) };
-        cmd.filter_radius = true;
-        cmd.radius_range[0] = radius_min;
-        cmd.radius_range[1] = radius_max;
-        cmd.filter_length = true;
-        cmd.length_range[0] = length_min;
-        cmd.length_range[1] = length_max;
-        cmd.run(*e.registry());
+        params.radius = true;
+        params.radius_range[0] = radius_min;
+        params.radius_range[1] = radius_max;
+        params.length = true;
+        params.length_range[0] = length_min;
+        params.length_range[1] = length_max;
+
+        run_task(cylinder_filter_command(e, params));
     }
 
    
@@ -215,9 +216,7 @@ public:
     void rebuild_cloud_from_cylinders()
     {
         ReleaseGilGuard guard;
-
-        CylinderPointFilter cmd { entt::handle(e) };
-        cmd.run(*e.registry());
+        run_task(cylinder_point_filter_command(e));
     }
 
     void build_graph_from_cylinders()
