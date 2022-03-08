@@ -42,7 +42,8 @@ struct IntervalFilterOperator {
 
 CommandState GraphCluster::execute()
 {
-    groot::PlantGraph g = groot::geodesic(*graph);
+    groot::PropertyMap<float> distance_map;
+    groot::PlantGraph g = groot::geodesic(*graph, &distance_map);
 
     float max_root_distance = g.m_property->max_root_distance;
     std::vector<std::pair<size_t, size_t>> clusters(boost::num_vertices(g));
@@ -53,7 +54,7 @@ CommandState GraphCluster::execute()
     // Compute the interval of each vertex
     auto [it, end] = boost::vertices(g);
     for (; it != end; ++it) {
-        float dist = g[*it].root_distance;
+        float dist = distance_map[*it];
         size_t interval = float(interval_count) * dist / max_root_distance;
         if (interval == interval_count)
             --interval;

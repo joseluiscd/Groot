@@ -51,8 +51,7 @@ void recompute_edge_length(PlantGraph& graph, Edge e)
     Vertex b = boost::target(e, graph);
 
     graph[e].length = std::sqrt(CGAL::squared_distance(
-        graph[a].position, graph[b].position
-    ));
+        graph[a].position, graph[b].position));
 }
 
 void recompute_edge_lengths(PlantGraph& graph)
@@ -202,9 +201,9 @@ PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const
     // std::vector<EdgeElement> elements(components * components);
 
     // Further operation
-    //PlantGraph alpha_graph = from_alpha_shape(cloud, count, 0.0, 1);
-    //groot::find_root(radius_graph, f);
-    //alpha_graph = geodesic(alpha_graph);
+    // PlantGraph alpha_graph = from_alpha_shape(cloud, count, 0.0, 1);
+    // groot::find_root(radius_graph, f);
+    // alpha_graph = geodesic(alpha_graph);
     // PlantGraph alpha_graph = from_search(cloud, count, SearchParams { .k = 0, .radius = radius * 2, .search = SearchType::kRadiusSearch});
     // PlantGraph alpha_graph = from_cardenas_et_al(cloud, count, radius * 2);
 
@@ -255,41 +254,51 @@ struct EdgeFilter {
     MapType map;
 };
 
-PlantGraph geodesic(PlantGraph& graph)
+PlantGraph geodesic(const PlantGraph& graph, PropertyMap<float>* _distance_map)
 {
     std::vector<Vertex> predecessors(boost::num_vertices(graph));
     auto predecessor_map = make_vertex_property_map(predecessors, graph);
 
     auto weight_map = boost::get(&EdgeProperties::length, graph);
-    auto distance_map = boost::get(&VertexProperties::root_distance, graph);
+
+    std::vector<float> local_distance_map;
+
+    std::vector<float>* distance_map;
+
+    if (_distance_map) {
+        *_distance_map = std::vector<float>(boost::num_vertices(graph), 0.0f);
+        distance_map = _distance_map;
+    } else {
+        local_distance_map = std::vector<float>(boost::num_vertices(graph), 0.0f);
+        distance_map = &local_distance_map;
+    }
+
+    auto dmap = boost::make_iterator_property_map(distance_map->begin(), boost::get(boost::vertex_index, graph));
 
     Vertex root = boost::vertex(graph.m_property->root_index, graph);
     boost::dijkstra_shortest_paths(graph, root,
         boost::weight_map(weight_map)
-            .distance_map(distance_map)
+            .distance_map(dmap)
             .predecessor_map(predecessor_map));
 
     std::vector<bool> is_shortest_path(boost::num_edges(graph));
     auto shortest_path_map
         = boost::make_iterator_property_map(is_shortest_path.begin(), boost::get(boost::edge_index, graph));
 
-    auto edge_index = boost::get(boost::edge_index, graph);
-
     auto [vertex_begin, vertex_end] = boost::vertices(graph);
     for (auto n = vertex_begin; n != vertex_end; ++n) {
         if (predecessor_map[*n] != *n) {
             // Nodes are reachable from the root
             auto [edge, exists] = boost::edge(*n, predecessor_map[*n], graph);
-            auto [edge_2, exists_2] = boost::edge(predecessor_map[*n], *n, graph);
+            boost::edge(predecessor_map[*n], *n, graph);
 
             shortest_path_map[edge] = true;
 
-            if (graph[*n].root_distance > graph.m_property->max_root_distance) {
-                graph.m_property->max_root_distance = graph[*n].root_distance;
+            if ((*distance_map)[*n] > graph.m_property->max_root_distance) {
+                graph.m_property->max_root_distance = (*distance_map)[*n];
             }
         }
     }
-    auto edge_indices = boost::get(boost::edge_index, graph);
 
     boost::filtered_graph filter(graph, EdgeFilter(shortest_path_map));
 
@@ -300,20 +309,32 @@ PlantGraph geodesic(PlantGraph& graph)
     return ret;
 }
 
-PlantGraph minimum_spanning_tree(PlantGraph& graph)
+PlantGraph minimum_spanning_tree(const PlantGraph& graph, PropertyMap<float>* _distance_map)
 {
     std::vector<Vertex> predecessors(boost::num_vertices(graph));
     auto predecessor_map
         = boost::make_iterator_property_map(predecessors.begin(), boost::get(boost::vertex_index, graph));
 
-    auto distance_map = boost::get(&VertexProperties::root_distance, graph);
     auto weight_map = boost::get(&EdgeProperties::length, graph);
+
+    std::vector<float> local_distance_map;
+    std::vector<float>* distance_map;
+
+    if (_distance_map) {
+        *_distance_map = std::vector<float>(boost::num_vertices(graph), 0.0f);
+        distance_map = _distance_map;
+    } else {
+        local_distance_map = std::vector<float>(boost::num_vertices(graph), 0.0f);
+        distance_map = &local_distance_map;
+    }
+
+    auto dmap = boost::make_iterator_property_map(distance_map->begin(), boost::get(boost::vertex_index, graph));
 
     Vertex root = boost::vertex(graph.m_property->root_index, graph);
     boost::prim_minimum_spanning_tree(graph, predecessor_map,
         boost::root_vertex(root)
             .weight_map(weight_map)
-            .distance_map(distance_map));
+            .distance_map(dmap));
 
     std::vector<bool> is_shortest_path(boost::num_edges(graph));
     auto shortest_path_map
@@ -326,8 +347,8 @@ PlantGraph minimum_spanning_tree(PlantGraph& graph)
             auto [edge, _] = boost::edge(*n, predecessor_map[*n], graph);
             shortest_path_map[edge] = true;
 
-            if (graph[*n].root_distance > graph.m_property->max_root_distance) {
-                graph.m_property->max_root_distance = graph[*n].root_distance;
+            if ((*distance_map)[*n] > graph.m_property->max_root_distance) {
+                graph.m_property->max_root_distance = (*distance_map)[*n];
             }
         }
     }

@@ -51,7 +51,6 @@ GROOT_GRAPH_API void recompute_edge_lengths(PlantGraph& graph);
 
 struct GROOT_GRAPH_LOCAL VertexProperties {
     cgal::Point_3 position = cgal::Point_3(0, 0, 0);
-    float root_distance = 0.0;
 };
 
 struct GROOT_GRAPH_LOCAL EdgeProperties {
@@ -168,10 +167,19 @@ GROOT_GRAPH_API PlantGraph from_search(
 
 GROOT_GRAPH_API PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f = point_finder::MinY());
 
-/// Computes distances to ther root on the original graph and returns simplified version.
-GROOT_GRAPH_API PlantGraph geodesic(PlantGraph& g);
-/// Computes distances to ther root on the original graph and returns simplified version.
-GROOT_GRAPH_API PlantGraph minimum_spanning_tree(PlantGraph& g);
+/**
+ * @brief Computes distances to ther root on the original graph and returns simplified version.
+ * @param g Graph to compute the geodesic graph.
+ * @param g Output property map with distances to the root. If non-NULL, it is created.
+ */
+GROOT_GRAPH_API PlantGraph geodesic(const PlantGraph& g, PropertyMap<float>* distance_map = nullptr);
+
+/**
+ * @brief Computes minimum spanning tree of input graph
+ * @param g Graph to compute the MST.
+ * @param g Output property map with distances to the root. If non-NULL, it is created.
+ */
+GROOT_GRAPH_API PlantGraph minimum_spanning_tree(const PlantGraph& g, PropertyMap<float>* distance_map = nullptr);
 
 GROOT_GRAPH_LOCAL inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = point_finder::MinY())
 {

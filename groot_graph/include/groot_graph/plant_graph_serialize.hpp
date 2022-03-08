@@ -13,7 +13,7 @@ GROOT_GRAPH_API PlantGraph read_from_file(std::istream& input);
 template <class Archive>
 void serialize(Archive& ar, VertexProperties& props)
 {
-    ar(props.position, props.root_distance);
+    ar(props.position);
 }
 
 template <class Archive>
