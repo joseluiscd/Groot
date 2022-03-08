@@ -2,6 +2,28 @@
 #include <groot_app/components.hpp>
 #include <spdlog/spdlog.h>
 
+async::task<void> geodesic_graph_command(entt::handle h)
+{
+    return create_task()
+        .require_component<groot::PlantGraph>(h)
+        .then_async([](groot::PlantGraph* graph) {
+            return groot::geodesic(*graph);
+        })
+        .emplace_component<groot::PlantGraph>(h);
+}
+
+async::task<void> mst_graph_command(entt::handle h)
+{
+    return create_task()
+        .require_component<groot::PlantGraph>(h)
+        .then_async([](groot::PlantGraph* graph) {
+            return groot::minimum_spanning_tree(*graph);
+        })
+        .emplace_component<groot::PlantGraph>(h);
+}
+
+async::task<void> mst_graph_command(entt::handle h);
+
 CreateGraph::CreateGraph(entt::handle&& handle)
     : registry(*handle.registry())
     , target(handle.entity())

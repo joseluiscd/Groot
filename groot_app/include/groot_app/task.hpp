@@ -3,6 +3,7 @@
 #include <async++.h>
 #include <groot_app/entt.hpp>
 #include <groot_app/groot_app.hpp>
+#include <groot_app/components.hpp>
 
 GROOT_APP_API async::threadpool_scheduler& async_scheduler();
 GROOT_APP_API async::fifo_scheduler& sync_scheduler();
@@ -71,6 +72,22 @@ public:
         return this->then(async::inline_scheduler(), std::forward<F>(f));
     }
 
+    template <typename Component>
+    inline auto require_component(entt::handle h)
+    {
+        return this->then_sync([h]() {
+            return require_components<Component>(h);
+        });
+    }
+
+    template <typename Component>
+    inline TaskBuilder<void> emplace_component(entt::handle h)
+    {
+        return this->then_sync([h](Component&& c) {
+            h.emplace_or_replace<Component>(std::move(c));
+        });
+    }
+
     operator async::task<Result>()
     {
         return this->build();
@@ -99,6 +116,11 @@ inline TaskBuilder<void> create_task()
     return TaskBuilder<void>();
 }
 
+template <typename... Components>
+inline auto create_task_require_components(entt::handle h)
+{
+    return create_task().then_sync([h]() { return require_components<Components...>(); });
+}
 
 /**
 * @brief Class to manage the results of tasks and ensure they are run and finished.

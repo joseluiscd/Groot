@@ -10,7 +10,6 @@
 #include <groot_app/command.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/create_graph.hpp>
-#include <groot_app/cylinder_connect.hpp>
 #include <groot_app/cylinder_marching.hpp>
 #include <groot_app/graph_cluster.hpp>
 #include <groot_app/graph_io.hpp>
@@ -232,14 +231,23 @@ void Application::draw_gui()
                 open_new_window_adaptor<GraphCluster>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute from cylinders")) {
-                open_new_window_adaptor<CylinderConnection>(registry);
+                registry.ctx<TaskBroker>().push_task(
+                    "Building graph from cylinders",
+                    cylinder_connect_graph_command(get_selected_handle())
+                );
             }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tGeodesic graph")) {
-                open_new_window_adaptor<GeodesicGraphCommand>(registry);
+                registry.ctx<TaskBroker>().push_task(
+                    "Geodesic graph",
+                    geodesic_graph_command(get_selected_handle())
+                );
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tMinimum Spanning Tree")) {
-                open_new_window_adaptor<MSTGraphCommand>(registry);
+                registry.ctx<TaskBroker>().push_task(
+                    "MST graph",
+                    mst_graph_command(get_selected_handle())
+                );
             }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PlantGraph")) {

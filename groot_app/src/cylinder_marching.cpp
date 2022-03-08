@@ -8,6 +8,7 @@
 #include <groot_app/cylinder_marching.hpp>
 #include <groot_app/render.hpp>
 #include <groot_app/resources.hpp>
+#include <groot_graph/cylinder_connection.hpp>
 #include <groot_graph/cylinder_marching.hpp>
 #include <iterator>
 #include <queue>
@@ -83,6 +84,20 @@ async::task<void> cylinder_point_filter_command(entt::handle h)
         });
 }
 
+async::task<void> cylinder_connect_graph_command(entt::handle h)
+{
+    return create_task()
+        .then_sync([h]() {
+            return require_components<Cylinders>(h);
+        })
+        .then_async([](Cylinders* cylinders) {
+            return groot::connect_cylinders(cylinders->cylinders.data(), cylinders->cylinders.size());
+        })
+        .then_sync([h](groot::PlantGraph&& result) {
+            h.emplace_or_replace<groot::PlantGraph>(std::move(result));
+        });
+}
+
 void CylinderMarching::draw_dialog()
 {
     ImGui::Separator();
@@ -134,7 +149,6 @@ void CylinderFilter::schedule_commands(entt::registry& reg)
 {
     reg.ctx<TaskBroker>().push_task("Filtering Cylinders", cylinder_filter_command(target, params));
 }
-
 
 namespace cylinder_view_system {
 

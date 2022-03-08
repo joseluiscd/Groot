@@ -55,6 +55,7 @@ struct CylinderFilterParams {
 GROOT_APP_API async::task<void> cylinder_marching_command(entt::handle h, const groot::Ransac::Parameters& params, float voxel_size = 1.0f);
 GROOT_APP_API async::task<void> cylinder_filter_command(entt::handle h, const CylinderFilterParams& params);
 GROOT_APP_API async::task<void> cylinder_point_filter_command(entt::handle h);
+GROOT_APP_API async::task<void> cylinder_connect_graph_command(entt::handle h);
 
 class GROOT_APP_LOCAL CylinderMarching : public DialogGui {
 public:

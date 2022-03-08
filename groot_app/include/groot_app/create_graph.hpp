@@ -9,6 +9,9 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
+GROOT_APP_API async::task<void> geodesic_graph_command(entt::handle h);
+GROOT_APP_API async::task<void> mst_graph_command(entt::handle h);
+
 struct GROOT_APP_API CreateGraph : public CommandGui {
     CreateGraph(entt::registry& registry)
         : CreateGraph(entt::handle(
@@ -81,51 +84,3 @@ struct GROOT_APP_API CreateGraph : public CommandGui {
         "Minimum Spanning Tree",
     };
 };
-
-template <auto Operation>
-struct GROOT_APP_LOCAL SimpleGraphCommand : public CommandGui {
-    SimpleGraphCommand(entt::registry& registry)
-        : SimpleGraphCommand(entt::handle(
-            registry,
-            registry.ctx<SelectedEntity>().selected))
-    {
-    }
-
-    SimpleGraphCommand(entt::handle&& handle);
-
-    entt::registry& registry;
-    entt::entity target;
-
-    groot::PlantGraph* graph;
-    std::optional<groot::PlantGraph> result;
-
-    GuiState draw_gui() override
-    {
-        return GuiState::RunAsync;
-    }
-
-    CommandState execute() override
-    {
-        result = Operation(*graph);
-        spdlog::info("Edges {}", boost::num_edges(*result));
-        return CommandState::Ok;
-    }
-
-    void on_finish(entt::registry& reg) override
-    {
-        if (this->result) {
-            registry.replace<groot::PlantGraph>(target, std::move(*this->result));
-        }
-    }
-};
-
-template <auto Operation>
-SimpleGraphCommand<Operation>::SimpleGraphCommand(entt::handle&& handle)
-    : registry(*handle.registry())
-    , target(handle.entity())
-{
-    graph = require_components<groot::PlantGraph>(handle);
-}
-
-using GeodesicGraphCommand = SimpleGraphCommand<&groot::geodesic>;
-using MSTGraphCommand = SimpleGraphCommand<&groot::minimum_spanning_tree>;

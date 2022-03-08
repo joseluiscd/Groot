@@ -1,9 +1,10 @@
-#include "gfx/imgui/imgui.h"
-#include "groot/cloud_load.hpp"
+#include <gfx/imgui/imgui.h>
 #include <gfx/imgui/imgui_stdlib.h>
+#include <groot/cloud_load.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/entity_editor.hpp>
 #include <groot_app/resources.hpp>
+#include <groot_app/task.hpp>
 #include <groot_graph/connectivity_repair.hpp>
 
 void check_normals_cloud(entt::registry& reg, entt::entity entity)
@@ -136,7 +137,11 @@ void ComponentEditorWidget<PlantGraphNodePoints>(entt::registry& reg, entt::regi
         if (ImGui::TreeNode((void*)i, "Node %zu", i)) {
             ImGui::Text("Node with %zu points", t.points[i].size());
             if (ImGui::Button("Dump to file")) {
-                groot::save_PLY("out.ply", t.points[i].data(), t.points[i].size());
+                reg.ctx<TaskBroker>().push_task(
+                    "Dump points to file",
+                    async::spawn(async_scheduler(), [&t, i]() {
+                        groot::save_PLY("out.ply", t.points[i].data(), t.points[i].size());
+                    }));
             }
             if (ImGui::TreeNode("Points")) {
                 for (size_t j = 0; j < t.points[i].size(); j++) {

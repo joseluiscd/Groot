@@ -16,7 +16,6 @@
 
 using namespace entt::literals;
 
-constexpr const entt::id_type convert_from_ptr = "convert_from_ptr"_hs;
 constexpr const entt::id_type convert_to_python = "convert_to_python"_hs;
 constexpr const entt::id_type convert_from_python = "convert_from_python"_hs;
 

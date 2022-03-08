@@ -10,7 +10,6 @@
 #include <groot_app/cloud_system.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/create_graph.hpp>
-#include <groot_app/cylinder_connect.hpp>
 #include <groot_app/cylinder_marching.hpp>
 #include <groot_app/graph_cluster.hpp>
 #include <groot_app/graph_io.hpp>
@@ -222,9 +221,7 @@ public:
     void build_graph_from_cylinders()
     {
         ReleaseGilGuard guard;
-
-        CylinderConnection cmd { entt::handle(e) };
-        cmd.run(*e.registry());
+        run_task(cylinder_connect_graph_command(e));
     }
 
     void graph_cluster(int intervals)
