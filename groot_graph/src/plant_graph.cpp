@@ -254,7 +254,8 @@ struct EdgeFilter {
     MapType map;
 };
 
-PlantGraph geodesic(const PlantGraph& graph, PropertyMap<float>* _distance_map)
+//TODO: Cleanup
+PlantGraph geodesic(const PlantGraph& graph, PropertyMap<float>* _distance_map, float* max_distance)
 {
     std::vector<Vertex> predecessors(boost::num_vertices(graph));
     auto predecessor_map = make_vertex_property_map(predecessors, graph);
@@ -275,6 +276,10 @@ PlantGraph geodesic(const PlantGraph& graph, PropertyMap<float>* _distance_map)
 
     auto dmap = boost::make_iterator_property_map(distance_map->begin(), boost::get(boost::vertex_index, graph));
 
+    if (max_distance) {
+        *max_distance = -INFINITY;
+    }
+
     Vertex root = boost::vertex(graph.m_property->root_index, graph);
     boost::dijkstra_shortest_paths(graph, root,
         boost::weight_map(weight_map)
@@ -294,8 +299,10 @@ PlantGraph geodesic(const PlantGraph& graph, PropertyMap<float>* _distance_map)
 
             shortest_path_map[edge] = true;
 
-            if ((*distance_map)[*n] > graph.m_property->max_root_distance) {
-                graph.m_property->max_root_distance = (*distance_map)[*n];
+            if (max_distance) {
+                if ((*distance_map)[*n] > *max_distance) {
+                    *max_distance = (*distance_map)[*n];
+                }
             }
         }
     }
@@ -309,7 +316,8 @@ PlantGraph geodesic(const PlantGraph& graph, PropertyMap<float>* _distance_map)
     return ret;
 }
 
-PlantGraph minimum_spanning_tree(const PlantGraph& graph, PropertyMap<float>* _distance_map)
+//TODO: Cleanup
+PlantGraph minimum_spanning_tree(const PlantGraph& graph, PropertyMap<float>* _distance_map, float* max_distance)
 {
     std::vector<Vertex> predecessors(boost::num_vertices(graph));
     auto predecessor_map
@@ -326,6 +334,10 @@ PlantGraph minimum_spanning_tree(const PlantGraph& graph, PropertyMap<float>* _d
     } else {
         local_distance_map = std::vector<float>(boost::num_vertices(graph), 0.0f);
         distance_map = &local_distance_map;
+    }
+
+    if (max_distance) {
+        *max_distance = -INFINITY;
     }
 
     auto dmap = boost::make_iterator_property_map(distance_map->begin(), boost::get(boost::vertex_index, graph));
@@ -347,8 +359,10 @@ PlantGraph minimum_spanning_tree(const PlantGraph& graph, PropertyMap<float>* _d
             auto [edge, _] = boost::edge(*n, predecessor_map[*n], graph);
             shortest_path_map[edge] = true;
 
-            if ((*distance_map)[*n] > graph.m_property->max_root_distance) {
-                graph.m_property->max_root_distance = (*distance_map)[*n];
+            if (max_distance) {
+                if ((*distance_map)[*n] > *max_distance) {
+                    *max_distance = (*distance_map)[*n];
+                }
             }
         }
     }

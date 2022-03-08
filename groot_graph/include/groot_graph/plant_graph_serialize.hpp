@@ -25,7 +25,7 @@ void serialize(Archive& ar, EdgeProperties& props)
 template <class Archive>
 void serialize(Archive& ar, PlantProperties& props)
 {
-    ar(props.max_root_distance, props.root_index);
+    ar(props.root_index);
 }
 
 template <typename Archive>

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <groot_graph/groot_graph.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/subgraph.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <glm/glm.hpp>
 #include <groot/cgal.hpp>
+#include <groot_graph/groot_graph.hpp>
 #include <iostream>
 #include <optional>
 #include <unordered_map>
@@ -58,7 +58,7 @@ struct GROOT_GRAPH_LOCAL EdgeProperties {
 };
 
 struct GROOT_GRAPH_LOCAL PlantProperties {
-    float max_root_distance = 0.0;
+    //float max_root_distance = 0.0;
     size_t root_index = 0;
 };
 
@@ -135,7 +135,7 @@ namespace point_finder {
         {
             return max_coord(graph, 1);
         }
-    }; 
+    };
     extern GROOT_GRAPH_API MaxY MaxYPointFinder;
 
     struct GROOT_GRAPH_LOCAL MaxZ : public PointFinder {
@@ -147,14 +147,21 @@ namespace point_finder {
     extern GROOT_GRAPH_API MaxZ MaxZPointFinder;
 };
 
-
 GROOT_GRAPH_API PlantGraph empty();
 GROOT_GRAPH_API PlantGraph from_delaunay(
     cgal::Point_3* cloud,
     size_t size);
-/// Finds the alpha shape and converts to a graph
-/// If alpha == 0, the specified number of components are searched
-/// If alpha != 0, the last parameter is ignored
+
+/**
+ * @brief Alpha shape of the input cloud, converted to a graph.
+ * @param cloud Input point cloud
+ * @param count Number of points in the cloud
+ * @param alpha Alpha value.
+ *   If 0, the specified number of components are searched.
+ *   Else, the last parameter is ignored.
+ * @param components If `alpha == 0`, computes `alpha` to obtain
+ *   this number of connected components.
+ */
 GROOT_GRAPH_API PlantGraph from_alpha_shape(
     cgal::Point_3* cloud,
     size_t count,
@@ -169,17 +176,21 @@ GROOT_GRAPH_API PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, flo
 
 /**
  * @brief Computes distances to ther root on the original graph and returns simplified version.
- * @param g Graph to compute the geodesic graph.
- * @param g Output property map with distances to the root. If non-NULL, it is created.
+ * @param[in] g Graph to compute the geodesic graph.
+ * @param[out] distance_map Property map with distances to the root. If non-NULL, it is created.
+ * @param[out] max_distance Max distance to the root. If non-NULL, it is created.
+ * @return Geodesic graph of `g`.
  */
-GROOT_GRAPH_API PlantGraph geodesic(const PlantGraph& g, PropertyMap<float>* distance_map = nullptr);
+GROOT_GRAPH_API PlantGraph geodesic(const PlantGraph& g, PropertyMap<float>* distance_map = nullptr, float* max_distance = nullptr);
 
 /**
  * @brief Computes minimum spanning tree of input graph
- * @param g Graph to compute the MST.
- * @param g Output property map with distances to the root. If non-NULL, it is created.
+ * @param[in] g Graph to compute the MST.
+ * @param[out] distance_map Property map with distances to the root. If non-NULL, it is created.
+ * @param[out] max_distance Max distance to the root. If non-NULL, it is created.
+ * @return Minimum spanning tree of the graph `g`.
  */
-GROOT_GRAPH_API PlantGraph minimum_spanning_tree(const PlantGraph& g, PropertyMap<float>* distance_map = nullptr);
+GROOT_GRAPH_API PlantGraph minimum_spanning_tree(const PlantGraph& g, PropertyMap<float>* distance_map = nullptr, float* max_distance = nullptr);
 
 GROOT_GRAPH_LOCAL inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = point_finder::MinY())
 {

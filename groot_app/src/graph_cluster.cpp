@@ -40,12 +40,14 @@ struct IntervalFilterOperator {
     size_t interval;
 };
 
+// TODO: Move to groot_graph library
 CommandState GraphCluster::execute()
 {
     groot::PropertyMap<float> distance_map;
-    groot::PlantGraph g = groot::geodesic(*graph, &distance_map);
+    float max_root_distance;
 
-    float max_root_distance = g.m_property->max_root_distance;
+    groot::PlantGraph g = groot::geodesic(*graph, &distance_map, &max_root_distance);
+
     std::vector<std::pair<size_t, size_t>> clusters(boost::num_vertices(g));
 
     // Points of base graph -> cluster (depth, id)

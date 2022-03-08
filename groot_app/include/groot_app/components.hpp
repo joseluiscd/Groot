@@ -52,6 +52,17 @@ struct ConnectedComponents {
     groot::DisjointSets components;
 };
 
+//TODO: Distances to root
+struct GraphDistanceToRoot {
+    std::vector<float> distance;
+    float max_distance;
+};
+
+//TODO: Root vertex
+struct RootVertex {
+    groot::Vertex root;
+};
+
 void init_components(entt::registry& reg);
 
 // Resources
