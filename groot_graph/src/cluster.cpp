@@ -1,41 +1,9 @@
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/property_map/transform_value_property_map.hpp>
-#include <gfx/imgui/imgui.h>
-#include <groot/cgal.hpp>
-#include <groot_app/components.hpp>
-#include <groot_app/graph_cluster.hpp>
 #include <groot_graph/cluster.hpp>
-#include <groot_graph/plant_graph.hpp>
-#include <list>
-#include <spdlog/spdlog.h>
-#include <vector>
 
-async::task<void> graph_cluster_fixed_interval_task(entt::handle h, size_t interval_count)
-{
-    return create_task()
-        .require_component<groot::PlantGraph>(h)
-        .then_async([interval_count](groot::PlantGraph* graph) {
-            PlantGraphNodePoints points;
-            groot::PlantGraph simplified = graph_cluster_fixed_groups(*graph, interval_count, &points.points);
-
-            return std::make_tuple(
-                std::move(points),
-                std::move(simplified));
-        })
-        .emplace_components<PlantGraphNodePoints, groot::PlantGraph>(h);
-}
-
-GraphCluster::GraphCluster(entt::handle&& handle)
-    : reg(*handle.registry())
-{
-    target = handle.entity();
-    if (reg.valid(target) && reg.all_of<groot::PlantGraph>(target)) {
-        graph = &reg.get<groot::PlantGraph>(target);
-    } else {
-        throw std::runtime_error("Selected entity must have PlantGraph component");
-    }
-}
+namespace groot {
 
 // Map of (vertex_index) -> (cluster ID, component ID)
 using ClusterMap = boost::iterator_property_map<
@@ -56,13 +24,12 @@ struct IntervalFilterOperator {
     size_t interval;
 };
 
-// TODO: Move to groot_graph library
-CommandState GraphCluster::execute()
+PlantGraph graph_cluster_fixed_groups(const PlantGraph& graph, size_t interval_count, PropertyMap<std::vector<Point_3>>* map_points)
 {
     groot::PropertyMap<float> distance_map;
     float max_root_distance;
 
-    groot::PlantGraph g = groot::geodesic(*graph, &distance_map, &max_root_distance);
+    groot::PlantGraph g = groot::geodesic(graph, &distance_map, &max_root_distance);
 
     std::vector<std::pair<size_t, size_t>> clusters(boost::num_vertices(g));
 
@@ -83,7 +50,7 @@ CommandState GraphCluster::execute()
     // Find the connected components in each interval (in original graph)
     for (size_t interval = 0; interval < interval_count; interval++) {
         boost::filtered_graph<groot::PlantGraph, boost::keep_all, IntervalFilterOperator> filtered(
-            *graph,
+            graph,
             boost::keep_all(),
             IntervalFilterOperator(clusters_map, interval));
 
@@ -136,9 +103,6 @@ CommandState GraphCluster::execute()
     auto root_cluster = clusters_map[g.m_property->root_index];
     simplified.m_property->root_index = cluster_vertices[root_cluster];
 
-    points.points.resize(boost::num_vertices(simplified));
-    auto points_map = groot::make_vertex_property_map(points.points, simplified);
-
     auto [s_it, s_end] = boost::vertices(simplified);
     for (; s_it != s_end; ++s_it) {
         std::vector<groot::cgal::Point_3>& point_list = cluster_points_map[*s_it];
@@ -151,58 +115,16 @@ CommandState GraphCluster::execute()
         center /= point_list.size();
         simplified[*s_it].position = groot::cgal::Point_3(center.x(), center.y(), center.z());
     }
-    points.points = std::move(cluster_points);
-    points.points.shrink_to_fit();
 
     groot::reindex_edges(simplified);
     groot::recompute_edge_lengths(simplified);
-    result = std::move(simplified);
-    return CommandState::Ok;
-}
 
-GuiState GraphCluster::draw_gui()
-{
-    bool show = true;
-    if (ImGui::BeginPopupModal("Graph Clustering", &show)) {
-        ImGui::RadioButton("Fixed interval distance", (int*)&selected_interval_type, FixedIntervalDistance);
-        ImGui::RadioButton("Fixed interval count", (int*)&selected_interval_type, FixedIntervalCount);
-
-        ImGui::Separator();
-
-        switch (selected_interval_type) {
-        case FixedIntervalDistance:
-            ImGui::InputFloat("Distance", &interval_distance);
-            break;
-
-        case FixedIntervalCount:
-            ImGui::InputInt("Interval count", &interval_count);
-            break;
-
-        default:
-            break;
-        }
-
-        ImGui::Separator();
-
-        ImGui::Combo("Centroid selection", (int*)&selected_centroid_type, centroid_type_labels, CentroidType_COUNT);
-
-        ImGui::Separator();
-
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunAsync;
-        }
-
-        ImGui::EndPopup();
+    if (map_points) {
+        *map_points = std::move(cluster_points);
+        map_points->shrink_to_fit();
     }
 
-    ImGui::OpenPopup("Graph Clustering");
-
-    return show ? GuiState::Editing : GuiState::Close;
+    return simplified;
 }
 
-void GraphCluster::on_finish(entt::registry& reg)
-{
-    reg.emplace_or_replace<groot::PlantGraph>(target, std::move(result));
-    reg.emplace_or_replace<PlantGraphNodePoints>(target, std::move(points));
 }

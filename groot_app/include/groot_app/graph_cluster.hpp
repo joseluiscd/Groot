@@ -7,6 +7,8 @@
 #include <list>
 #include <vector>
 
+async::task<void> graph_cluster_fixed_interval_task(entt::handle h, size_t interval_count);
+
 class GROOT_APP_API GraphCluster : public CommandGui {
 public:
     GraphCluster(entt::handle&& handle);
