@@ -1,9 +1,9 @@
 #pragma once
 
 #include <async++.h>
+#include <groot_app/components.hpp>
 #include <groot_app/entt.hpp>
 #include <groot_app/groot_app.hpp>
-#include <groot_app/components.hpp>
 
 GROOT_APP_API async::threadpool_scheduler& async_scheduler();
 GROOT_APP_API async::fifo_scheduler& sync_scheduler();
@@ -16,9 +16,26 @@ class TaskBuilder;
 template <typename T>
 TaskBuilder<T> create_task(async::task<T>&& t);
 
+
+template <typename... Components>
+void _emplace_components_impl(entt::handle, Components&&... components);
+
+template <>
+inline void _emplace_components_impl(entt::handle h)
+{
+    return;
+}
+
+template <typename Component, typename... Components>
+inline void _emplace_components_impl(entt::handle h, Component&& component, Components&&... components)
+{
+    h.emplace_or_replace<Component>(std::move(component));
+    _emplace_components_impl<Components...>(h, std::move(components)...);
+}
+
 /**
-* Create tasks for the TaskManager.
-*/
+ * Create tasks for the TaskManager.
+ */
 template <typename Result>
 class TaskBuilder {
 public:
@@ -33,10 +50,10 @@ public:
     }
 
     /**
-    * @brief Add a continuation for the current task.
-    * @param s Async++ scheduler to use for this task. Determines where it is run.
-    * @param f Function with the task (Async++).
-    */
+     * @brief Add a continuation for the current task.
+     * @param s Async++ scheduler to use for this task. Determines where it is run.
+     * @param f Function with the task (Async++).
+     */
     template <typename F, typename S>
     inline auto then(S&& s, F&& f)
     {
@@ -45,8 +62,8 @@ public:
     }
 
     /**
-    * @brief Run a task in the in the main thread.
-    */
+     * @brief Run a task in the in the main thread.
+     */
     template <typename F>
     inline auto then_sync(F&& f)
     {
@@ -54,18 +71,17 @@ public:
     }
 
     /**
-    * @brief Run a task in the asynchronous scheduler (background thread pool).
-    */
+     * @brief Run a task in the asynchronous scheduler (background thread pool).
+     */
     template <typename F>
     inline auto then_async(F&& f)
     {
         return this->then(async_scheduler(), std::forward<F>(f));
     }
 
-    
     /**
-    * @brief Run a task in the inline scheduler (right now in current thread).
-    */
+     * @brief Run a task in the inline scheduler (right now in current thread).
+     */
     template <typename F>
     inline auto then_inline(F&& f)
     {
@@ -85,6 +101,22 @@ public:
     {
         return this->then_sync([h](Component&& c) {
             h.emplace_or_replace<Component>(std::move(c));
+        });
+    }
+
+    template <typename... Components>
+    inline TaskBuilder<void> emplace_components(entt::handle h)
+    {
+        return this->then_sync([h](std::tuple<Components...>&& components) {
+            void (*fn)(entt::handle, Components&&...) = &_emplace_components_impl<Components...>;
+
+            auto tp = std::tuple_cat(
+                std::make_tuple(h),
+                std::move(components));
+
+            std::apply(
+                fn,
+                std::move(tp));
         });
     }
 
@@ -123,9 +155,9 @@ inline auto create_task_require_components(entt::handle h)
 }
 
 /**
-* @brief Class to manage the results of tasks and ensure they are run and finished.
-* Contains all active tasks.
-*/
+ * @brief Class to manage the results of tasks and ensure they are run and finished.
+ * Contains all active tasks.
+ */
 class GROOT_APP_LOCAL TaskManager {
 public:
     TaskManager()
