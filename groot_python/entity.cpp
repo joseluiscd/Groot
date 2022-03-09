@@ -58,5 +58,8 @@ void create_entity_type(py::module& m)
         .def("graph_from_cloud_knn", &Entity::graph_from_cloud_knn)
         .def("graph_from_cloud_radius", &Entity::graph_from_cloud_radius)
         .def("graph_resample", &Entity::graph_resample)
-        .def("match_graph", &Entity::match_graph);
+        .def("match_graph", &Entity::match_graph)
+        
+        .def("save_ply", &Entity::save_ply)
+        ;
 }

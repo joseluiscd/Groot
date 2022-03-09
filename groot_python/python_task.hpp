@@ -1,7 +1,7 @@
 #pragma once
 
-#include <groot/groot.hpp>
 #include "python.hpp"
+#include <groot/groot.hpp>
 #include <groot_app/task.hpp>
 #include <optional>
 
@@ -11,7 +11,8 @@ enum TaskMode {
     Inline
 };
 
-inline auto call_f(py::object f)
+/// Call python function f, without the GIL complaining with the destructor.
+inline auto call_python_function(py::object f)
 {
     return [f = destroy_with_gil(f)](py::object result) {
         AcquireGilGuard guard;
@@ -65,22 +66,20 @@ public:
     {
         switch (mode) {
         case TaskMode::Async:
-            *this = PythonTask(this->then(async_scheduler(), call_f(f)));
+            *this = PythonTask(this->then(async_scheduler(), call_python_function(f)));
             break;
         case TaskMode::Sync:
-            *this = PythonTask(this->then(sync_scheduler(), call_f(f)));
+            *this = PythonTask(this->then(sync_scheduler(), call_python_function(f)));
             break;
         case TaskMode::Inline:
-            *this = PythonTask(this->then(async::inline_scheduler(), call_f(f)));
+            *this = PythonTask(this->then(async::inline_scheduler(), call_python_function(f)));
             break;
         default:
-            *this = PythonTask(this->then(sync_scheduler(), call_f(f)));
+            *this = PythonTask(this->then(sync_scheduler(), call_python_function(f)));
             break;
         };
         return *this;
     }
-
-    void run_till_completion();
 
 private:
     static async::task<py::object> spawn_async(py::object f)

@@ -33,7 +33,7 @@ void create_registry_type(py::module& m)
 
     m.def(
         "compute_cardenas_et_al", +[](Entity e, float radius) {
-            return new PythonTask {
+            return PythonTask {
                 async::spawn(sync_scheduler(), [e]() {
                     PointCloud* cloud = require_components<PointCloud>(e.e);
                     return cloud;
@@ -44,13 +44,12 @@ void create_registry_type(py::module& m)
                     e.e.emplace_or_replace<groot::PlantGraph>(std::move(graph));
                 })
             };
-        },
-        py::return_value_policy::take_ownership);
+        });
 
     m.def(
-        "compute_difference", +[](Entity e, Entity f) -> PythonTask* {
+        "compute_difference", +[](Entity e, Entity f) -> PythonTask {
             ReleaseGilGuard guard;
-            return new PythonTask {
+            return PythonTask {
                 async::spawn(sync_scheduler(), [e, f]() {
                     groot::PlantGraph* g1 = require_components<groot::PlantGraph>(e.e);
                     groot::PlantGraph* g2 = require_components<groot::PlantGraph>(f.e);
@@ -66,11 +65,11 @@ void create_registry_type(py::module& m)
                 })
             };
         },
-        arg("entity1"), arg("entity2"), py::return_value_policy::take_ownership);
+        arg("entity1"), arg("entity2"));
     m.def(
-        "evaluate_difference_mse", [](Entity e) -> PythonTask* {
+        "evaluate_difference_mse", [](Entity e) -> PythonTask {
             ReleaseGilGuard guard;
-            return new PythonTask {
+            return PythonTask {
                 async::spawn(sync_scheduler(), [e]() {
                     return require_components<groot::PlantGraph>(e.e);
                 }).then(async_scheduler(), [](groot::PlantGraph* g) {
@@ -78,6 +77,5 @@ void create_registry_type(py::module& m)
                     return py::cast(groot::plant_graph_nn_score_mse(*g));
                 })
             };
-        },
-        py::return_value_policy::take_ownership);
+        });
 }

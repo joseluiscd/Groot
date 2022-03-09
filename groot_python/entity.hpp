@@ -285,5 +285,12 @@ public:
         return Entity(*e.registry(), run_task(std::move(task)));
     }
 
+    void save_ply(const std::string& filename)
+    {
+        ReleaseGilGuard guard;
+
+        run_task(export_ply_command(e, filename));
+    }
+
     entt::handle e;
 };
