@@ -10,19 +10,20 @@ void create_registry_type(py::module_& m);
 
 class AsyncViewer;
 
-inline auto create_entity(entt::registry& reg)
-{
-    return [&](entt::entity e) {
-        return Entity(reg, e);
-    };
-}
-
 template <typename T>
-inline py::object convert_python(T&& obj)
+inline py::object to_py_object(T&& obj)
 {
     AcquireGilGuard guard;
     return py::cast(obj);
 }
+
+inline auto to_py_entity(entt::registry& reg)
+{
+    return [&](entt::entity e) -> py::object {
+        return py::cast(Entity(reg, e));
+    };
+}
+
 
 class Registry {
 public:
@@ -48,43 +49,45 @@ public:
         return handles;
     }
 
-    void load(const std::string& filename)
-    {
-        ReleaseGilGuard guard;
-
-        run_task(open_workspace_command(reg, filename));
-    }
-
-    void save(const std::string& filename)
-    {
-        ReleaseGilGuard guard;
-        run_task(save_workspace_command(reg, filename));
-    }
-
-    PythonTask load_ply(const std::string& filename)
-    {
-        ReleaseGilGuard guard;
-        return PythonTask {
-            import_ply_command(reg, filename)
-                .then(create_entity(reg))
-                .then(convert_python<Entity>)
-        };
-    }
-
-    Entity load_graph(const std::string& filename)
-    {
-        ReleaseGilGuard guard;
-        auto&& task = import_graph_command(reg, filename);
-
-        return Entity(reg, run_task(std::move(task)));
-    }
-
     Entity new_entity()
     {
         return Entity(reg, reg.create());
     }
 
     AsyncViewer* create_viewer();
+    /// @return None
+    PythonTask load(const std::string& filename)
+    {
+        return PythonTask {
+            open_workspace_command(reg, filename)
+        };
+    }
+
+    /// @return None
+    PythonTask save(const std::string& filename)
+    {
+        return PythonTask {
+            save_workspace_command(reg, filename)
+        };
+    }
+
+    /// @return Entity
+    PythonTask load_ply(const std::string& filename)
+    {
+        return PythonTask {
+            import_ply_command(reg, filename)
+                .then(sync_scheduler(), to_py_entity(reg))
+        };
+    }
+
+    /// @return Entity
+    PythonTask load_graph(const std::string& filename)
+    {
+        return PythonTask {
+            import_graph_command(reg, filename)
+                .then(sync_scheduler(), to_py_entity(reg))
+        };
+    }
 
     void run_viewer(py::object init_func, py::object update_func)
     {
@@ -116,14 +119,9 @@ public:
         }
     }
 
-    void run_tasks()
-    {
-        sync_scheduler().run_all_tasks();
-    }
-
     void schedule_task(PythonTask& t, const std::string& name)
     {
-        reg.ctx<TaskBroker>().push_task(name, t.ignore_result());
+        reg.ctx<TaskManager>().push_task(name, t.ignore_result());
     }
 
     entt::registry reg;

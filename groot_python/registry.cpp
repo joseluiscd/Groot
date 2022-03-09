@@ -21,7 +21,6 @@ void create_registry_type(py::module& m)
         .def("load_graph", &Registry::load_graph)
         .def("new_entity", &Registry::new_entity)
         .def("schedule_task", &Registry::schedule_task)
-        .def("run_tasks", &Registry::run_tasks)
         .def("create_viewer", &Registry::create_viewer, py::return_value_policy::take_ownership)
         .def("run_viewer", &Registry::run_viewer,
             arg("init_func") = py::none(),
