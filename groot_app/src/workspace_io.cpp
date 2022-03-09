@@ -51,7 +51,7 @@ OpenWorkspace::OpenWorkspace()
 
 void OpenWorkspace::schedule_commands(entt::registry& reg, const std::string& filename)
 {
-    reg.ctx<TaskBroker>().push_task(
+    reg.ctx<TaskManager>().push_task(
         "Opening workspace",
         open_workspace_command(reg, filename));
 }
@@ -63,7 +63,7 @@ SaveWorkspace::SaveWorkspace()
 
 void SaveWorkspace::schedule_commands(entt::registry& reg, const std::string& filename)
 {
-    reg.ctx<TaskBroker>().push_task(
+    reg.ctx<TaskManager>().push_task(
         "Saving workspace",
         save_workspace_command(reg, filename));
 }

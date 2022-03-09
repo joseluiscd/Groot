@@ -37,7 +37,7 @@ void ComputeNormals::draw_dialog()
 
 void ComputeNormals::schedule_commands(entt::registry& reg)
 {
-    reg.ctx<TaskBroker>().push_task("Computing Cloud Normals", compute_normals_command(entt::handle(reg, target), k, radius));
+    reg.ctx<TaskManager>().push_task("Computing Cloud Normals", compute_normals_command(entt::handle(reg, target), k, radius));
 }
 
 async::task<void> compute_normals_command(entt::handle e, size_t k, float radius)
@@ -199,7 +199,7 @@ void SplitCloudGui::draw_dialog()
 
 void SplitCloudGui::schedule_commands(entt::registry& reg)
 {
-    reg.ctx<TaskBroker>().push_task(
+    reg.ctx<TaskManager>().push_task(
         "Splitting cloud",
         split_cloud_command(target, voxel_size));
 }

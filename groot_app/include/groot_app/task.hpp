@@ -17,7 +17,7 @@ template <typename T>
 TaskBuilder<T> create_task(async::task<T>&& t);
 
 /**
-* Create tasks for the TaskBroker.
+* Create tasks for the TaskManager.
 */
 template <typename Result>
 class TaskBuilder {
@@ -126,18 +126,18 @@ inline auto create_task_require_components(entt::handle h)
 * @brief Class to manage the results of tasks and ensure they are run and finished.
 * Contains all active tasks.
 */
-class GROOT_APP_LOCAL TaskBroker {
+class GROOT_APP_LOCAL TaskManager {
 public:
-    TaskBroker()
+    TaskManager()
         : tasks()
     {
     }
 
-    TaskBroker(TaskBroker&&) = default;
-    TaskBroker(const TaskBroker&) = delete;
+    TaskManager(TaskManager&&) = default;
+    TaskManager(const TaskManager&) = delete;
 
-    TaskBroker& operator=(TaskBroker&&) = default;
-    TaskBroker& operator=(const TaskBroker&) = delete;
+    TaskManager& operator=(TaskManager&&) = default;
+    TaskManager& operator=(const TaskManager&) = delete;
 
     void push_task(std::string_view s, async::task<void>&& task)
     {

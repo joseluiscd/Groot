@@ -10,7 +10,7 @@
 void take_screenshot(entt::registry& reg, const std::string& filename)
 {
     RenderData& render_data = reg.ctx<RenderData>();
-    TaskBroker& task_broker = reg.ctx<TaskBroker>();
+    TaskManager& task_mgr = reg.ctx<TaskManager>();
 
     gfx::Framebuffer screenshot;
     gfx::TextureHandle colors;
@@ -22,7 +22,7 @@ void take_screenshot(entt::registry& reg, const std::string& filename)
 
     std::vector<uint8_t> data = colors.read_colors();
 
-    task_broker.push_task(
+    task_mgr.push_task(
         "Saving screenshot",
         create_task()
             .then_async([filename, data = colors.read_colors(), size = render_data.size]() {

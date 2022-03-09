@@ -62,7 +62,7 @@ void GuiAdapter::schedule_commands(entt::registry& reg)
 {
     std::string name(gui->name());
 
-    reg.ctx<TaskBroker>().push_task(
+    reg.ctx<TaskManager>().push_task(
         name,
         create_task()
             .then_async([gui = std::exchange(gui, nullptr)]() {

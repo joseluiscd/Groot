@@ -59,7 +59,7 @@ Application::Application(entt::registry& _reg)
 {
     registry.set<EntityEditor>();
     registry.set<SelectedEntity>();
-    registry.set<TaskBroker>();
+    registry.set<TaskManager>();
     registry.set<ApplicationProperties>();
 
     init_components(registry);
@@ -103,12 +103,12 @@ void Application::draw_background_tasks()
     }
 
     if (windows.background_tasks && ImGui::Begin("Background tasks", &windows.background_tasks)) {
-        registry.ctx<TaskBroker>().cycle_tasks([](std::string_view&& task_name) {
+        registry.ctx<TaskManager>().cycle_tasks([](std::string_view&& task_name) {
             ImGui::Spinner("##spinner", 10.0f, 5.0f);
             ImGui::SameLine();
             ImGui::Text("%s", task_name.data()); }, [](const std::string_view& error) { spdlog::error("{}", error); });
     } else {
-        registry.ctx<TaskBroker>().cycle_tasks([](auto&& _) {}, [](const std::string_view& error) { spdlog::error("{}", error); });
+        registry.ctx<TaskManager>().cycle_tasks([](auto&& _) {}, [](const std::string_view& error) { spdlog::error("{}", error); });
     }
 
     ImGui::End();
@@ -231,20 +231,20 @@ void Application::draw_gui()
                 open_new_window_adaptor<GraphCluster>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute from cylinders")) {
-                registry.ctx<TaskBroker>().push_task(
+                registry.ctx<TaskManager>().push_task(
                     "Building graph from cylinders",
                     cylinder_connect_graph_command(get_selected_handle())
                 );
             }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tGeodesic graph")) {
-                registry.ctx<TaskBroker>().push_task(
+                registry.ctx<TaskManager>().push_task(
                     "Geodesic graph",
                     geodesic_graph_command(get_selected_handle())
                 );
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tMinimum Spanning Tree")) {
-                registry.ctx<TaskBroker>().push_task(
+                registry.ctx<TaskManager>().push_task(
                     "MST graph",
                     mst_graph_command(get_selected_handle())
                 );
@@ -263,12 +263,12 @@ void Application::draw_gui()
                 open_new_window<GraphResampleGui>(get_selection());
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute connected components")) {
-                registry.ctx<TaskBroker>().push_task(
+                registry.ctx<TaskManager>().push_task(
                     "Computing connected components",
                     graph_compute_connected_components(get_selected_handle()));
             }
             if (ImGui::MenuItem(ICON_FA_HAMMER "\tRepair connectivity")) {
-                registry.ctx<TaskBroker>().push_task(
+                registry.ctx<TaskManager>().push_task(
                     "Graph repair",
                     graph_repair_command(get_selected_handle()));
             }
@@ -283,7 +283,7 @@ void Application::draw_gui()
                 open_new_window<CylinderFilter>(get_selected_handle());
             }
             if (ImGui::MenuItem(ICON_FA_CUBE "\tBuild cloud from cylinders")) {
-                registry.ctx<TaskBroker>().push_task(
+                registry.ctx<TaskManager>().push_task(
                     "Building cloud from cylinders",
                     cylinder_point_filter_command(get_selected_handle())
                 );
@@ -338,7 +338,7 @@ void Application::draw_gui()
     ImGui::End();
 
     auto selected = registry.ctx<SelectedEntity>().selected;
-    bool bg_tasks_empty = registry.ctx<TaskBroker>().empty();
+    bool bg_tasks_empty = registry.ctx<TaskManager>().empty();
 
     if (ImGui::Begin("Entity properties")) {
         entity_editor.renderEditor(registry, selected, !bg_tasks_empty);

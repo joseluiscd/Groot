@@ -137,7 +137,7 @@ void ComponentEditorWidget<PlantGraphNodePoints>(entt::registry& reg, entt::regi
         if (ImGui::TreeNode((void*)i, "Node %zu", i)) {
             ImGui::Text("Node with %zu points", t.points[i].size());
             if (ImGui::Button("Dump to file")) {
-                reg.ctx<TaskBroker>().push_task(
+                reg.ctx<TaskManager>().push_task(
                     "Dump points to file",
                     async::spawn(async_scheduler(), [&t, i]() {
                         groot::save_PLY("out.ply", t.points[i].data(), t.points[i].size());

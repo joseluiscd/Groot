@@ -120,7 +120,7 @@ void CylinderMarching::schedule_commands(entt::registry& reg)
     params.normal_threshold = std::cos(normal_deviation * M_PI / 180.0);
     params.probability = overlook_probability;
 
-    return reg.ctx<TaskBroker>().push_task(
+    return reg.ctx<TaskManager>().push_task(
         "Detecting Cylinders",
         cylinder_marching_command(target, params, voxel_size));
 }
@@ -147,7 +147,7 @@ void CylinderFilter::draw_dialog()
 
 void CylinderFilter::schedule_commands(entt::registry& reg)
 {
-    reg.ctx<TaskBroker>().push_task("Filtering Cylinders", cylinder_filter_command(target, params));
+    reg.ctx<TaskManager>().push_task("Filtering Cylinders", cylinder_filter_command(target, params));
 }
 
 namespace cylinder_view_system {

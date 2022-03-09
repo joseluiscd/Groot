@@ -10,7 +10,7 @@ ImportGraphGui::ImportGraphGui()
 
 void ImportGraphGui::schedule_commands(entt::registry& reg, const std::string& filename)
 {
-    reg.ctx<TaskBroker>()
+    reg.ctx<TaskManager>()
         .push_task(
             "Loading Plant Graph",
             import_graph_command(reg, filename));
@@ -47,7 +47,7 @@ ExportGraphGui::ExportGraphGui(entt::handle handle)
 
 void ExportGraphGui::schedule_commands(entt::registry& reg, const std::string& filename)
 {
-    reg.ctx<TaskBroker>()
+    reg.ctx<TaskManager>()
         .push_task(
             "Saving Plant Graph",
             export_graph_command(target, filename));

@@ -67,5 +67,5 @@ void GraphResampleGui::draw_dialog()
 void GraphResampleGui::schedule_commands(entt::registry& reg)
 {
     auto&& cmd = graph_resample_command(reg, targets.begin(), targets.end(), args.sample_length);
-    reg.ctx<TaskBroker>().push_task(targets.size() > 1 ? "Resampling graphs" : "Resampling graph", cmd.then(discard));
+    reg.ctx<TaskManager>().push_task(targets.size() > 1 ? "Resampling graphs" : "Resampling graph", cmd.then(discard));
 }

@@ -10,7 +10,7 @@ ImportPLYGui::ImportPLYGui()
 
 void ImportPLYGui::schedule_commands(entt::registry& reg, const std::string& filename)
 {
-    reg.ctx<TaskBroker>()
+    reg.ctx<TaskManager>()
         .push_task(
             "Loading PLY",
             import_ply_command(reg, filename));
@@ -54,7 +54,7 @@ ExportPLYGui::ExportPLYGui(entt::handle handle)
 
 void ExportPLYGui::schedule_commands(entt::registry& reg, const std::string& filename)
 {
-    reg.ctx<TaskBroker>()
+    reg.ctx<TaskManager>()
         .push_task(
             "Saving PLY",
             export_ply_command(target, filename));
