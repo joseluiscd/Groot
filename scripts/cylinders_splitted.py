@@ -23,9 +23,9 @@ entity.compute_normals(**params["normals"])
 
 for entity in entity.split_cloud(params["cylinders"]["voxel_size"]):
     entity.cylinder_marching(**params["cylinders"])
-    print("Cylinder count:", len(entity.cylinders()))
+    print("Cylinder count:", len(entity[groot.components.Cylinders]))
     entity.cylinder_filter(**params["cylinder_filter"])
-    print("Cylinder count after filter:", len(entity.cylinders()))
+    print("Cylinder count after filter:", len(entity[groot.components.Cylinders]))
 
 print("Done!")
 print("Writing output file")
