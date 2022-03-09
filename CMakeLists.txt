@@ -14,10 +14,16 @@ set(CMAKE_CXX_VISIBILITY_INLINES_HIDDEN ON)
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+set(USE_MOLD_LINKER OFF CACHE BOOL "Use mold linker in Linux")
+
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-long-long -pedantic -Werror=pessimizing-move -Werror=return-type")
+
+    if (USE_MOLD_LINKER)
+        add_link_options("-fuse-ld=mold")
+    endif()
 endif()
 
 set(CMAKE_MODULE_PATH
