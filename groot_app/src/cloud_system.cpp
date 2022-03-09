@@ -144,8 +144,8 @@ async::task<std::vector<entt::handle>> split_cloud_command(entt::handle h, float
             for (size_t i = 0; i < grid.voxels.size(); i++) {
 
                 if (!grid.voxels[i].empty()) {
-                    std::stringstream namestream { name };
-                    namestream << "_" << i;
+                    std::stringstream namestream;
+                    namestream << name << "_" << i;
                     result.names.emplace_back(namestream.str());
 
                     PointCloud& current_cloud = result.clouds.emplace_back();
