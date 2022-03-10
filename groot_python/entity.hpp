@@ -2,6 +2,7 @@
 
 #include "groot_app/cloud_system.hpp"
 #include "python.hpp"
+#include "python_task.hpp"
 #include <groot_app/components.hpp>
 #include <groot_app/entt.hpp>
 
@@ -27,17 +28,6 @@ struct entt::storage_traits<entt::entity, AnyComponent> {
     using storage_type = entt::basic_sparse_set<entt::entity>;
 };
 
-template <typename Result>
-Result run_task(async::task<Result>&& task)
-{
-    // Run all sync tasks in current thread until task finishes
-    while (!task.ready()) {
-        sync_scheduler().run_all_tasks();
-    }
-
-    return task.get();
-}
-
 class Entity {
 public:
     static entt::type_info type_id;
@@ -55,6 +45,13 @@ public:
     Entity(entt::handle&& h)
         : e(h)
     {
+    }
+
+    auto to_py_entity()
+    {
+        return [&reg = *e.registry()](entt::entity e) {
+            return py::cast(Entity(reg, e));
+        };
     }
 
     void destroy()
@@ -161,17 +158,16 @@ public:
         e.emplace_or_replace<Name>(v);
     }
 
-    void compute_normals(
+    /// @return None
+    PythonTask compute_normals(
         int k,
         float radius)
     {
-        ReleaseGilGuard guard;
-
-        auto&& task = compute_normals_command(e, k, radius);
-        run_task(std::move(task));
+        return compute_normals_command(e, k, radius);
     }
 
-    void cylinder_marching(
+    /// @return None
+    PythonTask cylinder_marching(
         int min_points,
         float epsilon,
         float sampling,
@@ -188,16 +184,15 @@ public:
         params.normal_threshold = std::cos(normal_deviation * M_PI / 180.0);
         params.probability = overlook_probability;
 
-        run_task(cylinder_marching_command(e, params, voxel_size));
+        return cylinder_marching_command(e, params, voxel_size);
     }
 
-    void cylinder_filter(
+    PythonTask cylinder_filter(
         float radius_min,
         float radius_max,
         float length_min,
         float length_max)
     {
-        ReleaseGilGuard guard;
         CylinderFilterParams params;
 
         params.radius = true;
@@ -207,21 +202,19 @@ public:
         params.length_range[0] = length_min;
         params.length_range[1] = length_max;
 
-        run_task(cylinder_filter_command(e, params));
+        return cylinder_filter_command(e, params);
     }
 
-   
-
-    void rebuild_cloud_from_cylinders()
+    /// @return None
+    PythonTask rebuild_cloud_from_cylinders()
     {
-        ReleaseGilGuard guard;
-        run_task(cylinder_point_filter_command(e));
+        return cylinder_point_filter_command(e);
     }
 
-    void build_graph_from_cylinders()
+    /// @return None
+    PythonTask build_graph_from_cylinders()
     {
-        ReleaseGilGuard guard;
-        run_task(cylinder_connect_graph_command(e));
+        return cylinder_connect_graph_command(e);
     }
 
     void graph_cluster(int intervals)
@@ -263,33 +256,27 @@ public:
         cmd.run(*e.registry());
     }
 
-    Entity graph_resample(float length)
+    /// @return Entity
+    PythonTask graph_resample(float length)
     {
-        ReleaseGilGuard guard;
-
-        auto&& task = graph_resample_command(e, length);
-        auto& sched = sync_scheduler();
-
-        while (!task.ready()) {
-            sched.run_all_tasks();
-        }
-
-        return Entity(*e.registry(), run_task(std::move(task)));
+        return PythonTask {
+            graph_resample_command(e, length)
+                .then(sync_scheduler(), to_py_entity())
+        };
     }
 
-    Entity match_graph(Entity other)
+    /// @return Entity
+    PythonTask match_graph(Entity other)
     {
-        ReleaseGilGuard guard;
-
-        auto&& task = graph_match_command(this->e, other.e);
-        return Entity(*e.registry(), run_task(std::move(task)));
+        return PythonTask {
+            graph_match_command(this->e, other.e)
+                .then(sync_scheduler(), to_py_entity())
+        };
     }
 
-    void save_ply(const std::string& filename)
+    PythonTask save_ply(const std::string& filename)
     {
-        ReleaseGilGuard guard;
-
-        run_task(export_ply_command(e, filename));
+        return export_ply_command(e, filename);
     }
 
     entt::handle e;
