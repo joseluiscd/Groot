@@ -17,20 +17,15 @@ template <typename T>
 TaskBuilder<T> create_task(async::task<T>&& t);
 
 
-template <typename... Components>
-void _emplace_components_impl(entt::handle, Components&&... components);
-
-template <>
-inline void _emplace_components_impl(entt::handle h)
-{
-    return;
-}
-
 template <typename Component, typename... Components>
 inline void _emplace_components_impl(entt::handle h, Component&& component, Components&&... components)
 {
-    h.emplace_or_replace<Component>(std::move(component));
-    _emplace_components_impl<Components...>(h, std::move(components)...);
+    if constexpr (sizeof...(Components) == 0) {
+        h.emplace_or_replace<Component>(std::move(component));
+    } else {
+        h.emplace_or_replace<Component>(std::move(component));
+        _emplace_components_impl<Components...>(h, std::move(components)...);
+    }
 }
 
 /**
@@ -108,14 +103,12 @@ public:
     inline TaskBuilder<void> emplace_components(entt::handle h)
     {
         return this->then_sync([h](std::tuple<Components...>&& components) {
-            void (*fn)(entt::handle, Components&&...) = &_emplace_components_impl<Components...>;
-
             auto tp = std::tuple_cat(
                 std::make_tuple(h),
                 std::move(components));
 
             std::apply(
-                fn,
+                &_emplace_components_impl<Components...>,
                 std::move(tp));
         });
     }
