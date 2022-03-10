@@ -25,34 +25,34 @@ def timeit(func):
         return await func(*args, **params)
 
     async def helper(*args, **params):
-        start = time.time()
+        start = time.process_time()
         result = await process(func, *args, **params)
 
-        return time.time() - start
+        return time.process_time() - start
 
     return helper
 
 @timeit
-async def reconstruct_knn(entity):
+def reconstruct_knn(entity):
     entity.graph_from_cloud_knn(10)
     entity.graph_cluster(30)
 
 
 @timeit
-async def reconstruct_radius(entity):
+def reconstruct_radius(entity):
     entity.remove_component(groot.components.PointNormals)
 
-    await entity.graph_from_cloud_radius(0.15)
-    await entity.graph_cluster(30)
+    entity.graph_from_cloud_radius(0.4)
+    entity.graph_cluster(30)
 
 @timeit
-async def run_cardenas_et_al(entity):
+async def reconstruct_cardenas_et_al(entity):
     entity.remove_component(groot.components.PointNormals)
 
-    await groot.compute_cardenas_et_al(ply, 0.15)
-    await ply.graph_cluster(30)
+    await groot.compute_cardenas_et_al(entity, 0.0)
+    entity.graph_cluster(30)
 
-reconstruct = reconstruct_knn
+reconstruct = reconstruct_cardenas_et_al
 
 async def resample(entity):
     sampled = await entity.graph_resample(0.03)
@@ -70,7 +70,6 @@ async def evaluate(ground_truth, reconstructed):
     diff.destroy()
 
     return res
-    
 
 async def init():
     global registry
@@ -92,12 +91,15 @@ async def init():
         time = await reconstruct(reconstructed)
         score = await evaluate(ground_truth, reconstructed)
 
+        ground_truth.destroy()
+        reconstructed.destroy()
+
         results[f] = {
             "time": time,
             "score": score
         }
 
-    toml.dump(results, open("result.toml", "w"))
+    toml.dump(results, open("result_jl_00.toml", "w"))
 
 
 
