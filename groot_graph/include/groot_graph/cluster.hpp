@@ -11,6 +11,6 @@ namespace groot {
  * @param[out] points Maps `Vertex in output -> Points in input`. Created if not null.
  * @return PlantGraph clustered
  */
-PlantGraph graph_cluster_fixed_groups(const PlantGraph& graph, size_t distance_groups, PropertyMap<std::vector<Point_3>>* points = nullptr);
+GROOT_GRAPH_API PlantGraph graph_cluster_fixed_groups(const PlantGraph& graph, size_t distance_groups, PropertyMap<std::vector<Point_3>>* points = nullptr);
 
 }
