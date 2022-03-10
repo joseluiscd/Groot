@@ -14,6 +14,7 @@
 #include <groot_app/cylinder_marching.hpp>
 #include <groot_app/graph_cluster.hpp>
 #include <groot_app/graph_io.hpp>
+#include <groot_app/graph_repair.hpp>
 #include <groot_app/graph_resample.hpp>
 
 void create_entity_type(py::module_& m);
@@ -265,6 +266,12 @@ public:
         };
     }
 
+    /// @return None
+    PythonTask repair_graph()
+    {
+        return graph_repair_command(e);
+    }
+
     /// @return Entity
     PythonTask match_graph(Entity other)
     {
@@ -274,10 +281,16 @@ public:
         };
     }
 
+    /// @return None
     PythonTask save_ply(const std::string& filename)
     {
         return export_ply_command(e, filename);
     }
 
+    /// @return None
+    PythonTask save_graph(const std::string& filename)
+    {
+        return export_graph_command(e, filename);
+    }
     entt::handle e;
 };

@@ -61,5 +61,7 @@ void create_entity_type(py::module& m)
         .def("match_graph", &Entity::match_graph)
         
         .def("save_ply", &Entity::save_ply)
+        .def("save_graph", &Entity::save_graph)
+        .def("repair_graph", &Entity::repair_graph)
         ;
 }
