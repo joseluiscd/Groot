@@ -1,8 +1,6 @@
 #include <CGAL/jet_estimate_normals.h>
 #include <CGAL/pca_estimate_normals.h>
 #include <CGAL/property_map.h>
-#include <CGAL/squared_distance_2_2.h>
-#include <CGAL/squared_distance_3_0.h>
 #include <CGAL/tags.h>
 #include <Eigen/Dense>
 #include <Eigen/SVD>
