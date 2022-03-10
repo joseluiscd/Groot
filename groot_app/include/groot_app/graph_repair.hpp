@@ -6,5 +6,5 @@
 #include <groot_app/components.hpp>
 #include <groot_app/task.hpp>
 
-async::task<entt::entity> graph_compute_connected_components(entt::handle h);
-async::task<entt::entity> graph_repair_command(entt::handle h);
+GROOT_APP_API async::task<void> graph_compute_connected_components(entt::handle h);
+GROOT_APP_API async::task<void> graph_repair_command(entt::handle h);
