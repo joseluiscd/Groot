@@ -20,6 +20,7 @@ async::task<void> open_workspace_command(entt::registry& reg, const std::string&
                     PointCloud,
                     PointNormals,
                     Cylinders,
+                    ConnectedComponents,
                     groot::PlantGraph>(in_archive);
         });
 }
@@ -38,6 +39,7 @@ async::task<void> save_workspace_command(const entt::registry& reg, const std::s
                 PointCloud,
                 PointNormals,
                 Cylinders,
+                ConnectedComponents,
                 groot::PlantGraph>(out_archive);
 
         spdlog::info("Exported to file: {}", filename);
