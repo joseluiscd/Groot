@@ -25,8 +25,14 @@ PlantGraph connect_cylinders(CylinderWithPoints* cylinders, size_t count)
         graph[vertex_a].position = cylinder.center + cylinder.direction * cylinder.middle_height;
         graph[vertex_b].position = cylinder.center - cylinder.direction * cylinder.middle_height;
 
-        cgal::Delaunay::Vertex_handle handle_a = delaunay.insert(graph[vertex_a].position);
-        cgal::Delaunay::Vertex_handle handle_b = delaunay.insert(graph[vertex_b].position);
+        Point_3 a = graph[vertex_a].position;
+        Point_3 b = graph[vertex_b].position;
+
+        Delaunay::Point_3 exact_a(a.x(), a.y(), a.z());
+        Delaunay::Point_3 exact_b(b.x(), b.y(), b.z());
+
+        cgal::Delaunay::Vertex_handle handle_a = delaunay.insert(exact_a);
+        cgal::Delaunay::Vertex_handle handle_b = delaunay.insert(exact_b);
 
         handle_a->info() = vertex_a;
         handle_b->info() = vertex_b;

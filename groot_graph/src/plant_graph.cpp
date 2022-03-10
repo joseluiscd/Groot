@@ -115,7 +115,8 @@ PlantGraph from_delaunay(cgal::Point_3* cloud, size_t count)
         Vertex vertex = boost::add_vertex(graph);
         graph[vertex].position = cloud[i];
 
-        cgal::Delaunay::Vertex_handle handle = delaunay.insert(cloud[i]);
+        Delaunay::Point_3 p(cloud[i].x(), cloud[i].y(), cloud[i].z());
+        cgal::Delaunay::Vertex_handle handle = delaunay.insert(p);
         handle->info() = vertex;
     }
 
@@ -143,12 +144,14 @@ PlantGraph from_alpha_shape(
     PlantGraph graph;
 
     // Just something stupid
-    std::vector<std::pair<Point_3, Vertex>> vertices;
+    std::vector<std::pair<AlphaShape::Point_3, Vertex>> vertices;
     for (size_t i = 0; i < count; i++) {
         Vertex v = boost::add_vertex(graph);
         graph[v].position = cloud[i];
 
-        vertices.push_back(std::make_pair(cloud[i], v));
+        AlphaShape::Point_3 p(cloud[i].x(), cloud[i].y(), cloud[i].z());
+
+        vertices.push_back(std::make_pair(p, v));
     }
 
     cgal::AlphaShape alpha_shape(vertices.begin(), vertices.end());
