@@ -1,41 +1,29 @@
 #pragma once
 
+#include <groot/assert.hpp>
 #include <cstddef>
 #include <utility>
+#include <vector>
+#include <cereal/cereal.hpp>
+#include <cereal/types/vector.hpp>
 
 namespace groot {
 
 class DisjointSets {
 public:
-    DisjointSets(size_t n)
-        : data(new size_t[n])
-        , n_components(n)
-        , size(n)
+    DisjointSets(size_t n = 0)
+        : data(n)
+        , n_sets(n)
     {
+        GROOT_ASSERT(data.size() == n, "Vector size");
+
         for (size_t i = 0; i < n; i++) {
             data[i] = i;
         }
     }
 
-    ~DisjointSets()
-    {
-        delete[] data;
-    }
-
-    DisjointSets(DisjointSets&& s)
-        : data(std::exchange(s.data, nullptr))
-        , n_components(std::exchange(s.n_components, 0))
-        , size(std::exchange(s.size, 0))
-    {
-    }
-
-    DisjointSets& operator=(DisjointSets&& s)
-    {
-        data = std::exchange(s.data, nullptr);
-        n_components = std::exchange(s.n_components, 0);
-        size = std::exchange(s.size, 0);
-        return *this;
-    }
+    DisjointSets(DisjointSets&& s) = default;
+    DisjointSets& operator=(DisjointSets&& s) = default;
 
     size_t find(size_t i) const
     {
@@ -60,25 +48,30 @@ public:
 
         if (is != js) {
             data[is] = js;
-            n_components--;
+            n_sets--;
         }
     }
 
     size_t component_count() const
     {
-        return n_components;
+        return n_sets;
     }
 
     size_t num_vertices() const
     {
-        return size;
+        return data.size();
+    }
+
+    template <typename Archive>
+    void serialize(Archive& archive)
+    {
+        archive(CEREAL_NVP(n_sets), CEREAL_NVP(data));
     }
 
 
 private:
-    size_t* data;
-    size_t n_components;
-    size_t size;
+    std::vector<size_t> data;
+    size_t n_sets;
 };
 
 }
