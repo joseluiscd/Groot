@@ -20,8 +20,6 @@ ImGui = groot.ImGui
 
 async def init():
     global registry
-    global ground_truth
-    global results
 
     huge_ply = await registry.load_ply(sys.argv[1])
     print("Done")
