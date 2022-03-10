@@ -29,6 +29,11 @@ void create_task_module(py::module& m)
         .def("ready", &PythonTask::ready)
         .def("get", &PythonTask::get)
         .def(
+            "__iter__", [](PythonTask& task) -> PythonTask& {
+                return task;
+            },
+            py::return_value_policy::reference_internal)
+        .def(
             "__await__", [](PythonTask& task) -> PythonTask& {
                 return task;
             },
