@@ -52,7 +52,7 @@ public:
         }
     }
 
-    size_t component_count() const
+    size_t num_sets() const
     {
         return n_sets;
     }

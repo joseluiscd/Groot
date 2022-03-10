@@ -173,7 +173,7 @@ void ComponentEditorWidget<ConnectedComponents>(entt::registry& reg, entt::entit
     static ssize_t query_result = -1;
 
     auto& cc = reg.get<ConnectedComponents>(e);
-    ImGui::Text("Count: %zu\n", cc.components.component_count());
+    ImGui::Text("Count: %zu\n", cc.components.num_sets());
     ImGui::Text("Vertices: %zu\n", cc.components.num_vertices());
     if (ImGui::InputInt("Vertex component", &query_component)) {
         if (0 <= query_component && (size_t)query_component < cc.components.num_vertices()) {
