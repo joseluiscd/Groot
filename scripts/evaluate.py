@@ -49,7 +49,7 @@ def reconstruct_radius(entity):
 async def reconstruct_cardenas_et_al(entity):
     entity.remove_component(groot.components.PointNormals)
 
-    await groot.compute_cardenas_et_al(entity, 0.0)
+    await groot.compute_cardenas_et_al(entity, 0.3)
     entity.graph_cluster(30)
 
 reconstruct = reconstruct_cardenas_et_al
@@ -99,7 +99,7 @@ async def init():
             "score": score
         }
 
-    toml.dump(results, open("result_jl_00.toml", "w"))
+    toml.dump(results, open("result_jl_03.toml", "w"))
 
 
 
