@@ -12,6 +12,12 @@ struct LineGraph {
     PropertyMap<Vector_3> direction;
 };
 
-LineGraph compute_line_graph(const groot::PlantGraph& line_graph);
+/**
+ * @brief Compute a variation of the Line Graph,
+ * where edges are only connected if they form different levels on the tree.
+ * @param[in] input Input Graph
+ * @param[out] direction For each vertex, the tangent direction.
+*/
+groot::PlantGraph compute_line_graph(const groot::PlantGraph& input, PropertyMap<Vector_3>* direction = nullptr);
 
 }

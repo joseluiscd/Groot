@@ -47,6 +47,9 @@ private:
     PropertyMap<cgal::Vector_3>& tangents;
 };
 
-LineGraph compute_line_graph(const groot::PlantGraph& line_graph);
+PlantGraph compute_line_graph(const groot::PlantGraph& input, PropertyMap<Vector_3>* direction)
+{
+    return PlantGraph{};
+}
 
 }
