@@ -15,7 +15,7 @@ enum TaskMode {
 inline auto call_python_function(py::object f)
 {
     return [f = destroy_with_gil(f)](py::object result) {
-        AcquireGilGuard guard;
+        py::gil_scoped_acquire guard;
         py::object function = *f.obj;
         return std::invoke(function, result);
     };

@@ -47,7 +47,7 @@ void create_registry_type(py::module& m)
 
     m.def(
         "compute_difference", +[](Entity e, Entity f) -> PythonTask {
-            ReleaseGilGuard guard;
+            py::gil_scoped_release guard;
             return PythonTask {
                 async::spawn(sync_scheduler(), [e, f]() {
                     groot::PlantGraph* g1 = require_components<groot::PlantGraph>(e.e);
@@ -57,7 +57,7 @@ void create_registry_type(py::module& m)
                 }).then(async_scheduler(), [](std::pair<groot::PlantGraph*, groot::PlantGraph*>&& graphs) {
                       return groot::plant_graph_nn(*graphs.first, *graphs.second);
                   }).then(sync_scheduler(), [&reg = *e.e.registry()](groot::PlantGraph&& v) {
-                    AcquireGilGuard guard;
+                    py::gil_scoped_acquire guard;
                     entt::entity e = reg.create();
                     reg.emplace<groot::PlantGraph>(e, std::move(v));
                     return py::cast(Entity(reg, e));
@@ -67,7 +67,7 @@ void create_registry_type(py::module& m)
         arg("entity1"), arg("entity2"));
     m.def(
         "evaluate_difference_mse", [](Entity e) -> PythonTask {
-            ReleaseGilGuard guard;
+            py::gil_scoped_release guard;
             return PythonTask {
                 async::spawn(sync_scheduler(), [e]() {
                     return require_components<groot::PlantGraph>(e.e);

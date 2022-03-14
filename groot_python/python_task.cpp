@@ -1,6 +1,5 @@
 #include "python_task.hpp"
 
-thread_local PyThreadState* PythonThreadState::state = nullptr;
 
 py::object py_return(py::object obj)
 {

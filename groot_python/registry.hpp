@@ -13,7 +13,7 @@ class AsyncViewer;
 template <typename T>
 inline py::object to_py_object(T&& obj)
 {
-    AcquireGilGuard guard;
+    py::gil_scoped_acquire guard;
     return py::cast(obj);
 }
 
@@ -94,7 +94,7 @@ public:
         Application app(reg);
 
         {
-            AcquireGilGuard guard;
+            py::gil_scoped_acquire guard;
             if (!init_func.is_none()) {
                 init_func(this);
             }
@@ -105,7 +105,7 @@ public:
 
         bool update_func_none;
         {
-            AcquireGilGuard guard;
+            py::gil_scoped_acquire guard;
             update_func_none = update_func.is_none();
         }
 
@@ -113,7 +113,7 @@ public:
             app.main_loop();
         } else {
             app.main_loop([this, &update_func](entt::registry&) {
-                AcquireGilGuard guard;
+                py::gil_scoped_acquire guard;
                 update_func(this);
             });
         }
@@ -143,7 +143,7 @@ public:
             app.step_gui();
         } else {
             app.step_gui([&](entt::registry&) {
-                AcquireGilGuard guard;
+                py::gil_scoped_acquire guard;
                 update_func(reg);
             });
         }

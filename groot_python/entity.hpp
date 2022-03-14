@@ -74,7 +74,7 @@ public:
 
     py::object get_component_runtime(py::object parent, const entt::type_info& type)
     {
-        AcquireGilGuard guard;
+        py::gil_scoped_acquire guard;
 
         auto& storage = e.registry()->storage<AnyComponent>(type.hash());
         if (!storage.contains(e)) {
@@ -107,7 +107,7 @@ public:
 
     void move_component(Entity& target, const entt::type_info& type)
     {
-        ReleaseGilGuard guard;
+        py::gil_scoped_release guard;
 
         if (e.registry() != target.e.registry()) {
             throw std::runtime_error("Source and target entities must be in the same registry");
@@ -176,7 +176,7 @@ public:
         float overlook_probability,
         float voxel_size)
     {
-        ReleaseGilGuard guard;
+        py::gil_scoped_release guard;
         groot::Ransac::Parameters params;
 
         params.min_points = min_points;
@@ -220,7 +220,7 @@ public:
 
     void graph_cluster(int intervals)
     {
-        ReleaseGilGuard guard;
+        py::gil_scoped_release guard;
 
         GraphCluster cmd { entt::handle(e) };
         cmd.interval_count = intervals;
@@ -229,7 +229,7 @@ public:
 
     void graph_from_cloud_knn(int k)
     {
-        ReleaseGilGuard guard;
+        py::gil_scoped_release guard;
 
         CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kKnn;
@@ -239,7 +239,7 @@ public:
 
     void graph_from_cloud_radius(float r)
     {
-        ReleaseGilGuard guard;
+        py::gil_scoped_release guard;
 
         CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kRadius;
@@ -249,7 +249,7 @@ public:
 
     void graph_from_alpha_shape(float k)
     {
-        ReleaseGilGuard guard;
+        py::gil_scoped_release guard;
 
         CreateGraph cmd { entt::handle(e) };
         cmd.selected_method = CreateGraph::Method::kAlphaShape;

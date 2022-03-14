@@ -35,7 +35,7 @@ void create_entity_type(py::module& m)
             arg("length_min") = 0.0,
             arg("length_max") = 99.0)
         .def("split_cloud", [](Entity e, float voxel_size) {
-                ReleaseGilGuard guard;
+                py::gil_scoped_release guard;
 
                 return new PythonTask {
                     split_cloud_command(e.e, voxel_size)

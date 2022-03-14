@@ -6,58 +6,6 @@
 
 namespace py = pybind11;
 
-struct Component{
-
-};
-
-struct PythonThreadState {
-    static void create_if_needed()
-    {
-        if (state == nullptr) {
-            state = PyThreadState_New(PyInterpreterState_Get());
-        }
-    }
-
-    static void release_thread()
-    {
-        state = PyEval_SaveThread();
-    }
-
-    static void acquire_thread()
-    {
-        create_if_needed();
-        PyEval_RestoreThread(state);
-    }
-
-    static thread_local PyThreadState* state;
-};
-
-struct ReleaseGilGuard {
-    ReleaseGilGuard()
-    {
-        PythonThreadState::release_thread();
-    }
-
-    ~ReleaseGilGuard()
-    {
-        PythonThreadState::acquire_thread();
-    }
-};
-
-struct AcquireGilGuard {
-    AcquireGilGuard()
-        : state(PyGILState_Ensure())
-    {
-    }
-
-    ~AcquireGilGuard()
-    {
-        PyGILState_Release(state);
-    }
-
-    PyGILState_STATE state;
-};
-
 template <typename T>
 struct DestroyWithGil {
     DestroyWithGil(const T& _obj)
@@ -67,7 +15,7 @@ struct DestroyWithGil {
 
     ~DestroyWithGil()
     {
-        AcquireGilGuard guard;
+        py::gil_scoped_acquire guard;
         obj.reset();
     }
 
