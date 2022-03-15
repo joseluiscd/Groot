@@ -1,7 +1,6 @@
 #pragma once
 
 #include <groot_app/groot_app.hpp>
-#include <groot_app/command.hpp>
 #include <groot_app/command_gui.hpp>
 #include <groot_app/resources.hpp>
 #include <gfx/gfx.hpp>
@@ -39,16 +38,6 @@ public:
     {
         try {
             open_window(new T(std::forward<Args...>(args)...));
-        } catch (std::runtime_error& err) {
-            show_error(std::string(err.what()));
-        }
-    }
-
-    template <typename T, typename... Args>
-    [[deprecated("Use the new interface for the command")]] void open_new_window_adaptor(Args&&... args)
-    {
-        try {
-            open_window(make_gui_adapter<T>(std::forward<Args...>(args)...));
         } catch (std::runtime_error& err) {
             show_error(std::string(err.what()));
         }

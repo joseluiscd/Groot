@@ -7,7 +7,6 @@
 #include <groot_app/application.hpp>
 #include <groot_app/cloud_io.hpp>
 #include <groot_app/cloud_system.hpp>
-#include <groot_app/command.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/create_graph.hpp>
 #include <groot_app/cylinder_marching.hpp>
@@ -116,7 +115,6 @@ void Application::draw_background_tasks()
 
 void Application::draw_command_gui()
 {
-    std::vector<Command*> commands;
     bool erase = false;
 
     auto it = guis.begin();
@@ -225,7 +223,7 @@ void Application::draw_gui()
 
         if (ImGui::BeginMenu("Plant Graph")) {
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCreate Graph from cloud...")) {
-                open_new_window_adaptor<CreateGraph>(registry);
+                open_new_window<CreateGraphGui>(get_selected_handle());
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
                 open_new_window<GraphClusterGui>(get_selected_handle());
@@ -233,21 +231,18 @@ void Application::draw_gui()
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute from cylinders")) {
                 registry.ctx<TaskManager>().push_task(
                     "Building graph from cylinders",
-                    cylinder_connect_graph_command(get_selected_handle())
-                );
+                    cylinder_connect_graph_command(get_selected_handle()));
             }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tGeodesic graph")) {
                 registry.ctx<TaskManager>().push_task(
                     "Geodesic graph",
-                    geodesic_graph_command(get_selected_handle())
-                );
+                    geodesic_graph_command(get_selected_handle()));
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tMinimum Spanning Tree")) {
                 registry.ctx<TaskManager>().push_task(
                     "MST graph",
-                    mst_graph_command(get_selected_handle())
-                );
+                    mst_graph_command(get_selected_handle()));
             }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PlantGraph")) {
@@ -285,8 +280,7 @@ void Application::draw_gui()
             if (ImGui::MenuItem(ICON_FA_CUBE "\tBuild cloud from cylinders")) {
                 registry.ctx<TaskManager>().push_task(
                     "Building cloud from cylinders",
-                    cylinder_point_filter_command(get_selected_handle())
-                );
+                    cylinder_point_filter_command(get_selected_handle()));
             }
             ImGui::EndMenu();
         }

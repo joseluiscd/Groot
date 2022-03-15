@@ -224,34 +224,19 @@ public:
         return graph_cluster_fixed_interval_task(e, intervals);
     }
 
-    void graph_from_cloud_knn(int k)
+    PythonTask graph_from_cloud_knn(int k)
     {
-        py::gil_scoped_release guard;
-
-        CreateGraph cmd { entt::handle(e) };
-        cmd.selected_method = CreateGraph::Method::kKnn;
-        cmd.k = k;
-        cmd.run(*e.registry());
+        return graph_from_cloud_knn_task(e, k);
     }
 
-    void graph_from_cloud_radius(float r)
+    PythonTask graph_from_cloud_radius(float r, int max_k)
     {
-        py::gil_scoped_release guard;
-
-        CreateGraph cmd { entt::handle(e) };
-        cmd.selected_method = CreateGraph::Method::kRadius;
-        cmd.radius = r;
-        cmd.run(*e.registry());
+        return graph_from_cloud_radius_task(e, r, max_k);
     }
 
-    void graph_from_alpha_shape(float k)
+    PythonTask graph_from_alpha_shape(float alpha, int components)
     {
-        py::gil_scoped_release guard;
-
-        CreateGraph cmd { entt::handle(e) };
-        cmd.selected_method = CreateGraph::Method::kAlphaShape;
-        cmd.alpha = k;
-        cmd.run(*e.registry());
+        return graph_from_cloud_alpha_shape_task(e, alpha, components);
     }
 
     /// @return Entity

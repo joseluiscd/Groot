@@ -12,15 +12,17 @@
 GROOT_APP_API async::task<void> geodesic_graph_command(entt::handle h);
 GROOT_APP_API async::task<void> mst_graph_command(entt::handle h);
 
-struct GROOT_APP_API CreateGraph : public CommandGui {
-    CreateGraph(entt::registry& registry)
-        : CreateGraph(entt::handle(
-            registry,
-            registry.ctx<SelectedEntity>().selected))
-    {
-    }
+GROOT_APP_API async::task<void> graph_from_cloud_knn_task(entt::handle h, int k);
+GROOT_APP_API async::task<void> graph_from_cloud_radius_task(entt::handle h, float radius, int max_k = 0);
+GROOT_APP_API async::task<void> graph_from_cloud_alpha_shape_task(entt::handle h, float alpha = 0.0f, int components = 1);
 
-    CreateGraph(entt::handle&& handle);
+enum class CommandState : bool {
+    Ok = false,
+    Error = true,
+};
+
+struct GROOT_APP_API CreateGraph final {
+    CreateGraph(entt::handle handle);
 
     enum Method {
         kRadius = 0,
@@ -65,11 +67,22 @@ struct GROOT_APP_API CreateGraph : public CommandGui {
 
     std::optional<groot::PlantGraph> result = {};
 
-    GuiState draw_gui() override;
-    CommandState execute() override;
-    void on_finish(entt::registry& reg) override;
+    void execute();
+    void on_finish(entt::registry& reg);
+};
 
-    static constexpr const char* root_find_labels[RootFindMethod::kRootFindMethod_COUNT] = {
+class GROOT_APP_API CreateGraphGui final : public DialogGui {
+public:
+    CreateGraphGui(entt::handle h)
+        : gui(new CreateGraph(h))
+    {
+    }
+
+    void schedule_commands(entt::registry& reg) override;
+    void draw_dialog() override;
+    std::string_view name() const override { return "Create Graph"; }
+
+    static constexpr const char* root_find_labels[CreateGraph::kRootFindMethod_COUNT] = {
         "Z min",
         "Y min",
         "X min",
@@ -78,9 +91,11 @@ struct GROOT_APP_API CreateGraph : public CommandGui {
         "X max"
     };
 
-    static constexpr const char* make_tree_method_labels[MakeTreeMethod::kMakeTreeMethod_COUNT] = {
+    static constexpr const char* make_tree_method_labels[CreateGraph::kMakeTreeMethod_COUNT] = {
         "None",
         "Geodesic",
         "Minimum Spanning Tree",
     };
+private:
+    CreateGraph* gui;
 };

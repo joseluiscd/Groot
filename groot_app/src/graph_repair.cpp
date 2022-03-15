@@ -1,3 +1,4 @@
+#include <groot_app/components.hpp>
 #include <groot_app/graph_repair.hpp>
 #include <groot_graph/connectivity_repair.hpp>
 

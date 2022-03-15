@@ -2,7 +2,6 @@
 
 #include <groot_app/entt.hpp>
 #include <groot_app/command_gui.hpp>
-#include <groot_app/command.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/task.hpp>
 #include <boost/iterator/transform_iterator.hpp>
