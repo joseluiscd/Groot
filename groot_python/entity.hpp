@@ -229,9 +229,9 @@ public:
         return graph_from_cloud_knn_task(e, k);
     }
 
-    PythonTask graph_from_cloud_radius(float r, int max_k)
+    PythonTask graph_from_cloud_radius(float r)
     {
-        return graph_from_cloud_radius_task(e, r, max_k);
+        return graph_from_cloud_radius_task(e, r);
     }
 
     PythonTask graph_from_alpha_shape(float alpha, int components)

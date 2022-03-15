@@ -32,12 +32,12 @@ async::task<void> graph_from_cloud_knn_task(entt::handle h, int k)
         .emplace_component<groot::PlantGraph>(h);
 }
 
-async::task<void> graph_from_cloud_radius_task(entt::handle h, float radius, int max_k)
+async::task<void> graph_from_cloud_radius_task(entt::handle h, float radius)
 {
     return create_task()
         .require_component<PointCloud>(h)
-        .then_async([radius, max_k](PointCloud* cloud) {
-            return groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { max_k, radius, groot::SearchType::kRadiusSearch });
+        .then_async([radius](PointCloud* cloud) {
+            return groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { 0, radius, groot::SearchType::kRadiusSearch });
         })
         .emplace_component<groot::PlantGraph>(h);
 }

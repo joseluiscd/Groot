@@ -13,7 +13,7 @@ GROOT_APP_API async::task<void> geodesic_graph_command(entt::handle h);
 GROOT_APP_API async::task<void> mst_graph_command(entt::handle h);
 
 GROOT_APP_API async::task<void> graph_from_cloud_knn_task(entt::handle h, int k);
-GROOT_APP_API async::task<void> graph_from_cloud_radius_task(entt::handle h, float radius, int max_k = 0);
+GROOT_APP_API async::task<void> graph_from_cloud_radius_task(entt::handle h, float radius);
 GROOT_APP_API async::task<void> graph_from_cloud_alpha_shape_task(entt::handle h, float alpha = 0.0f, int components = 1);
 
 enum class CommandState : bool {
