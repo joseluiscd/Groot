@@ -29,6 +29,7 @@ public:
     float radius = 1.0;
 };
 
+/*
 class GROOT_APP_API RecenterCloud : public CommandGui {
 public:
     RecenterCloud(entt::registry& reg);
@@ -46,6 +47,7 @@ private:
 
     int selected;
 };
+*/
 
 
 class GROOT_APP_LOCAL SplitCloudGui : public DialogGui {

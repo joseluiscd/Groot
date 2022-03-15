@@ -58,6 +58,7 @@ async::task<void> compute_normals_command(entt::handle e, size_t k, float radius
         });
 }
 
+/*
 RecenterCloud::RecenterCloud(entt::registry& _reg)
     : reg(_reg)
 {
@@ -102,6 +103,7 @@ void RecenterCloud::on_finish(entt::registry& reg)
 {
     reg.emplace_or_replace<PointCloud>(target, std::move(centered));
 }
+*/
 
 struct SplitCloudCommandData {
     std::string name;
