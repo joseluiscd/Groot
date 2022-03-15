@@ -218,13 +218,10 @@ public:
         return cylinder_connect_graph_command(e);
     }
 
-    void graph_cluster(int intervals)
+    /// @return None
+    PythonTask graph_cluster_interval_count(int intervals)
     {
-        py::gil_scoped_release guard;
-
-        GraphCluster cmd { entt::handle(e) };
-        cmd.interval_count = intervals;
-        cmd.run(*e.registry());
+        return graph_cluster_fixed_interval_task(e, intervals);
     }
 
     void graph_from_cloud_knn(int k)

@@ -7,28 +7,17 @@
 #include <list>
 #include <vector>
 
-async::task<void> graph_cluster_fixed_interval_task(entt::handle h, size_t interval_count);
+GROOT_APP_API async::task<void> graph_cluster_fixed_interval_task(entt::handle h, size_t interval_count);
 
-class GROOT_APP_API GraphCluster : public CommandGui {
+class GROOT_APP_LOCAL GraphClusterGui : public DialogGui {
 public:
-    GraphCluster(entt::handle&& handle);
-    GraphCluster(entt::registry& _reg)
-        : GraphCluster(entt::handle {
-            _reg,
-            _reg.ctx<SelectedEntity>().selected })
-    {
-    }
+    GraphClusterGui(entt::handle h)
+        : target(h)
+    {}
 
-    CommandState execute() override;
-    GuiState draw_gui() override;
-    void on_finish(entt::registry& reg) override;
-
-private:
-    entt::registry& reg;
-    entt::entity target;
-
-    groot::PlantGraph* graph;
-    PlantGraphNodePoints points;
+    void draw_dialog() override;
+    void schedule_commands(entt::registry& reg) override;
+    std::string_view name() const override { return "Graph cluster"; }
 
     enum IntervalType : int {
         FixedIntervalDistance = 0,
@@ -44,18 +33,16 @@ private:
         CentroidType_COUNT
     };
 
-    IntervalType selected_interval_type = IntervalType::FixedIntervalCount;
+private:
+    entt::handle target;
+    static IntervalType selected_interval_type;
+    static CentroidType selected_centroid_type;
 
-    CentroidType selected_centroid_type = CentroidType::CentroidMedian;
+    static float interval_distance;
+    static int interval_count;
 
     static constexpr const char* centroid_type_labels[] = {
         "Median",
         "Mean",
     };
-
-public:
-    float interval_distance = 1.0;
-    int interval_count = 50;
-
-    groot::PlantGraph result;
 };

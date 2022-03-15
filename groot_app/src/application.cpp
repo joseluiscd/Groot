@@ -228,7 +228,7 @@ void Application::draw_gui()
                 open_new_window_adaptor<CreateGraph>(registry);
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tClustering...")) {
-                open_new_window_adaptor<GraphCluster>(registry);
+                open_new_window<GraphClusterGui>(get_selected_handle());
             }
             if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tCompute from cylinders")) {
                 registry.ctx<TaskManager>().push_task(
