@@ -16,14 +16,7 @@ GROOT_APP_API async::task<void> graph_from_cloud_knn_task(entt::handle h, int k)
 GROOT_APP_API async::task<void> graph_from_cloud_radius_task(entt::handle h, float radius);
 GROOT_APP_API async::task<void> graph_from_cloud_alpha_shape_task(entt::handle h, float alpha = 0.0f, int components = 1);
 
-enum class CommandState : bool {
-    Ok = false,
-    Error = true,
-};
-
-struct GROOT_APP_API CreateGraph final {
-    CreateGraph(entt::handle handle);
-
+struct GROOT_APP_LOCAL CreateGraph final {
     enum Method {
         kRadius = 0,
         kKnn,
@@ -50,10 +43,6 @@ struct GROOT_APP_API CreateGraph final {
         kMakeTreeMethod_COUNT,
     };
 
-    entt::registry& registry;
-    entt::entity target;
-    PointCloud* cloud;
-
     int selected_method = 0;
     int selected_root_find_method = 1;
     int selected_make_tree_method = 0;
@@ -65,16 +54,14 @@ struct GROOT_APP_API CreateGraph final {
     float alpha = 0.0;
     int components = 1;
 
-    std::optional<groot::PlantGraph> result = {};
-
-    void execute();
-    void on_finish(entt::registry& reg);
+    groot::PlantGraph execute(PointCloud* cloud) const;
 };
 
 class GROOT_APP_API CreateGraphGui final : public DialogGui {
 public:
     CreateGraphGui(entt::handle h)
-        : gui(new CreateGraph(h))
+        : cmd()
+        , target(h)
     {
     }
 
@@ -97,5 +84,6 @@ public:
         "Minimum Spanning Tree",
     };
 private:
-    CreateGraph* gui;
+    CreateGraph cmd;
+    entt::handle target;
 };

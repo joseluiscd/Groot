@@ -57,68 +57,58 @@ void CreateGraphGui::schedule_commands(entt::registry& reg)
     reg.ctx<TaskManager>().push_task(
         "Creating graph",
         create_task()
-            .then_async([_cmd = std::exchange(gui, nullptr)]() {
-                std::unique_ptr<CreateGraph> cmd { _cmd };
-                cmd->execute();
-                return cmd;
+            .require_component<PointCloud>(target)
+            .then_async([cmd = this->cmd](PointCloud* cloud) {
+                return cmd.execute(cloud);
             })
-            .then_sync([&reg](std::unique_ptr<CreateGraph>&& cmd) {
-                cmd->on_finish(reg);
-            })
+            .emplace_component<groot::PlantGraph>(target)
             .build());
-}
-
-CreateGraph::CreateGraph(entt::handle handle)
-    : registry(*handle.registry())
-    , target(handle.entity())
-{
-    cloud = require_components<PointCloud>(handle);
 }
 
 void CreateGraphGui::draw_dialog()
 {
     ImGui::Text("Topology build method");
-    ImGui::RadioButton("Radius search", (int*)&gui->selected_method, CreateGraph::Method::kRadius);
-    ImGui::RadioButton("kNN", (int*)&gui->selected_method, CreateGraph::Method::kKnn);
-    ImGui::RadioButton("3D Delaunay", (int*)&gui->selected_method, CreateGraph::Method::kDelaunay);
-    ImGui::RadioButton("Alpha-shape", (int*)&gui->selected_method, CreateGraph::Method::kAlphaShape);
-    ImGui::RadioButton("Cárdenas-Donoso et al. (2021)", (int*)&gui->selected_method, CreateGraph::Method::kCardenasDonosoEtAl);
+    ImGui::RadioButton("Radius search", (int*)&cmd.selected_method, CreateGraph::Method::kRadius);
+    ImGui::RadioButton("kNN", (int*)&cmd.selected_method, CreateGraph::Method::kKnn);
+    ImGui::RadioButton("3D Delaunay", (int*)&cmd.selected_method, CreateGraph::Method::kDelaunay);
+    ImGui::RadioButton("Alpha-shape", (int*)&cmd.selected_method, CreateGraph::Method::kAlphaShape);
+    ImGui::RadioButton("Cárdenas-Donoso et al. (2021)", (int*)&cmd.selected_method, CreateGraph::Method::kCardenasDonosoEtAl);
     ImGui::Separator();
 
     ImGui::Text("Parameters");
 
-    switch (gui->selected_method) {
+    switch (cmd.selected_method) {
     case CreateGraph::kRadius:
-        ImGui::InputDouble("Radius", &gui->radius, 0.1, 0.5);
+        ImGui::InputDouble("Radius", &cmd.radius, 0.1, 0.5);
         break;
 
     case CreateGraph::kKnn:
-        ImGui::InputInt("k", &gui->k, 1, 5);
+        ImGui::InputInt("k", &cmd.k, 1, 5);
         break;
 
     case CreateGraph::kDelaunay:
         ImGui::Text("--None--");
         break;
     case CreateGraph::kAlphaShape:
-        ImGui::Checkbox("Desired components", &gui->use_alpha_components);
+        ImGui::Checkbox("Desired components", &cmd.use_alpha_components);
 
-        if (gui->use_alpha_components) {
-            ImGui::InputInt("# Components", &gui->components);
-            gui->alpha = 0.0;
+        if (cmd.use_alpha_components) {
+            ImGui::InputInt("# Components", &cmd.components);
+            cmd.alpha = 0.0;
         } else {
-            ImGui::InputFloat("Alpha", &gui->alpha);
+            ImGui::InputFloat("Alpha", &cmd.alpha);
         }
         break;
     case CreateGraph::kCardenasDonosoEtAl:
-        ImGui::InputDouble("Point cloud resolution", &gui->radius);
+        ImGui::InputDouble("Point cloud resolution", &cmd.radius);
         break;
     }
 
     ImGui::Separator();
 
-    ImGui::Combo("Root find", &gui->selected_root_find_method, root_find_labels, CreateGraph::kRootFindMethod_COUNT);
+    ImGui::Combo("Root find", &cmd.selected_root_find_method, root_find_labels, CreateGraph::kRootFindMethod_COUNT);
 
-    ImGui::Combo("Remove Loops", &gui->selected_make_tree_method, make_tree_method_labels, CreateGraph::kMakeTreeMethod_COUNT);
+    ImGui::Combo("Remove Loops", &cmd.selected_make_tree_method, make_tree_method_labels, CreateGraph::kMakeTreeMethod_COUNT);
 }
 
 const groot::point_finder::PointFinder& choose_point_finder(int m)
@@ -141,7 +131,7 @@ const groot::point_finder::PointFinder& choose_point_finder(int m)
     }
 }
 
-void CreateGraph::execute()
+groot::PlantGraph CreateGraph::execute(PointCloud* cloud) const
 {
     groot::PlantGraph graph;
 
@@ -188,12 +178,5 @@ void CreateGraph::execute()
 
     spdlog::info("Plant graph is created!");
 
-    this->result = std::move(graph);
-}
-
-void CreateGraph::on_finish(entt::registry& reg)
-{
-    if (this->result) {
-        registry.emplace_or_replace<groot::PlantGraph>(target, std::move(*this->result));
-    }
+    return graph;
 }
