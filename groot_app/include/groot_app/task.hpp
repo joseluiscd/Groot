@@ -185,6 +185,11 @@ public:
         auto it = tasks.begin();
         while (it != tasks.end()) {
             if (it->second.ready()) {
+                try {
+                    it->second.get();
+                } catch (const std::exception& e) {
+                    err(e.what());
+                }
                 tasks.erase(it++);
             } else {
                 try {
