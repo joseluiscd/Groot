@@ -159,23 +159,18 @@ void run(entt::registry& registry)
     });
 
     const auto view = registry.view<GraphViewerComponent, Visible>();
+    // gfx::DebugDraw::Builder dd;
+
     for (const auto entity : view) {
         groot::PlantGraph& graph = registry.get<groot::PlantGraph>(entity);
         GraphViewerComponent& graph_view = registry.get<GraphViewerComponent>(entity);
 
-        gfx::DebugDraw::Builder dd;
+        // dd.set_color(graph_view.root_color);
 
-        dd.set_color(graph_view.root_color);
-
-        glm::vec3 root;
-        if (graph.m_property->root_index >= boost::num_vertices(graph)) {
-            root = glm::vec3(+INFINITY, +INFINITY, +INFINITY);
-        } else {
-            root = *reinterpret_cast<glm::vec3*>(&graph[graph.m_property->root_index].position);
+        if (graph.m_property->root_index < boost::num_vertices(graph)) {
+            glm::vec3 root = *reinterpret_cast<glm::vec3*>(&graph[graph.m_property->root_index].position);
+            // dd.point(root);
         }
-
-        dd.point(root);
-        gfx::DebugDraw d = dd.build();
 
         gfx::RenderPass pass(view_data.framebuffer, gfx::ClearOperation::nothing());
         auto pipe = pass.viewport({ 0, 0 }, view_data.size)
@@ -206,6 +201,9 @@ void run(entt::registry& registry)
             }
         }
     }
+
+    //gfx::DebugDraw d = dd.build(view_data.debug_ctx);
+    //d.do_render_pass(view_data.framebuffer, *view_data.camera);
 }
 
 const char* vertex_shader_source = "\n"
@@ -252,6 +250,7 @@ void ComponentEditorWidget<graph_viewer_system::GraphViewerComponent>(entt::regi
     ImGui::Checkbox("Show points", &t.show_points);
     if (t.show_points) {
         ImGui::ColorEdit3("Point color", glm::value_ptr(*t.color_point));
+        ImGui::ColorEdit3("Root color", glm::value_ptr(t.root_color));
         ImGui::DragFloat("Point size", &*t.point_size, 0.05, INFINITY);
     }
 

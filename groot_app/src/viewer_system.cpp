@@ -55,7 +55,8 @@ void init(entt::registry& registry)
         gfx::Framebuffer(),
         std::move(camera),
         std::move(lens),
-        glm::ivec2(0, 0)
+        glm::ivec2(0, 0),
+        gfx::create_debug_draw_context()
     };
 
     data.framebuffer

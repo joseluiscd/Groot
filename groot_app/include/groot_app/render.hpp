@@ -1,12 +1,13 @@
 #pragma once
 
-#include <groot_app/groot_app.hpp>
-#include "gfx/imgui/imgui.h"
-#include <groot_app/entt.hpp>
 #include <gfx/camera.hpp>
+#include <gfx/debug_draw.hpp>
 #include <gfx/framebuffer.hpp>
+#include <gfx/imgui/imgui.h>
 #include <gfx/uniform.hpp>
 #include <gfx/vertex_array.hpp>
+#include <groot_app/entt.hpp>
+#include <groot_app/groot_app.hpp>
 
 using namespace entt::literals;
 
@@ -55,6 +56,8 @@ struct GROOT_APP_LOCAL RenderData {
     std::unique_ptr<gfx::CameraRig> camera;
     std::unique_ptr<gfx::PerspectiveCameraLens> lens;
     glm::ivec2 size;
+
+    std::shared_ptr<gfx::DebugDrawContext> debug_ctx;
 
     RenderData(const RenderData&) = delete;
     RenderData(RenderData&&) = default;
