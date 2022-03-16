@@ -61,14 +61,8 @@ void recompute_edge_lengths(PlantGraph& graph)
     }
 }
 
-PlantGraph from_search(
-    cgal::Point_3* cloud,
-    size_t count,
-    const SearchParams& params)
+void make_kdtree(PlantGraph& graph, Point_3* cloud, size_t count, cgal::KdTree& kdtree)
 {
-    PlantGraph graph;
-    cgal::KdTree kdtree;
-
     for (size_t i = 0; i < count; i++) {
         Vertex vertex = boost::add_vertex(graph);
         graph[vertex].position = cloud[i];
@@ -76,31 +70,56 @@ PlantGraph from_search(
     }
 
     kdtree.build<CGAL::Parallel_tag>();
+}
+
+PlantGraph from_search_knn(
+    cgal::Point_3* cloud,
+    size_t count,
+    size_t k)
+{
+    PlantGraph graph;
+    cgal::KdTree kdtree;
+
+    make_kdtree(graph, cloud, count, kdtree);
 
     auto vertices = boost::vertices(graph);
-    if (params.search == SearchType::kRadiusSearch) {
-        std::list<cgal::Point3Vertex> search_result;
-
-        for (auto node = vertices.first; node != vertices.second; ++node) {
-            cgal::Point_3 point = graph[*node].position;
-            CGAL::Fuzzy_sphere<cgal::SearchTraits> query(point, params.radius);
-
-            kdtree.search(std::back_inserter(search_result), query);
-            for (auto it = search_result.begin(); it != search_result.end(); ++it) {
-                auto [edge, _] = boost::add_edge(*node, std::get<Vertex>(*it), graph);
-                graph[edge].length = std::sqrt(CGAL::squared_distance(point, std::get<cgal::Point_3>(*it)));
-            }
-            search_result.clear();
-        }
-    } else if (params.search == SearchType::kKnnSearch) {
-        for (auto node = vertices.first; node != vertices.second; ++node) {
-            cgal::KNeighbour knn(kdtree, graph[*node].position, params.k);
-            for (auto it = knn.begin(); it != knn.end(); ++it) {
-                auto [edge, _] = boost::add_edge(*node, std::get<Vertex>(it->first), graph);
-                graph[edge].length = it->second;
-            }
+    for (auto node = vertices.first; node != vertices.second; ++node) {
+        cgal::KNeighbour knn(kdtree, graph[*node].position, k);
+        for (auto it = knn.begin(); it != knn.end(); ++it) {
+            auto [edge, _] = boost::add_edge(*node, std::get<Vertex>(it->first), graph);
+            graph[edge].length = it->second;
         }
     }
+    spdlog::info("Edge count {}", boost::num_edges(graph));
+    reindex(graph);
+    return graph;
+}
+
+PlantGraph from_search_radius(
+    cgal::Point_3* cloud,
+    size_t count,
+    float radius)
+{
+    PlantGraph graph;
+    cgal::KdTree kdtree;
+
+    make_kdtree(graph, cloud, count, kdtree);
+
+    auto vertices = boost::vertices(graph);
+    std::list<cgal::Point3Vertex> search_result;
+
+    for (auto node = vertices.first; node != vertices.second; ++node) {
+        cgal::Point_3 point = graph[*node].position;
+        CGAL::Fuzzy_sphere<cgal::SearchTraits> query(point, radius);
+
+        kdtree.search(std::back_inserter(search_result), query);
+        for (auto it = search_result.begin(); it != search_result.end(); ++it) {
+            auto [edge, _] = boost::add_edge(*node, std::get<Vertex>(*it), graph);
+            graph[edge].length = std::sqrt(CGAL::squared_distance(point, std::get<cgal::Point_3>(*it)));
+        }
+        search_result.clear();
+    }
+
     spdlog::info("Edge count {}", boost::num_edges(graph));
     reindex(graph);
     return graph;
@@ -182,7 +201,7 @@ PlantGraph from_alpha_shape(
 
 PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f)
 {
-    PlantGraph radius_graph = from_search(cloud, count, SearchParams { 0, radius, SearchType::kRadiusSearch });
+    PlantGraph radius_graph = from_search_radius(cloud, count, radius);
 
     std::vector<size_t> connected_components(boost::num_vertices(radius_graph));
     auto component_map = boost::make_iterator_property_map(connected_components.begin(), boost::get(boost::vertex_index, radius_graph));
@@ -257,7 +276,7 @@ struct EdgeFilter {
     MapType map;
 };
 
-//TODO: Cleanup
+// TODO: Cleanup
 PlantGraph geodesic(const PlantGraph& graph, PropertyMap<float>* _distance_map, float* max_distance)
 {
     std::vector<Vertex> predecessors(boost::num_vertices(graph));
@@ -319,7 +338,7 @@ PlantGraph geodesic(const PlantGraph& graph, PropertyMap<float>* _distance_map, 
     return ret;
 }
 
-//TODO: Cleanup
+// TODO: Cleanup
 PlantGraph minimum_spanning_tree(const PlantGraph& graph, PropertyMap<float>* _distance_map, float* max_distance)
 {
     std::vector<Vertex> predecessors(boost::num_vertices(graph));

@@ -12,19 +12,6 @@
 
 namespace groot {
 
-enum class SearchType {
-    kKnnSearch = 0,
-    kRadiusSearch = 1,
-    kCount,
-};
-
-struct GROOT_GRAPH_LOCAL SearchParams {
-    int k;
-    float radius;
-
-    SearchType search;
-};
-
 struct VertexProperties;
 struct EdgeProperties;
 struct PlantProperties;
@@ -167,10 +154,16 @@ GROOT_GRAPH_API PlantGraph from_alpha_shape(
     size_t count,
     float alpha = 0.0f,
     size_t components = 1);
-GROOT_GRAPH_API PlantGraph from_search(
+
+GROOT_GRAPH_API PlantGraph from_search_knn(
     cgal::Point_3* cloud,
     size_t size,
-    const SearchParams& search = SearchParams { 3, 0.0, SearchType::kKnnSearch });
+    size_t k);
+
+GROOT_GRAPH_API PlantGraph from_search_radius(
+    cgal::Point_3* cloud,
+    size_t size,
+    float radius);
 
 GROOT_GRAPH_API PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f = point_finder::MinY());
 

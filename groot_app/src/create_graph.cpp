@@ -27,7 +27,7 @@ async::task<void> graph_from_cloud_knn_task(entt::handle h, int k)
     return create_task()
         .require_component<PointCloud>(h)
         .then_async([k](PointCloud* cloud) {
-            return groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { k, 0.0, groot::SearchType::kKnnSearch });
+            return groot::from_search_knn(cloud->cloud.data(), cloud->cloud.size(), k);
         })
         .emplace_component<groot::PlantGraph>(h);
 }
@@ -37,7 +37,7 @@ async::task<void> graph_from_cloud_radius_task(entt::handle h, float radius)
     return create_task()
         .require_component<PointCloud>(h)
         .then_async([radius](PointCloud* cloud) {
-            return groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { 0, radius, groot::SearchType::kRadiusSearch });
+            return groot::from_search_radius(cloud->cloud.data(), cloud->cloud.size(), radius);
         })
         .emplace_component<groot::PlantGraph>(h);
 }
@@ -138,11 +138,11 @@ groot::PlantGraph CreateGraph::execute(PointCloud* cloud) const
     switch (selected_method) {
     case kKnn:
         spdlog::info("Running knn search...");
-        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { (int)k, (float)radius, groot::SearchType::kKnnSearch });
+        graph = groot::from_search_knn(cloud->cloud.data(), cloud->cloud.size(), k);
         break;
     case kRadius:
         spdlog::info("Running radius search...");
-        graph = groot::from_search(cloud->cloud.data(), cloud->cloud.size(), groot::SearchParams { (int)k, (float)radius, groot::SearchType::kRadiusSearch });
+        graph = groot::from_search_radius(cloud->cloud.data(), cloud->cloud.size(), radius);
         break;
     case kDelaunay:
         spdlog::info("Building 3D Delaunay...");
