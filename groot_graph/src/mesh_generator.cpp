@@ -70,7 +70,7 @@ Mesh generate_mesh(const PlantGraph& graph, const PropertyMap<float>& radii, con
         glm::vec3 u = glm::normalize(to_glm(Kernel::Plane_3(point, tangent).base1())) * radius;
 
         for (size_t rotIdx = 0; rotIdx < resolution; ++rotIdx) {
-            glm::vec3 normal;// = glm::rotate(u, glm::radians(rotIdx * resolution / 360.0), to_glm(tangent));
+            glm::vec3 normal = glm::rotate(u, glm::radians(rotIdx * resolution / 360.0f), to_glm(tangent));
             glm::vec3 result = g_p + normal;
             normal = glm::normalize(normal);
 

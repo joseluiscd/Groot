@@ -31,7 +31,7 @@ public:
     float radius = 1.0;
 };
 
-class GROOT_APP_API RecenterCloud : public DialogGui {
+class GROOT_APP_LOCAL RecenterCloud : public DialogGui {
 public:
     RecenterCloud(entt::handle h)
         : target(h)
