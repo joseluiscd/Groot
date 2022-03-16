@@ -58,52 +58,37 @@ async::task<void> compute_normals_command(entt::handle e, size_t k, float radius
         });
 }
 
-/*
-RecenterCloud::RecenterCloud(entt::registry& _reg)
-    : reg(_reg)
+async::task<void> recenter_cloud_centroid_task(entt::handle h)
 {
-    target = reg.ctx<SelectedEntity>().selected;
-
-    if (reg.valid(target) && reg.all_of<PointCloud>(target)) {
-        this->cloud = &reg.get<PointCloud>(target);
-    } else {
-        throw std::runtime_error("Selected entity must have PointCloud");
-    }
+    return create_task()
+        .require_component<PointCloud>(h)
+        .then_async([](PointCloud* cloud) {
+            groot::recenter_cloud_centroid(cloud->cloud.data(), cloud->cloud.size());
+        });
 }
 
-GuiState RecenterCloud::draw_gui()
+async::task<void> recenter_cloud_bbox_task(entt::handle h)
 {
-    bool show = true;
-    ImGui::OpenPopup("Compute normals");
-    if (ImGui::BeginPopupModal("Compute normals", &show, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)) {
-        ImGui::RadioButton("Using centroid##recenter", &selected, 0);
-        ImGui::RadioButton("Using bounding box center##recenter", &selected, 1);
-
-        ImGui::Separator();
-
-        if (ImGui::Button("Run")) {
-            ImGui::EndPopup();
-            return GuiState::RunAsync;
-        }
-
-        ImGui::EndPopup();
-    }
-
-    return show ? GuiState::Editing : GuiState::Close;
+    return create_task()
+        .require_component<PointCloud>(h)
+        .then_async([](PointCloud* cloud) {
+            groot::recenter_cloud_bounding_box(cloud->cloud.data(), cloud->cloud.size());
+        });
 }
 
-CommandState RecenterCloud::execute()
+int RecenterCloud::selected = 0;
+
+void RecenterCloud::draw_dialog()
 {
-    this->centered = *this->cloud;
-    groot::recenter_cloud_centroid(centered.cloud.data(), centered.cloud.size());
-    return CommandState::Ok;
+    ImGui::RadioButton("Using centroid##recenter", &selected, 0);
+    ImGui::RadioButton("Using bounding box center##recenter", &selected, 1);
 }
 
-void RecenterCloud::on_finish(entt::registry& reg)
+void RecenterCloud::schedule_commands(entt::registry& reg)
 {
-    reg.emplace_or_replace<PointCloud>(target, std::move(centered));
+    reg.ctx<TaskManager>()
+        .push_task("Recentering cloud", selected == 0 ? recenter_cloud_centroid_task(target) : recenter_cloud_bbox_task(target));
 }
-*/
 
 struct SplitCloudCommandData {
     std::string name;
@@ -127,7 +112,7 @@ async::task<std::vector<entt::handle>> split_cloud_command(entt::handle h, float
 
             Name* maybe_name = h.try_get<Name>();
 
-            data.cloud = require_components<PointCloud>(h);
+            data.cloud = handle_require_components<PointCloud>(h);
             data.normals = h.try_get<PointNormals>();
             data.colors = h.try_get<PointColors>();
             data.name = maybe_name ? maybe_name->name : "cloud";

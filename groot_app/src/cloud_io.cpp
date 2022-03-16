@@ -49,7 +49,7 @@ async::task<entt::entity> import_ply_command(entt::registry& reg, const std::str
 ExportPLYGui::ExportPLYGui(entt::handle handle)
     : FileDialogGui(FileDialogType::Save, "Save PLY Cloud", { ".ply" })
 {
-    require_components<PointCloud>(handle);
+    handle_require_components<PointCloud>(handle);
 }
 
 void ExportPLYGui::schedule_commands(entt::registry& reg, const std::string& filename)

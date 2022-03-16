@@ -17,7 +17,7 @@ async::task<void> cylinder_marching_command(entt::handle h, const groot::Ransac:
 {
     return create_task()
         .then_sync([h]() {
-            return require_components<PointCloud, PointNormals>(h);
+            return handle_require_components<PointCloud, PointNormals>(h);
         })
         .then_async([params, voxel_size](std::tuple<PointCloud*, PointNormals*>&& input) {
             PointCloud* cloud = std::get<0>(input);
@@ -37,9 +37,7 @@ async::task<void> cylinder_marching_command(entt::handle h, const groot::Ransac:
 async::task<void> cylinder_filter_command(entt::handle h, const CylinderFilterParams& params)
 {
     return create_task()
-        .then_sync([h]() {
-            return require_components<Cylinders>(h);
-        })
+        .require_component<Cylinders>(h)
         .then_async([params](const Cylinders* cylinders) {
             Cylinders new_cylinders;
 
@@ -67,9 +65,7 @@ async::task<void> cylinder_point_filter_command(entt::handle h)
 {
     // TODO: Take into account Normals and colors
     return create_task()
-        .then_sync([h]() {
-            return require_components<Cylinders>(h);
-        })
+        .require_component<Cylinders>(h)
         .then_async([](const Cylinders* cylinders) {
             PointCloud cloud;
             for (size_t i = 0; i < cylinders->cylinders.size(); i++) {
@@ -87,9 +83,7 @@ async::task<void> cylinder_point_filter_command(entt::handle h)
 async::task<void> cylinder_connect_graph_command(entt::handle h)
 {
     return create_task()
-        .then_sync([h]() {
-            return require_components<Cylinders>(h);
-        })
+        .require_component<Cylinders>(h)
         .then_async([](Cylinders* cylinders) {
             return groot::connect_cylinders(cylinders->cylinders.data(), cylinders->cylinders.size());
         })

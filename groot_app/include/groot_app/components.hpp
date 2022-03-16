@@ -83,9 +83,9 @@ std::string get_component_name_list()
 
 
 // Returns pointer or tuple of pointers to requested components.
-// The pointers are safe to dereference if the components are not modified/removed.
+// The pointers are safe to dereference if the components are not modified/removed externally.
 template <typename... Components>
-decltype(auto) require_components(entt::handle h)
+decltype(auto) handle_require_components(entt::handle h)
 {
     entt::registry& registry = *h.registry();
     entt::entity target = h.entity();

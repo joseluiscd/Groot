@@ -62,7 +62,7 @@ public:
     CylinderMarching(entt::handle handle)
         : target(handle)
     {
-        require_components<PointCloud, PointNormals>(handle);
+        handle_require_components<PointCloud, PointNormals>(handle);
     }
 
     void draw_dialog() override;
@@ -90,7 +90,7 @@ public:
     CylinderFilter(entt::handle handle)
         : target(handle)
     {
-        require_components<Cylinders>(handle);
+        handle_require_components<Cylinders>(handle);
     }
     void draw_dialog() override;
     void schedule_commands(entt::registry& reg) override;

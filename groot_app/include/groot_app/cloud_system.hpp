@@ -1,13 +1,15 @@
 #pragma once
 
+#include "groot/cloud.hpp"
+#include <groot/cgal.hpp>
 #include <groot_app/command_gui.hpp>
 #include <groot_app/components.hpp>
-#include "groot/cloud.hpp"
 #include <groot_app/entt.hpp>
-#include <groot/cgal.hpp>
 
 GROOT_APP_API async::task<void> compute_normals_command(entt::handle e, size_t k, float radius);
 GROOT_APP_API async::task<std::vector<entt::handle>> split_cloud_command(entt::handle h, float voxel_size);
+GROOT_APP_API async::task<void> recenter_cloud_centroid_task(entt::handle h);
+GROOT_APP_API async::task<void> recenter_cloud_bbox_task(entt::handle h);
 
 class GROOT_APP_LOCAL ComputeNormals : public DialogGui {
 public:
@@ -29,32 +31,29 @@ public:
     float radius = 1.0;
 };
 
-/*
-class GROOT_APP_API RecenterCloud : public CommandGui {
+class GROOT_APP_API RecenterCloud : public DialogGui {
 public:
-    RecenterCloud(entt::registry& reg);
+    RecenterCloud(entt::handle h)
+        : target(h)
+    {
+    }
 
-    GuiState draw_gui() override;
-    CommandState execute() override;
-    void on_finish(entt::registry& reg) override;
+    void draw_dialog() override;
+    void schedule_commands(entt::registry& reg) override;
+    std::string_view name() const override { return "Recenter Cloud"; }
 
 private:
-    entt::registry& reg;
-    PointCloud* cloud;
-    entt::entity target;
+    entt::handle target;
 
-    PointCloud centered;
-
-    int selected;
+    static int selected;
 };
-*/
-
 
 class GROOT_APP_LOCAL SplitCloudGui : public DialogGui {
 public:
     SplitCloudGui(entt::handle h)
         : target(h)
-    {}
+    {
+    }
 
     void draw_dialog() override;
     std::string_view name() const override { return "Split cloud in voxels"; }

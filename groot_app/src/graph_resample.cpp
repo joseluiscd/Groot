@@ -12,10 +12,7 @@ async::task<entt::entity> graph_resample_command(entt::handle h, float sample_le
     entt::entity e = h.entity();
 
     return create_task()
-        .then_sync([&reg, e]() -> groot::PlantGraph* {
-            groot::PlantGraph* graph = require_components<groot::PlantGraph>(entt::handle(reg, e));
-            return graph;
-        })
+        .require_component<groot::PlantGraph>(h)
         .then_async([sample_length](groot::PlantGraph* graph) -> groot::PlantGraph {
             return groot::resample_plant_graph(*graph, sample_length);
         })
@@ -42,8 +39,8 @@ async::task<entt::entity> graph_match_command(entt::handle h1, entt::handle h2)
         .then_sync([&reg, e1, e2]() {
             std::pair<groot::PlantGraph*, groot::PlantGraph*> r;
 
-            r.first = require_components<groot::PlantGraph>(entt::handle(reg, e1));
-            r.second = require_components<groot::PlantGraph>(entt::handle(reg, e2));
+            r.first = handle_require_components<groot::PlantGraph>(entt::handle(reg, e1));
+            r.second = handle_require_components<groot::PlantGraph>(entt::handle(reg, e2));
 
             return r;
         })

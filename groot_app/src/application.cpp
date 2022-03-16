@@ -218,6 +218,10 @@ void Application::draw_gui()
                 open_new_window<SplitCloudGui>(get_selected_handle());
             }
 
+            if (ImGui::MenuItem(ICON_FA_ARROWS_ALT "\tRecenter cloud...")) {
+                open_new_window<RecenterCloud>(get_selected_handle());
+            }
+
             ImGui::EndMenu();
         }
 

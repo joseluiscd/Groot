@@ -87,7 +87,15 @@ public:
     inline auto require_component(entt::handle h)
     {
         return this->then_sync([h]() {
-            return require_components<Component>(h);
+            return handle_require_components<Component>(h);
+        });
+    }
+
+    template <typename Component>
+    inline auto require_components(entt::handle h)
+    {
+        return this->then_sync([h]() {
+            return handle_require_components<Component>(h);
         });
     }
 
@@ -144,7 +152,7 @@ inline TaskBuilder<void> create_task()
 template <typename... Components>
 inline auto create_task_require_components(entt::handle h)
 {
-    return create_task().then_sync([h]() { return require_components<Components...>(); });
+    return create_task().then_sync([h]() { return handle_require_components<Components...>(); });
 }
 
 /**

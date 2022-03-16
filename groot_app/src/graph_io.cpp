@@ -42,7 +42,7 @@ ExportGraphGui::ExportGraphGui(entt::handle handle)
     : FileDialogGui(FileDialogType::Save, "Save OBJ Graph", { ".obj" })
     , target(handle)
 {
-    require_components<groot::PlantGraph>(target);
+    handle_require_components<groot::PlantGraph>(target);
 }
 
 void ExportGraphGui::schedule_commands(entt::registry& reg, const std::string& filename)
@@ -56,12 +56,9 @@ void ExportGraphGui::schedule_commands(entt::registry& reg, const std::string& f
 async::task<void> export_graph_command(entt::handle e, const std::string_view& file)
 {
     return create_task()
-        .then_sync([e]() {
-            const groot::PlantGraph* plant = require_components<groot::PlantGraph>(e);
-            spdlog::info("Saving OBJ...");
-            return plant;
-        })
+        .require_component<groot::PlantGraph>(e)
         .then_async([file = std::string(file)](const groot::PlantGraph* plant) {
+            spdlog::info("Saving OBJ...");
             groot::save_plant_graph(file.c_str(), *plant);
             spdlog::info("Finished saving OBJ!");
         });

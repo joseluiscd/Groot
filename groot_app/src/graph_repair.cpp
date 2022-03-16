@@ -21,7 +21,7 @@ async::task<void> graph_repair_command(entt::handle h)
 {
     return create_task()
         .then_sync([h]() {
-            require_components<groot::PlantGraph>(h);
+            handle_require_components<groot::PlantGraph>(h);
             if (h.all_of<ConnectedComponents>()) {
                 return async::spawn(async::inline_scheduler(), discard);
             } else {

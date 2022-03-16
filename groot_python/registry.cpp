@@ -34,7 +34,7 @@ void create_registry_type(py::module& m)
         "compute_cardenas_et_al", +[](Entity e, float radius) {
             return PythonTask {
                 async::spawn(sync_scheduler(), [e]() {
-                    PointCloud* cloud = require_components<PointCloud>(e.e);
+                    PointCloud* cloud = handle_require_components<PointCloud>(e.e);
                     return cloud;
                 }).then(async_scheduler(), [radius](PointCloud* cloud) {
                       groot::PlantGraph graph = groot::from_cardenas_et_al(cloud->cloud.data(), cloud->cloud.size(), radius);
@@ -50,8 +50,8 @@ void create_registry_type(py::module& m)
             py::gil_scoped_release guard;
             return PythonTask {
                 async::spawn(sync_scheduler(), [e, f]() {
-                    groot::PlantGraph* g1 = require_components<groot::PlantGraph>(e.e);
-                    groot::PlantGraph* g2 = require_components<groot::PlantGraph>(f.e);
+                    groot::PlantGraph* g1 = handle_require_components<groot::PlantGraph>(e.e);
+                    groot::PlantGraph* g2 = handle_require_components<groot::PlantGraph>(f.e);
 
                     return std::make_pair(g1, g2);
                 }).then(async_scheduler(), [](std::pair<groot::PlantGraph*, groot::PlantGraph*>&& graphs) {
@@ -70,7 +70,7 @@ void create_registry_type(py::module& m)
             py::gil_scoped_release guard;
             return PythonTask {
                 async::spawn(sync_scheduler(), [e]() {
-                    return require_components<groot::PlantGraph>(e.e);
+                    return handle_require_components<groot::PlantGraph>(e.e);
                 }).then(async_scheduler(), [](groot::PlantGraph* g) {
                     py::gil_scoped_acquire guard;
                     return py::cast(groot::plant_graph_nn_score_mse(*g));
