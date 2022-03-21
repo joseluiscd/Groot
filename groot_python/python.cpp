@@ -163,6 +163,7 @@ void create_pygroot_module(py::module_& m)
     py::module_ components = m.def_submodule("components", R"(Components module)");
 
     declare_python_component<groot::PlantGraph>(components, "PlantGraph");
+    declare_python_component<PointCloud>(components, "PointCloud");
     declare_python_component<PointNormals>(components, "PointNormals");
     declare_python_component<PointColors>(components, "PointColors");
     declare_python_component<PointCurvature>(components, "PointCurvature");
