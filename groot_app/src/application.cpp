@@ -24,13 +24,25 @@
 struct ApplicationProperties {
     glm::vec4 bg_color { 0.0, 0.1, 0.3, 0.0 };
 
-    void draw_window(bool* open = nullptr);
+    void draw_window(entt::registry& reg, bool* open = nullptr);
 };
 
-void ApplicationProperties::draw_window(bool* open)
+void ApplicationProperties::draw_window(entt::registry& reg, bool* open)
 {
     if (ImGui::Begin("Application Properties", open)) {
         ImGui::ColorEdit4("Background color", &bg_color[0]);
+
+        if (ImGui::CollapsingHeader("Camera")) {
+            gfx::CameraRig& rig = *reg.ctx<RenderData>().camera;
+            gfx::PerspectiveCameraLens& lens = (gfx::PerspectiveCameraLens&) rig.lens();
+            
+            lens.edit_fields([](gfx::PerspectiveCameraLens::Fields& f) {
+                ImGui::InputFloat("z-near", &f.znear);
+                ImGui::InputFloat("z-far", &f.zfar);
+                ImGui::InputFloat("fovy", &f.fovy);
+            });
+            ImGui::TreePop();
+        }
     }
     ImGui::End();
 }
@@ -348,7 +360,7 @@ void Application::draw_gui()
     draw_console_log();
 
     if (windows.application_properties) {
-        props.draw_window(&windows.application_properties);
+        props.draw_window(registry, &windows.application_properties);
     }
 
     if (windows.demo_window)
