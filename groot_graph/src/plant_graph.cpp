@@ -61,7 +61,7 @@ void recompute_edge_lengths(PlantGraph& graph)
     }
 }
 
-void make_kdtree(PlantGraph& graph, Point_3* cloud, size_t count, cgal::KdTree& kdtree)
+void make_kdtree(PlantGraph& graph, const Point_3* cloud, size_t count, cgal::KdTree& kdtree)
 {
     for (size_t i = 0; i < count; i++) {
         Vertex vertex = boost::add_vertex(graph);
@@ -73,7 +73,7 @@ void make_kdtree(PlantGraph& graph, Point_3* cloud, size_t count, cgal::KdTree& 
 }
 
 PlantGraph from_search_knn(
-    cgal::Point_3* cloud,
+    const cgal::Point_3* cloud,
     size_t count,
     size_t k)
 {
@@ -96,7 +96,7 @@ PlantGraph from_search_knn(
 }
 
 PlantGraph from_search_radius(
-    cgal::Point_3* cloud,
+    const cgal::Point_3* cloud,
     size_t count,
     float radius)
 {
@@ -125,7 +125,7 @@ PlantGraph from_search_radius(
     return graph;
 }
 
-PlantGraph from_delaunay(cgal::Point_3* cloud, size_t count)
+PlantGraph from_delaunay(const cgal::Point_3* cloud, size_t count)
 {
     PlantGraph graph;
     cgal::Delaunay delaunay;
@@ -155,7 +155,7 @@ PlantGraph from_delaunay(cgal::Point_3* cloud, size_t count)
 }
 
 PlantGraph from_alpha_shape(
-    cgal::Point_3* cloud,
+    const cgal::Point_3* cloud,
     size_t count,
     float alpha,
     size_t components)
@@ -199,7 +199,7 @@ PlantGraph from_alpha_shape(
     return graph;
 }
 
-PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f)
+PlantGraph from_cardenas_et_al(const Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f)
 {
     PlantGraph radius_graph = from_search_radius(cloud, count, radius);
 

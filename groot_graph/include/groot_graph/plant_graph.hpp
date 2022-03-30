@@ -45,7 +45,7 @@ struct GROOT_GRAPH_LOCAL EdgeProperties {
 };
 
 struct GROOT_GRAPH_LOCAL PlantProperties {
-    //float max_root_distance = 0.0;
+    // float max_root_distance = 0.0;
     size_t root_index = 0;
 };
 
@@ -136,7 +136,7 @@ namespace point_finder {
 
 GROOT_GRAPH_API PlantGraph empty();
 GROOT_GRAPH_API PlantGraph from_delaunay(
-    cgal::Point_3* cloud,
+    const cgal::Point_3* cloud,
     size_t size);
 
 /**
@@ -150,22 +150,26 @@ GROOT_GRAPH_API PlantGraph from_delaunay(
  *   this number of connected components.
  */
 GROOT_GRAPH_API PlantGraph from_alpha_shape(
-    cgal::Point_3* cloud,
+    const cgal::Point_3* cloud,
     size_t count,
     float alpha = 0.0f,
     size_t components = 1);
 
 GROOT_GRAPH_API PlantGraph from_search_knn(
-    cgal::Point_3* cloud,
+    const cgal::Point_3* cloud,
     size_t size,
     size_t k);
 
 GROOT_GRAPH_API PlantGraph from_search_radius(
-    cgal::Point_3* cloud,
+    const cgal::Point_3* cloud,
     size_t size,
     float radius);
 
-GROOT_GRAPH_API PlantGraph from_cardenas_et_al(Point_3* cloud, size_t count, float radius, const point_finder::PointFinder& f = point_finder::MinY());
+GROOT_GRAPH_API PlantGraph from_cardenas_et_al(
+    const Point_3* cloud,
+    size_t count,
+    float radius,
+    const point_finder::PointFinder& f = point_finder::MinY());
 
 /**
  * @brief Computes distances to ther root on the original graph and returns simplified version.
