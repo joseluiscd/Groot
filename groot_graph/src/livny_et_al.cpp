@@ -72,33 +72,27 @@ PropertyMap<float> compute_weights(const PlantGraph& g)
 }
 
 struct ParentOrientationCostFunction {
-    ParentOrientationCostFunction(double _weight, double _parent_weight, double* parent)
-        : sq_weight((_weight + _parent_weight) / 2.0)
-        , op(parent)
+    ParentOrientationCostFunction(double _weight, double _parent_weight)
+        : weight((_weight + _parent_weight) / 2.0)
     {
-        sq_weight *= sq_weight;
     }
 
     template <typename T>
-    bool operator()(const T* o, T* residual) const
+    bool operator()(const T* o, const T* op, T* residual) const
     {
-        T diff_x = op[0] - o[0];
-        T diff_y = op[1] - o[1];
-        T diff_z = op[2] - o[2];
-
-        T k = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
-        *residual = sq_weight * k;
+        residual[0] = weight * (op[0] - o[0]);
+        residual[1] = weight * (op[1] - o[1]);
+        residual[2] = weight * (op[2] - o[2]);
 
         return true;
     }
 
-    double sq_weight;
-    double* op;
+    double weight;
 };
 
 struct EdgeCostFunction {
     EdgeCostFunction(double _weight, glm::dvec3 _edge_direction)
-        : sq_weight(_weight * _weight)
+        : weight(_weight)
         , edge_direction(_edge_direction)
     {
     }
@@ -106,18 +100,14 @@ struct EdgeCostFunction {
     template <typename T>
     bool operator()(const T* o, T* residual) const
     {
-        T diff_x = o[0] - edge_direction[0];
-        T diff_y = o[1] - edge_direction[1];
-        T diff_z = o[2] - edge_direction[2];
-
-        T k = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
-
-        *residual = sq_weight * k;
+        residual[0] = weight * (o[0] - edge_direction[0]);
+        residual[1] = weight * (o[1] - edge_direction[1]);
+        residual[2] = weight * (o[2] - edge_direction[2]);
 
         return true;
     }
 
-    double sq_weight;
+    double weight;
     glm::dvec3 edge_direction;
 };
 
@@ -149,18 +139,24 @@ PropertyMap<glm::dvec3> compute_orientation_field(const PlantGraph& g, const Pro
 
         orientations[o] = edge_direction; 
 
-        ceres::CostFunction* f_parent_orientation = new ceres::AutoDiffCostFunction<ParentOrientationCostFunction, 1, 3>(
-            new ParentOrientationCostFunction(weights[o], weights[op], &orientations[op].x));
+        ceres::CostFunction* f_parent_orientation = new ceres::AutoDiffCostFunction<ParentOrientationCostFunction, 3, 3, 3>(
+            new ParentOrientationCostFunction(weights[o], weights[op]));
 
-        ceres::CostFunction* f_edge = new ceres::AutoDiffCostFunction<EdgeCostFunction, 1, 3>(
+        ceres::CostFunction* f_edge = new ceres::AutoDiffCostFunction<EdgeCostFunction, 3, 3>(
             new EdgeCostFunction(weights[o], edge_direction));
 
-        problem.AddResidualBlock(f_parent_orientation, nullptr, &orientations[o].x);
+        problem.AddResidualBlock(f_parent_orientation, nullptr, &orientations[o].x, &orientations[op].x);
         problem.AddResidualBlock(f_edge, nullptr, &orientations[o].x);
     }
 
     ceres::Solver::Options options;
     ceres::Solver::Summary summary;
+
+    options.max_num_iterations = 300;
+
+#ifndef NDEBUG
+    options.minimizer_progress_to_stdout = true;
+#endif
 
     ceres::Solve(options, &problem, &summary);
 
