@@ -15,6 +15,7 @@
 #include <groot_app/graph_repair.hpp>
 #include <groot_app/graph_resample.hpp>
 #include <groot_app/graph_viewer_system.hpp>
+#include <groot_app/livny_et_al.hpp>
 #include <groot_app/render.hpp>
 #include <groot_app/screenshot.hpp>
 #include <groot_app/viewer_system.hpp>
@@ -34,8 +35,8 @@ void ApplicationProperties::draw_window(entt::registry& reg, bool* open)
 
         if (ImGui::CollapsingHeader("Camera")) {
             gfx::CameraRig& rig = *reg.ctx<RenderData>().camera;
-            gfx::PerspectiveCameraLens& lens = (gfx::PerspectiveCameraLens&) rig.lens();
-            
+            gfx::PerspectiveCameraLens& lens = (gfx::PerspectiveCameraLens&)rig.lens();
+
             lens.edit_fields([](gfx::PerspectiveCameraLens::Fields& f) {
                 ImGui::InputFloat("z-near", &f.znear);
                 ImGui::InputFloat("z-far", &f.zfar);
@@ -282,6 +283,13 @@ void Application::draw_gui()
                 registry.ctx<TaskManager>().push_task(
                     "Graph repair",
                     graph_repair_command(get_selected_handle()));
+            }
+
+            ImGui::Separator();
+            if (ImGui::MenuItem(ICON_FA_COMPASS "\tCompute orientation field")) {
+                registry.ctx<TaskManager>().push_task(
+                    "Orientation field",
+                    compute_orientation_field_task(get_selected_handle()));
             }
             ImGui::EndMenu();
         }

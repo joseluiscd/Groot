@@ -91,11 +91,11 @@ public:
         });
     }
 
-    template <typename Component>
+    template <typename... Components>
     inline auto require_components(entt::handle h)
     {
         return this->then_sync([h]() {
-            return handle_require_components<Component>(h);
+            return handle_require_components<Components...>(h);
         });
     }
 
@@ -120,6 +120,19 @@ public:
                 std::move(tp));
         });
     }
+
+    template <typename... Components, typename F>
+    inline TaskBuilder<void> if_not_components(entt::handle h, F&& f)
+    {
+        return this->then_sync([h, f = std::forward<F>(f)]() {
+            if (! h.all_of<Components...>()) {
+                return f(h);
+            } else {
+                return async::make_task();
+            }
+        });
+    }
+
 
     operator async::task<Result>()
     {

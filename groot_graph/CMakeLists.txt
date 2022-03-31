@@ -17,7 +17,11 @@ add_library(groot_graph
 
 target_link_libraries(
     groot_graph
+    PUBLIC
     groot_base
+
+    PRIVATE
+    Ceres::ceres
 )
 target_compile_definitions(groot_graph
     PUBLIC GROOT_DLL GROOT_GRAPH_DLL

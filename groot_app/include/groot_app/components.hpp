@@ -52,6 +52,14 @@ struct ConnectedComponents {
     groot::DisjointSets components;
 };
 
+struct OrientationField {
+    std::vector<glm::dvec3> orientations;
+};
+
+struct BranchWeights {
+    std::vector<float> weights;
+};
+
 //TODO: Distances to root
 struct GraphDistanceToRoot {
     std::vector<float> distance;

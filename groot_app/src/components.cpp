@@ -25,6 +25,9 @@ void init_components(entt::registry& reg)
     entity_editor.registerComponent<groot::PlantGraph>("PlantGraph");
     entity_editor.registerComponent<PlantGraphNodePoints>("PlantNodePoints");
     entity_editor.registerComponent<ConnectedComponents>("Connected Components");
+    entity_editor.registerComponent<BranchWeights>("BranchWeights");
+    entity_editor.registerComponent<OrientationField>("OrientationField");
+
 
     // Ensure that the normals are always "valid"
     reg.on_construct<PointNormals>().connect<&check_normals_cloud>();
@@ -34,6 +37,11 @@ void init_components(entt::registry& reg)
     // No connected components if no graph
     reg.on_destroy<groot::PlantGraph>().connect<&entt::registry::remove<ConnectedComponents>>();
     reg.on_update<groot::PlantGraph>().connect<&entt::registry::remove<ConnectedComponents>>();
+
+    reg.on_destroy<groot::PlantGraph>().connect<&entt::registry::remove<BranchWeights>>();
+    reg.on_destroy<groot::PlantGraph>().connect<&entt::registry::remove<OrientationField>>();
+    reg.on_update<groot::PlantGraph>().connect<&entt::registry::remove<BranchWeights>>();
+    reg.on_update<groot::PlantGraph>().connect<&entt::registry::remove<OrientationField>>();
 }
 
 namespace MM {
@@ -185,6 +193,34 @@ void ComponentEditorWidget<ConnectedComponents>(entt::registry& reg, entt::entit
 
     if (query_result > 0) {
         ImGui::Text("Component: %zu", query_result);
+    }
+}
+
+template <>
+void ComponentEditorWidget<BranchWeights>(entt::registry& reg, entt::entity e)
+{
+    auto& t = reg.get<BranchWeights>(e);
+    ImGui::Text("Number of weights: %zu", t.weights.size());
+
+    if (ImGui::TreeNode("Weights")) {
+        for (size_t i = 0; i < t.weights.size(); i++) {
+            ImGui::Text("ID: %zu, Weight: %f", i, t.weights[i]);
+        }
+        ImGui::TreePop();
+    }
+}
+
+template <>
+void ComponentEditorWidget<OrientationField>(entt::registry& reg, entt::entity e)
+{
+    auto& t = reg.get<OrientationField>(e);
+    ImGui::Text("Number of orientations: %zu", t.orientations.size());
+
+    if (ImGui::TreeNode("Orientations")) {
+        for (size_t i = 0; i < t.orientations.size(); i++) {
+            ImGui::Text("ID: %zu, (%f, %f, %f)", i, t.orientations[i].x, t.orientations[i].y, t.orientations[i].z);
+        }
+        ImGui::TreePop();
     }
 }
 
