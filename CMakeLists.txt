@@ -46,6 +46,7 @@ set(GFX_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(JUST_INSTALL_CEREAL ON CACHE BOOL "")
 set(CEREAL_INSTALL ON CACHE BOOL "")
 set(DOCTEST_WITH_MAIN_IN_STATIC_LIB  OFF CACHE BOOL "")
+set(SUITESPARSE OFF CACHE BOOL "")
 include(CMakePackageConfigHelpers)
 
 add_subdirectory(3rdparty/gfx)
@@ -54,6 +55,7 @@ add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/entt)
 add_subdirectory(3rdparty/asyncplusplus)
 add_subdirectory(3rdparty/pybind11)
+add_subdirectory(3rdparty/ceres-solver)
 
 
 include(CGAL_TBB_support)
@@ -102,6 +104,7 @@ install(TARGETS
     cereal
     doctest
     groot_base
+    ceres
 
     EXPORT GrootTargets
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/groot)
