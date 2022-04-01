@@ -291,6 +291,12 @@ void Application::draw_gui()
                     "Orientation field",
                     compute_orientation_field_task(get_selected_handle()));
             }
+            if (ImGui::MenuItem(ICON_FA_HAMMER "\tMake Livny et al. 2010")) {
+                registry.ctx<TaskManager>().push_task(
+                    "Building Tree",
+                    reconstruct_livny_task(get_selected_handle())
+                );
+            }
             ImGui::EndMenu();
         }
 

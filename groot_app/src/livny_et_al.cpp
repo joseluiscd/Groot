@@ -25,3 +25,13 @@ async::task<void> compute_orientation_field_task(entt::handle h)
         })
         .emplace_component<OrientationField>(h);
 }
+
+async::task<void> reconstruct_livny_task(entt::handle h, groot::point_finder::PointFinder& pf)
+{
+    return create_task()
+        .require_component<PointCloud>(h)
+        .then_async([&pf](PointCloud* cloud) {
+            return groot::reconstruct_livny_et_al(cloud->cloud.data(), cloud->cloud.size(), pf, 10);
+        })
+        .emplace_component<groot::PlantGraph>(h);
+}

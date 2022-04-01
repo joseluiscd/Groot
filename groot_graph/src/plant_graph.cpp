@@ -398,6 +398,20 @@ PlantGraph minimum_spanning_tree(const PlantGraph& graph, PropertyMap<float>* _d
     return ret;
 }
 
+PlantGraph rebuild_minimum_spanning_tree(
+    const PlantGraph& g,
+    PropertyMap<float>* distance_map,
+    float* max_distance)
+{
+    std::vector<Point_3> points(boost::num_vertices(g));
+    for (auto [it, end] = boost::vertices(g); it != end; ++it) {
+        points[*it] = g[*it].position;
+    }
+
+    PlantGraph new_graph = from_delaunay(points.data(), points.size());
+    return minimum_spanning_tree(new_graph, distance_map, max_distance);
+}
+
 namespace point_finder {
 
     MinX MinXPointFinder;

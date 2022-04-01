@@ -189,9 +189,13 @@ GROOT_GRAPH_API PlantGraph geodesic(const PlantGraph& g, PropertyMap<float>* dis
  */
 GROOT_GRAPH_API PlantGraph minimum_spanning_tree(const PlantGraph& g, PropertyMap<float>* distance_map = nullptr, float* max_distance = nullptr);
 
+GROOT_GRAPH_API PlantGraph rebuild_minimum_spanning_tree(const PlantGraph& g, PropertyMap<float>* distance_map = nullptr, float* max_distance = nullptr);
+
 GROOT_GRAPH_LOCAL inline void find_root(PlantGraph& graph, const point_finder::PointFinder& pf = point_finder::MinY())
 {
     graph.m_property->root_index = boost::get(boost::vertex_index, graph)[pf(graph)];
 }
+
+groot::PlantGraph remove_duplicates(const groot::PlantGraph& g);
 
 }

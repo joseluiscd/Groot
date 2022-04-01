@@ -111,7 +111,7 @@ struct EdgeCostFunction {
     glm::dvec3 edge_direction;
 };
 
-PropertyMap<glm::dvec3> compute_orientation_field(const PlantGraph& g, const PropertyMap<float>& weights)
+PropertyMap<glm::dvec3> compute_orientation_field(const PlantGraph& g, const PropertyMap<float>& weights, unsigned max_iterations)
 {
     ceres::Problem problem;
     PropertyMap<glm::dvec3> orientations(boost::num_vertices(g));
@@ -137,7 +137,7 @@ PropertyMap<glm::dvec3> compute_orientation_field(const PlantGraph& g, const Pro
         glm::dvec3 edge_direction(_ed.x(), _ed.y(), _ed.z());
         edge_direction = glm::normalize(edge_direction);
 
-        orientations[o] = edge_direction; 
+        orientations[o] = edge_direction;
 
         ceres::CostFunction* f_parent_orientation = new ceres::AutoDiffCostFunction<ParentOrientationCostFunction, 3, 3, 3>(
             new ParentOrientationCostFunction(weights[o], weights[op]));
@@ -152,7 +152,7 @@ PropertyMap<glm::dvec3> compute_orientation_field(const PlantGraph& g, const Pro
     ceres::Solver::Options options;
     ceres::Solver::Summary summary;
 
-    options.max_num_iterations = 300;
+    options.max_num_iterations = max_iterations;
 
 #ifndef NDEBUG
     options.minimizer_progress_to_stdout = true;
@@ -165,15 +165,148 @@ PropertyMap<glm::dvec3> compute_orientation_field(const PlantGraph& g, const Pro
     return orientations;
 }
 
-groot::PlantGraph reconstruct_livny_et_al(const Point_3* cloud, size_t size, point_finder::PointFinder& root_finder)
+struct OrientationUpdateCostFunction {
+    inline OrientationUpdateCostFunction(
+        const glm::dvec3& orig_u,
+        const glm::dvec3& orig_v,
+        const glm::dvec3& orientation_u,
+        const glm::dvec3& orientation_v,
+        double u_weight,
+        double v_weight)
+
+        : weight(0.5 * (u_weight + v_weight))
+        , second((glm::length(orig_u - orig_v) * (orientation_u + orientation_v)) / (glm::length(orientation_u + orientation_v)))
+    {
+    }
+
+    template <typename T>
+    bool operator()(const T* u, const T* v, T* residual) const
+    {
+        residual[0] = weight * (u[0] - v[0] - second[0]);
+        residual[1] = weight * (u[1] - v[1] - second[1]);
+        residual[2] = weight * (u[2] - v[2] - second[2]);
+        return true;
+    }
+
+    double weight;
+    glm::dvec3 second;
+};
+
+struct OrientationConstraintCostFunction {
+    inline OrientationConstraintCostFunction(
+        const glm::dvec3& orig_u,
+        const glm::dvec3& orig_v,
+        const glm::dvec3& orientation_u,
+        const glm::dvec3& orientation_v,
+        double u_weight,
+        double v_weight)
+
+        : weight(v_weight)
+        , original(0.5 * (orig_u + orig_v))
+    {
+    }
+
+    template <typename T>
+    bool operator()(const T* u, const T* v, T* residual) const
+    {
+        residual[0] = weight * (0.5 * (u[0] + v[0]) - original[0]);
+        residual[1] = weight * (0.5 * (u[1] + v[1]) - original[1]);
+        residual[2] = weight * (0.5 * (u[2] + v[2]) - original[2]);
+        return true;
+    }
+
+    double weight;
+    glm::dvec3 original;
+};
+
+void update_positions_for_orientation(
+    PlantGraph& g,
+    const PropertyMap<float>& weights,
+    const PropertyMap<glm::dvec3>& orientations,
+    unsigned max_iterations)
+{
+    ceres::Problem problem;
+
+    std::vector<glm::dvec3> positions(boost::num_vertices(g));
+    for (auto [it, end] = boost::vertices(g); it != end; ++it) {
+        positions[*it] = glm::dvec3(g[*it].position.x(), g[*it].position.y(), g[*it].position.z());
+    }
+
+    for (auto [it, end] = boost::edges(g); it != end; ++it) {
+        Vertex source = boost::source(*it, g);
+        Vertex target = boost::target(*it, g);
+
+        if (weights[target] > weights[source]) {
+            std::swap(target, source);
+        }
+
+        ceres::CostFunction* f1 = new ceres::AutoDiffCostFunction<OrientationUpdateCostFunction, 3, 3, 3>(
+            new OrientationUpdateCostFunction(
+                positions[source], positions[target],
+                orientations[source], orientations[target],
+                weights[source], weights[target]));
+
+        ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<OrientationConstraintCostFunction, 3, 3, 3>(
+            new OrientationConstraintCostFunction(
+                positions[source], positions[target],
+                orientations[source], orientations[target],
+                weights[source], weights[target]));
+
+        problem.AddResidualBlock(f1, nullptr, &positions[source].x, &positions[target].x);
+        problem.AddResidualBlock(f2, nullptr, &positions[source].x, &positions[target].x);
+    }
+
+    ceres::Solver::Options options;
+    ceres::Solver::Summary summary;
+
+    options.max_num_iterations = max_iterations;
+
+#ifndef NDEBUG
+    options.minimizer_progress_to_stdout = true;
+#endif
+
+    ceres::Solve(options, &problem, &summary);
+
+    spdlog::info(summary.BriefReport());
+
+    for (auto [it, end] = boost::vertices(g); it != end; ++it) {
+        g[*it].position = Point_3(positions[*it].x, positions[*it].y, positions[*it].z);
+    }
+}
+
+PlantGraph iteration_livny_et_al(
+    const PlantGraph& g,
+    point_finder::PointFinder& root_finder,
+    unsigned max_orientation_iterations,
+    unsigned max_relocation_iterations)
+{
+    PlantGraph mst = rebuild_minimum_spanning_tree(g);
+    find_root(mst, root_finder);
+
+    PropertyMap<float> vertex_weights = compute_weights(mst);
+    PropertyMap<glm::dvec3> orientations = compute_orientation_field(mst, vertex_weights, max_orientation_iterations);
+
+    update_positions_for_orientation(mst, vertex_weights, orientations, max_relocation_iterations);
+    return mst;
+}
+
+groot::PlantGraph reconstruct_livny_et_al(
+    const Point_3* cloud,
+    size_t size,
+    point_finder::PointFinder& root_finder,
+    unsigned max_iterations,
+    unsigned max_orientation_iterations,
+    unsigned max_relocation_iterations)
+
 {
     PlantGraph initial = from_delaunay(cloud, size);
     PlantGraph mst = minimum_spanning_tree(initial);
 
     find_root(mst, root_finder);
 
-    PropertyMap<float> vertex_weights = compute_weights(mst);
-    PropertyMap<glm::dvec3> orientations = compute_orientation_field(mst, vertex_weights);
+    for (unsigned i = 0; i < max_iterations; ++i) {
+        mst = iteration_livny_et_al(mst, root_finder, max_orientation_iterations, max_relocation_iterations);
+    }
 
     return mst;
 }
