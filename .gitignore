@@ -16,5 +16,6 @@ build_release/**
 out
 .vs
 CMakeSettings.json
+imgui.ini
 
 
