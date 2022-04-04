@@ -18,7 +18,7 @@ CloudData load_PLY(const char* filename)
 
     std::vector<cgal::Point_3> vertices;
     std::vector<cgal::Vector_3> normals;
-    std::vector<cgal::Vector_3> colors;
+    std::vector<glm::vec3> colors;
 
     std::shared_ptr<tinyply::PlyData> vertices_data = ply.request_properties_from_element("vertex", { "x", "y", "z" });
     std::shared_ptr<tinyply::PlyData> normals_data = ply.request_properties_from_element("vertex", { "nx", "ny", "nz" });
@@ -43,7 +43,7 @@ CloudData load_PLY(const char* filename)
     if (color_data != nullptr && color_data->t == tinyply::Type::UINT8) {
         glm::tvec3<uint8_t>* buffer = (glm::tvec3<uint8_t>*)color_data->buffer.get();
         std::transform(buffer, buffer + color_data->count, std::back_inserter(colors), [](const glm::tvec3<uint8_t>& current) {
-            return cgal::Vector_3(
+            return glm::vec3(
                 float(current.x) / 255.0f,
                 float(current.y) / 255.0f,
                 float(current.z) / 255.0f);

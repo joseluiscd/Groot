@@ -111,7 +111,7 @@ void CurvatureCylinder::create_shape(const std::vector<size_t>& indices)
     cylinder.middle_height = 0.5;
 }
 
-void CurvatureCylinder::squared_distance(const std::vector<size_t>& indices, std::vector<float>& distances) const
+void CurvatureCylinder::squared_distance(const std::vector<size_t>& indices, std::vector<double>& distances) const
 {
     for (size_t i = 0; i < indices.size(); i++) {
         distances[i] = this->squared_distance(this->point(i));

@@ -129,13 +129,13 @@ PlantGraph from_delaunay(const cgal::Point_3* cloud, size_t count)
 {
     PlantGraph graph;
     cgal::Delaunay delaunay;
+    auto make_exact = CGAL::Cartesian_converter<Kernel, ExactKernel>();
 
     for (size_t i = 0; i < count; i++) {
         Vertex vertex = boost::add_vertex(graph);
         graph[vertex].position = cloud[i];
 
-        Delaunay::Point_3 p(cloud[i].x(), cloud[i].y(), cloud[i].z());
-        cgal::Delaunay::Vertex_handle handle = delaunay.insert(p);
+        cgal::Delaunay::Vertex_handle handle = delaunay.insert(make_exact(cloud[i]));
         handle->info() = vertex;
     }
 
@@ -162,15 +162,14 @@ PlantGraph from_alpha_shape(
 {
     PlantGraph graph;
 
-    // Just something stupid
+    auto make_exact = CGAL::Cartesian_converter<Kernel, ExactKernel>();
+
     std::vector<std::pair<AlphaShape::Point_3, Vertex>> vertices;
     for (size_t i = 0; i < count; i++) {
         Vertex v = boost::add_vertex(graph);
         graph[v].position = cloud[i];
 
-        AlphaShape::Point_3 p(cloud[i].x(), cloud[i].y(), cloud[i].z());
-
-        vertices.push_back(std::make_pair(p, v));
+        vertices.push_back(std::make_pair(make_exact(cloud[i]), v));
     }
 
     cgal::AlphaShape alpha_shape(vertices.begin(), vertices.end());

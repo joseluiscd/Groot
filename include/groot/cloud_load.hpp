@@ -1,16 +1,16 @@
 #pragma once
 
+#include <glm/glm.hpp>
+#include <groot/cgal.hpp>
 #include <groot/groot.hpp>
 #include <vector>
-#include <groot/cgal.hpp>
-
 
 namespace groot {
 
 struct GROOT_API CloudData {
     std::vector<cgal::Point_3> points;
     std::optional<std::vector<cgal::Vector_3>> normals;
-    std::optional<std::vector<cgal::Vector_3>> colors;
+    std::optional<std::vector<glm::vec3>> colors;
 };
 
 GROOT_API CloudData load_PLY(const char* filename);

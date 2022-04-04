@@ -4,6 +4,7 @@
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <groot/cloud.hpp>
+#include <groot/glm_cgal.hpp>
 #include <groot_app/cloud_system.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/render.hpp>
@@ -298,7 +299,7 @@ void update_cloud_view(entt::registry& registry, entt::entity entity)
     edit_points.vector().clear();
 
     for (auto it = cloud.cloud.begin(); it != cloud.cloud.end(); ++it) {
-        edit_points.vector().push_back(glm::vec3(it->x(), it->y(), it->z()));
+        edit_points.vector().push_back(groot::to_glm(*it));
     }
 
     view_data.cloud_has_colors = registry.all_of<PointColors>(entity);
@@ -307,10 +308,8 @@ void update_cloud_view(entt::registry& registry, entt::entity entity)
         auto edit_colors = view_data.colors.edit(false);
 
         edit_colors.vector().clear();
+        std::copy(colors.colors.begin(), colors.colors.end(), std::back_inserter(edit_colors.vector()));
 
-        for (auto it = colors.colors.begin(); it != colors.colors.end(); ++it) {
-            edit_colors.vector().push_back(glm::vec3(it->x(), it->y(), it->z()));
-        }
         view_data.vao_colors.set_element_count(edit_points.vector().size());
     } else {
         view_data.uniform_color = true;
@@ -352,7 +351,7 @@ void create_curvature_view(entt::registry& reg, entt::entity entity)
     edit_curvature.vector().clear();
 
     for (auto it = curvature.direction.begin(); it != curvature.direction.end(); ++it) {
-        edit_curvature.vector().push_back(glm::vec3(it->direction.x(), it->direction.y(), it->direction.z()));
+        edit_curvature.vector().push_back(groot::to_glm(it->direction));
     }
 
     view_data.vao.set_element_count(edit_curvature.vector().size());

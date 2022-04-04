@@ -25,7 +25,7 @@ struct PointNormals {
 };
 
 struct PointColors {
-    std::vector<groot::Vector_3> colors;
+    std::vector<glm::vec3> colors;
 };
 
 struct PointCurvature {

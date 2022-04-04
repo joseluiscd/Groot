@@ -53,8 +53,8 @@ using CurvatureCenterSearchTraits = CGAL::Search_traits_adapter<size_t, Curvatur
 struct GROOT_GRAPH_LOCAL Cylinder {
     cgal::Point_3 center; // Point in the middle of the cylinder
     cgal::Vector_3 direction;
-    float radius;
-    float middle_height; // Height / 2.0
+    double radius;
+    double middle_height; // Height / 2.0
 };
 
 GROOT_GRAPH_API float distance(const Cylinder& cylinder, const Point_3& point);
@@ -74,13 +74,13 @@ public:
     }
 
     void create_shape(const std::vector<size_t>& indices) override;
-    float squared_distance(const Point_3& p) const override
+    double squared_distance(const Point_3& p) const override
     {
         Line_3 axis(this->cylinder.center, this->cylinder.direction);
         return CGAL::squared_distance(axis, p) - this->cylinder.radius;
     }
-    void squared_distance(const std::vector<size_t>& indices, std::vector<float>& distances) const override;
-    void cos_to_normal(const std::vector<size_t>& indices, std::vector<float>& angles) const override
+    void squared_distance(const std::vector<size_t>& indices, std::vector<double>& distances) const override;
+    void cos_to_normal(const std::vector<size_t>& indices, std::vector<double>& angles) const override
     {
         for (size_t i = 0; i < indices.size(); i++) {
             angles[i] = 1.0;
