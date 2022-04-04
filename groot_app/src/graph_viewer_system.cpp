@@ -5,6 +5,7 @@
 #include <gfx/render_pass.hpp>
 #include <gfx/vertex_array.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <groot/glm_cgal.hpp>
 #include <groot_app/components.hpp>
 #include <groot_app/entity_editor.hpp>
 #include <groot_app/graph_viewer_system.hpp>
@@ -47,6 +48,7 @@ GraphViewerComponent::GraphViewerComponent()
     , lines()
     , color_point(glm::vec3(1, 0, 0))
     , color_line(glm::vec3(0, 1, 0))
+    , root_color(1, 1, 1)
     , point_size(5.0)
 {
     point_vao
@@ -80,17 +82,15 @@ void update_viewer_component(entt::registry& registry, entt::entity entity)
         edit_lines.vector().clear();
 
         {
-            auto [it, end] = boost::vertices(_graph);
-            for (; it != end; ++it) {
-                groot::cgal::Point_3 position = _graph[*it].position;
-                edit_points.vector().push_back(glm::vec3(position.x(), position.y(), position.z()));
+            for (auto [it, end] = boost::vertices(_graph); it != end; ++it) {
+                const groot::cgal::Point_3& position = _graph[*it].position;
+                edit_points.vector().push_back(groot::to_glm(position));
             }
         }
         {
             auto vertex_indices = boost::get(boost::vertex_index, _graph);
 
-            auto [it, end] = boost::edges(_graph);
-            for (; it != end; ++it) {
+            for (auto [it, end] = boost::edges(_graph); it != end; ++it) {
                 groot::Vertex u = boost::source(*it, _graph);
                 groot::Vertex v = boost::target(*it, _graph);
 
@@ -103,8 +103,8 @@ void update_viewer_component(entt::registry& registry, entt::entity entity)
         view_data.line_vao.set_element_count(edit_lines.vector().size());
 
         if (boost::num_vertices(_graph) > 0) {
-            groot::cgal::Point_3 root_p = _graph[_graph.m_property->root_index].position;
-            view_data.root = glm::vec3(root_p.x(), root_p.y(), root_p.z());
+            const groot::cgal::Point_3& root_p = _graph[_graph.m_property->root_index].position;
+            view_data.root = groot::to_glm(root_p);
         }
     });
 };
@@ -168,7 +168,7 @@ void run(entt::registry& registry)
         // dd.set_color(graph_view.root_color);
 
         if (graph.m_property->root_index < boost::num_vertices(graph)) {
-            glm::vec3 root = *reinterpret_cast<glm::vec3*>(&graph[graph.m_property->root_index].position);
+            glm::vec3 root = groot::to_glm(graph[graph.m_property->root_index].position);
             // dd.point(root);
         }
 
@@ -202,34 +202,38 @@ void run(entt::registry& registry)
         }
     }
 
-    //gfx::DebugDraw d = dd.build(view_data.debug_ctx);
-    //d.do_render_pass(view_data.framebuffer, *view_data.camera);
+    // gfx::DebugDraw d = dd.build(view_data.debug_ctx);
+    // d.do_render_pass(view_data.framebuffer, *view_data.camera);
 }
 
-const char* vertex_shader_source = "\n"
-                                   "layout (location=0) in vec3 in_Position;\n"
-                                   "\n"
-                                   "out vec4 v_Color;\n"
-                                   "uniform mat4 u_mvMatrix;\n"
-                                   "uniform mat4 u_pMatrix;\n"
-                                   "uniform vec3 u_color;\n"
-                                   "uniform float point_size;\n"
-                                   "\n"
-                                   "void main()\n"
-                                   "{\n"
-                                   "    mat4 u_MvpMatrix = u_pMatrix * u_mvMatrix;\n"
-                                   "    gl_Position  = u_MvpMatrix * vec4(in_Position, 1.0);\n"
-                                   "    v_Color      = vec4(u_color, 1.0);\n"
-                                   "    gl_PointSize = point_size;\n"
-                                   "}\n";
-const char* fragment_shader_source = "\n"
-                                     "in  vec4 v_Color;\n"
-                                     "out vec4 out_FragColor;\n"
-                                     "\n"
-                                     "void main()\n"
-                                     "{\n"
-                                     "    out_FragColor = v_Color;\n"
-                                     "}\n";
+const char* vertex_shader_source = R"(
+layout (location=0) in vec3 in_Position;
+
+out vec4 v_Color;
+uniform mat4 u_mvMatrix;
+uniform mat4 u_pMatrix;
+uniform vec3 u_color;
+uniform float point_size;
+
+void main()
+{
+    mat4 u_MvpMatrix = u_pMatrix * u_mvMatrix;
+    gl_Position  = u_MvpMatrix * vec4(in_Position, 1.0);
+    v_Color      = vec4(u_color, 1.0);
+    gl_PointSize = point_size;
+}
+)";
+
+const char* fragment_shader_source = R"(
+in  vec4 v_Color;
+out vec4 out_FragColor;
+
+void main()
+{
+    out_FragColor = v_Color;
+}
+)";
+
 }
 
 namespace MM {
