@@ -8,6 +8,7 @@
 #include <vector>
 
 GROOT_APP_API async::task<void> graph_cluster_fixed_interval_task(entt::handle h, size_t interval_count);
+GROOT_APP_API async::task<void> graph_line_transform_task(entt::handle h);
 
 class GROOT_APP_LOCAL GraphClusterGui : public DialogGui {
 public:

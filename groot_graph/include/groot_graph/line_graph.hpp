@@ -18,6 +18,6 @@ struct LineGraph {
  * @param[in] input Input Graph
  * @param[out] direction For each vertex, the tangent direction.
 */
-groot::PlantGraph compute_line_graph(const groot::PlantGraph& input, PropertyMap<Vector_3>* direction = nullptr);
+GROOT_GRAPH_API groot::PlantGraph compute_line_graph(const groot::PlantGraph& input, PropertyMap<Vector_3>* direction = nullptr);
 
 }

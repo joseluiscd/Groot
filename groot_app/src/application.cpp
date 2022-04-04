@@ -261,6 +261,11 @@ void Application::draw_gui()
                     "MST graph",
                     mst_graph_command(get_selected_handle()));
             }
+            if (ImGui::MenuItem(ICON_FA_CALCULATOR "\tLine graph")) {
+                registry.ctx<TaskManager>().push_task(
+                    "Line graph",
+                    graph_line_transform_task(get_selected_handle()));
+            }
             ImGui::Separator();
             if (ImGui::MenuItem(ICON_FA_FILE_IMPORT "\tImport PlantGraph")) {
                 open_new_window<ImportGraphGui>();
