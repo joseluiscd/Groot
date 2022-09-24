@@ -47,6 +47,7 @@ set(JUST_INSTALL_CEREAL ON CACHE BOOL "")
 set(CEREAL_INSTALL ON CACHE BOOL "")
 set(DOCTEST_WITH_MAIN_IN_STATIC_LIB  OFF CACHE BOOL "")
 set(SUITESPARSE OFF CACHE BOOL "")
+set(MINIGLOG ON CACHE BOOL "")
 include(CMakePackageConfigHelpers)
 
 add_subdirectory(3rdparty/gfx)
